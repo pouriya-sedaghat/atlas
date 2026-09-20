@@ -31,14 +31,13 @@ import { applyAccessProfile } from './map/accessOverlay.js';
 import { applyDirectionProfile } from './map/directionArrows.js';
 import { EMPTY_COLLECTION, indexFeatures, toMapCollection } from './map/geojson.js';
 import {
-  FEATURE_KEY,
   ROAD_HIT_LAYER_ID,
   ROAD_HOVER_LAYER_ID,
   ROAD_SELECTED_LAYER_ID,
-  ROAD_SOURCE_ID,
   featureFilter,
   roadLayers,
 } from './map/roadLayers.js';
+import { FEATURE_KEY, ROAD_SOURCE_ID } from './map/roadPrimitives.js';
 import { BLANK_STYLE } from './map/style.js';
 import { DEFAULT_PROFILE, type TravelProfile } from './map/traversal.js';
 import { InspectorPanel, type InspectorSelection } from './ui/inspector.js';

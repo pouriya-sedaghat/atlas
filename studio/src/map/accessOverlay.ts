@@ -28,7 +28,7 @@ import {
   rulesInCategory,
   type OverlayCategory,
 } from './access.js';
-import { ROAD_SOURCE_ID, roadWidth } from './roadLayers.js';
+import { ROAD_SOURCE_ID, roadWidth } from './roadPrimitives.js';
 import { type TravelProfile } from './traversal.js';
 
 /** The layer id for one overlay category. */

@@ -29,6 +29,13 @@ configuration.
 Presentation lives entirely in the client. The server says `roadClass:
 "residential"`; the client decides that means a blue line 1.0 units wide.
 
+Within that client, the road modules are layered. `roadPrimitives` owns the
+shared, dependency-free facts every road layer needs — the source id, the
+feature-id property and `roadWidth` — and the leaf layer builders depend on it.
+`roadLayers` is the composition root: it owns the base colours, the layer ids
+and their order, and it assembles the leaf builders into one stack. Dependencies
+point toward the primitives and never back toward the composition root.
+
 Everything from the API is treated as untrusted text and written with
 `textContent`. Names come from an OSM file.
 
@@ -46,3 +53,8 @@ Everything from the API is treated as untrusted text and written with
 - MapLibre resolves its web worker relative to its own module URL, so the
   worker is handed to it explicitly through Vite; without that the GeoJSON
   source never finishes loading and the map stays blank.
+- A new visualization concern is a new leaf module importing the primitives,
+  not another edge into `roadLayers`. Before the split, `directionArrows` and
+  `accessOverlay` each imported the module that composed them, so every added
+  concern meant another ESM cycle that happened to work only because the
+  imported bindings were not read during module initialization.

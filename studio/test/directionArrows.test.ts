@@ -12,7 +12,8 @@ import {
   directionRotation,
 } from '../src/map/directionArrows.js';
 import type { DirectionLayerTarget } from '../src/map/directionArrows.js';
-import { ROAD_SOURCE_ID, roadLayers } from '../src/map/roadLayers.js';
+import { roadLayers } from '../src/map/roadLayers.js';
+import { ROAD_SOURCE_ID } from '../src/map/roadPrimitives.js';
 import { TRAVEL_PROFILES } from '../src/map/traversal.js';
 import type { TravelProfile } from '../src/map/traversal.js';
 

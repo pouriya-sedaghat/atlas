@@ -4,7 +4,7 @@ import type { FeatureCollection, LineString } from 'geojson';
 
 import type { AtlasFeature, AtlasFeatureCollection } from '../api/types.js';
 import { accessProperties } from './access.js';
-import { FEATURE_KEY } from './roadLayers.js';
+import { FEATURE_KEY } from './roadPrimitives.js';
 import { directionProperties } from './traversal.js';
 
 /** An empty collection, used before the first query answers. */
