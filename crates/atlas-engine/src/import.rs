@@ -177,6 +177,12 @@ pub enum IssueCode {
     AmbiguousOnewayScope,
     /// A direction that depends on a condition Atlas does not evaluate.
     UnsupportedConditionalOneway,
+    /// An access value was present but is not one Atlas understands.
+    UnknownAccessValue,
+    /// An access value was used on a key where it cannot mean what it says.
+    InvalidAccessScope,
+    /// An access rule that depends on a condition Atlas does not evaluate.
+    UnsupportedConditionalAccess,
 }
 
 impl IssueCode {
@@ -192,6 +198,9 @@ impl IssueCode {
             IssueCode::UnknownOnewayValue => "UNKNOWN_ONEWAY_VALUE",
             IssueCode::AmbiguousOnewayScope => "AMBIGUOUS_ONEWAY_SCOPE",
             IssueCode::UnsupportedConditionalOneway => "UNSUPPORTED_CONDITIONAL_ONEWAY",
+            IssueCode::UnknownAccessValue => "UNKNOWN_ACCESS_VALUE",
+            IssueCode::InvalidAccessScope => "INVALID_ACCESS_SCOPE",
+            IssueCode::UnsupportedConditionalAccess => "UNSUPPORTED_CONDITIONAL_ACCESS",
         }
     }
 }
@@ -437,6 +446,44 @@ mod tests {
         assert_eq!(
             IssueCode::UnsupportedConditionalOneway.as_str(),
             "UNSUPPORTED_CONDITIONAL_ONEWAY"
+        );
+        assert_eq!(
+            IssueCode::UnknownAccessValue.as_str(),
+            "UNKNOWN_ACCESS_VALUE"
+        );
+        assert_eq!(
+            IssueCode::InvalidAccessScope.as_str(),
+            "INVALID_ACCESS_SCOPE"
+        );
+        assert_eq!(
+            IssueCode::UnsupportedConditionalAccess.as_str(),
+            "UNSUPPORTED_CONDITIONAL_ACCESS"
+        );
+    }
+
+    #[test]
+    fn access_codes_sort_after_every_earlier_code() {
+        // Group order is the declaration order of the codes. The access codes
+        // were appended, so a client that already groups by code sees its
+        // existing warnings in exactly the order it saw them before.
+        let mut log = IssueLog::new();
+        log.record(IssueCode::UnsupportedConditionalAccess, "way/418");
+        log.record(IssueCode::UnknownOnewayValue, "way/311");
+        log.record(IssueCode::InvalidAccessScope, "way/423");
+        log.record(IssueCode::InvalidCoordinate, "node/1");
+        log.record(IssueCode::UnknownAccessValue, "way/417");
+        log.record(IssueCode::UnsupportedConditionalOneway, "way/313");
+        let codes: Vec<_> = log.groups().map(IssueGroup::code).collect();
+        assert_eq!(
+            codes,
+            vec![
+                IssueCode::InvalidCoordinate,
+                IssueCode::UnknownOnewayValue,
+                IssueCode::UnsupportedConditionalOneway,
+                IssueCode::UnknownAccessValue,
+                IssueCode::InvalidAccessScope,
+                IssueCode::UnsupportedConditionalAccess,
+            ]
         );
     }
 

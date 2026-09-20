@@ -44,8 +44,14 @@
           <div id="profile-panel"></div>
           <p class="note">
             Arrows show the one-way direction for the selected profile, along each road&rsquo;s own
-            coordinate order. Switching profile re-reads the data already loaded; it does not query
-            the server again.
+            coordinate order. The overlay shows what the source said about that profile&rsquo;s
+            access. The two are separate facts: a prohibited road still shows its arrow. Switching
+            profile re-reads the data already loaded; it does not query the server again.
+          </p>
+          <div id="legend-panel"></div>
+          <p class="note">
+            Access records what the source said, not whether a route may use the road. That
+            judgement belongs to a routing profile, which Atlas does not have yet.
           </p>
         </section>
 

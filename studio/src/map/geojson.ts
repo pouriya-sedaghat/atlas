@@ -3,6 +3,7 @@
 import type { FeatureCollection, LineString } from 'geojson';
 
 import type { AtlasFeature, AtlasFeatureCollection } from '../api/types.js';
+import { accessProperties } from './access.js';
 import { FEATURE_KEY } from './roadLayers.js';
 import { directionProperties } from './traversal.js';
 
@@ -21,7 +22,8 @@ export const EMPTY_COLLECTION: FeatureCollection<LineString> = {
  *   `feature-state` needs numeric ids, and Atlas ids are opaque strings, so
  *   hover and selection are driven by a property filter instead.
  * * The nested `traversal` block is flattened to one string property per
- *   profile, because a MapLibre expression cannot read into a nested object.
+ *   profile per fact — a direction and an access — because a MapLibre
+ *   expression cannot read into a nested object.
  *
  * Both are client-side rendering concerns. The wire format keeps the id where
  * GeoJSON says it belongs and keeps the traversal block nested, and the
@@ -44,6 +46,7 @@ export function toMapCollection(collection: AtlasFeatureCollection): FeatureColl
           ...rest,
           [FEATURE_KEY]: feature.id,
           ...directionProperties(traversal),
+          ...accessProperties(traversal),
         },
       };
     }),

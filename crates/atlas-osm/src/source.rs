@@ -18,6 +18,7 @@ use atlas_kernel::{
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::{Reader, XmlVersion};
 
+use crate::access::derive_access;
 use crate::direction::derive_traversal;
 use crate::model::{OsmNode, OsmNodeRef, OsmRelation, OsmWay};
 
@@ -435,10 +436,27 @@ fn collect_way_child(
             });
         }
         "tag" => {
-            if let (Some(key), Some(value)) = (
-                attribute_value(element, "k")?,
-                attribute_value(element, "v")?,
-            ) {
+            // A key with no `v` is kept, with an empty value.
+            //
+            // `<tag k="access"/>` is well-formed XML and a real thing to find
+            // in a file. Dropping it here would delete the mapper's statement
+            // before anything could judge it: the road would look untagged,
+            // and `Unspecified` — the one rule that means "nobody said
+            // anything" — would be recording something the source never did.
+            // Kept as an empty value, it reaches the semantic adapter as the
+            // unreadable value it is, and `<tag k="access"/>` and
+            // `<tag k="access" v=""/>` say the same thing, as they should.
+            //
+            // This is a normalisation, not a relaxation of the decode
+            // contract. `attribute_value` walks and decodes the element's
+            // entire attribute list on the lookup above, so a malformed or
+            // unresolvable attribute anywhere in the tag has already failed
+            // the import by the time an absent `v` is turned into a blank.
+            //
+            // A tag with no usable `k` is still dropped: it names nothing, so
+            // there is no key under which to record it.
+            if let Some(key) = attribute_value(element, "k")? {
+                let value = attribute_value(element, "v")?.unwrap_or_default();
                 way.tags.insert(key, value);
             }
         }
@@ -502,11 +520,20 @@ fn emit_way(
         issues.record(IssueCode::UnknownHighwayClass, entity.clone());
     }
 
-    // Direction is derived only for ways that actually become features, so a
-    // road skipped for broken geometry never contributes direction warnings
-    // about a road nobody can see.
+    // Direction and access are derived only for ways that actually become
+    // features, so a road skipped for broken geometry never contributes
+    // semantic warnings about a road nobody can see.
+    //
+    // They are derived independently and neither is an input to the other:
+    // access does not read the direction tags, direction does not read the
+    // access tags, and access is not given the classification at all.
     let derived = derive_traversal(&way.tags, &road_class);
     for code in derived.issues.codes() {
+        issues.record(code, entity.clone());
+    }
+
+    let access = derive_access(&way.tags);
+    for code in access.issues.codes() {
         issues.record(code, entity.clone());
     }
 
@@ -523,6 +550,7 @@ fn emit_way(
         FeatureKind::Road {
             class: road_class,
             traversal: derived.traversal,
+            access: access.access,
         },
         Geometry::from(line),
         way.tags.get("name").map(str::to_owned),
@@ -1104,6 +1132,324 @@ mod tests {
         assert_eq!(outcome.issues.count_of(IssueCode::UnsupportedRelation), 1);
         // The relation's own tags must not leak into the way's feature.
         assert_eq!(road_classes(&sink), vec!["residential"]);
+    }
+
+    #[test]
+    fn every_emitted_road_carries_access_for_every_mode() {
+        let (sink, outcome) = import(
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="2" lat="35.69" lon="51.39"/>
+                 <way id="10"><nd ref="1"/><nd ref="2"/><tag k="highway" v="residential"/></way>
+                 <way id="11">
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="highway" v="service"/>
+                   <tag k="access" v="no"/>
+                   <tag k="foot" v="yes"/>
+                 </way>
+               </osm>"#,
+        );
+        assert_eq!(sink.features.len(), 2);
+
+        // A road with no access tags says so; it does not say "allowed".
+        let untagged = sink.features[0].kind().road_access().expect("a road");
+        assert_eq!(*untagged, atlas_kernel::RoadAccess::unspecified());
+
+        let tagged = sink.features[1].kind().road_access().expect("a road");
+        assert_eq!(tagged.motorcar(), atlas_kernel::AccessRule::Prohibited);
+        assert_eq!(tagged.bicycle(), atlas_kernel::AccessRule::Prohibited);
+        assert_eq!(tagged.foot(), atlas_kernel::AccessRule::Allowed);
+        assert!(outcome.issues.is_empty());
+    }
+
+    #[test]
+    fn access_problems_warn_without_failing_the_import_or_skipping_the_road() {
+        let (sink, outcome) = import(
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="2" lat="35.69" lon="51.39"/>
+                 <way id="10">
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="highway" v="residential"/>
+                   <tag k="motorcar" v="maybe"/>
+                 </way>
+                 <way id="11">
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="highway" v="residential"/>
+                   <tag k="access" v="designated"/>
+                 </way>
+                 <way id="12">
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="highway" v="residential"/>
+                   <tag k="access:conditional" v="no @ (Mo-Fr 07:00-09:00)"/>
+                 </way>
+               </osm>"#,
+        );
+        // Every road is still a feature: an access problem is a warning about
+        // a road, never a reason to drop one.
+        assert_eq!(sink.features.len(), 3);
+        assert_eq!(outcome.stats.features_emitted, 3);
+        assert_eq!(outcome.stats.features_skipped, 0);
+
+        assert_eq!(outcome.issues.count_of(IssueCode::UnknownAccessValue), 1);
+        assert_eq!(
+            outcome.issues.samples_of(IssueCode::UnknownAccessValue),
+            &["way/10"]
+        );
+        assert_eq!(outcome.issues.count_of(IssueCode::InvalidAccessScope), 1);
+        assert_eq!(
+            outcome.issues.samples_of(IssueCode::InvalidAccessScope),
+            &["way/11"]
+        );
+        assert_eq!(
+            outcome
+                .issues
+                .count_of(IssueCode::UnsupportedConditionalAccess),
+            1
+        );
+        assert_eq!(
+            outcome
+                .issues
+                .samples_of(IssueCode::UnsupportedConditionalAccess),
+            &["way/12"]
+        );
+    }
+
+    // -- a tag key with no value survives the XML boundary ----------------
+
+    /// Two nodes and one way carrying `tags`, as a complete document.
+    ///
+    /// These tests go through the real XML reader on purpose. The seam this
+    /// section guards is between the parser and the semantic adapter, and a
+    /// test that hands `derive_access` a hand-built `OsmTags` walks straight
+    /// past it: it can only assert what the adapter does with a value the
+    /// parser might never have handed over.
+    fn road_with_tags(tags: &str) -> String {
+        format!(
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="2" lat="35.69" lon="51.39"/>
+                 <way id="10">
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="highway" v="residential"/>
+                   {tags}
+                 </way>
+               </osm>"#
+        )
+    }
+
+    /// The access of the single road in such a document.
+    fn access_of(tags: &str) -> (atlas_kernel::RoadAccess, SourceImportOutcome) {
+        let (sink, outcome) = import(&road_with_tags(tags));
+        assert_eq!(sink.features.len(), 1, "the road must still be emitted");
+        let access = *sink.features[0].kind().road_access().expect("a road");
+        (access, outcome)
+    }
+
+    #[test]
+    fn a_static_access_key_with_no_value_is_still_read() {
+        // `<tag k="access"/>` is well-formed XML and a real thing to find in a
+        // file. Dropping it would turn a broken tag into no tag at all, and
+        // `unspecified` — the one answer that means "nobody said anything" —
+        // would be recording something the source never did.
+        use atlas_kernel::AccessRule::Indeterminate;
+        let (access, outcome) = access_of(r#"<tag k="access"/>"#);
+        assert_eq!(access.motorcar(), Indeterminate);
+        assert_eq!(access.bicycle(), Indeterminate);
+        assert_eq!(access.foot(), Indeterminate);
+        assert_eq!(outcome.issues.count_of(IssueCode::UnknownAccessValue), 1);
+        assert_eq!(
+            outcome.issues.samples_of(IssueCode::UnknownAccessValue),
+            &["way/10"]
+        );
+        assert_eq!(outcome.stats.features_emitted, 1);
+        assert_eq!(outcome.stats.features_skipped, 0);
+    }
+
+    #[test]
+    fn a_specific_access_key_with_no_value_never_falls_back() {
+        // The empty `motorcar` is an explicit statement about motorcars that
+        // Atlas cannot read. Falling through to the perfectly readable
+        // `access` below it would answer a question the mapper did not ask.
+        use atlas_kernel::AccessRule::{Allowed, Indeterminate};
+        let (access, outcome) = access_of(
+            r#"<tag k="access" v="yes"/>
+               <tag k="motorcar"/>"#,
+        );
+        assert_eq!(access.motorcar(), Indeterminate);
+        assert_eq!(access.bicycle(), Allowed);
+        assert_eq!(access.foot(), Allowed);
+        assert_eq!(outcome.issues.count_of(IssueCode::UnknownAccessValue), 1);
+    }
+
+    #[test]
+    fn a_conditional_key_with_no_value_is_still_detected() {
+        // Conditional detection is by key and the value is never parsed, so
+        // an absent value changes nothing about what Atlas can claim. Dropping
+        // the tag, though, would make the road look unconditioned.
+        use atlas_kernel::AccessRule::Conditional;
+        let (access, outcome) = access_of(r#"<tag k="access:conditional"/>"#);
+        assert_eq!(access.motorcar(), Conditional);
+        assert_eq!(access.bicycle(), Conditional);
+        assert_eq!(access.foot(), Conditional);
+        assert_eq!(
+            outcome
+                .issues
+                .count_of(IssueCode::UnsupportedConditionalAccess),
+            1
+        );
+        // An unparsed conditional is not a malformed value.
+        assert_eq!(outcome.issues.count_of(IssueCode::UnknownAccessValue), 0);
+    }
+
+    #[test]
+    fn a_shadowed_conditional_with_no_value_stays_selected_only() {
+        // Preserving the key must not change the selected-only rule: this
+        // conditional is out-ranked for every mode, so it decides nothing and
+        // reports nothing.
+        use atlas_kernel::AccessRule::Allowed;
+        let (access, outcome) = access_of(
+            r#"<tag k="access:conditional"/>
+               <tag k="motorcar" v="yes"/>
+               <tag k="bicycle" v="yes"/>
+               <tag k="foot" v="yes"/>"#,
+        );
+        assert_eq!(access.motorcar(), Allowed);
+        assert_eq!(access.bicycle(), Allowed);
+        assert_eq!(access.foot(), Allowed);
+        assert!(outcome.issues.is_empty(), "{:?}", outcome.issues);
+    }
+
+    #[test]
+    fn an_ordinary_valued_tag_is_unaffected() {
+        // The control case: nothing about a normal tag changes.
+        use atlas_kernel::AccessRule::{Allowed, Prohibited};
+        let (access, outcome) = access_of(
+            r#"<tag k="access" v="no"/>
+               <tag k="foot" v="yes"/>"#,
+        );
+        assert_eq!(access.motorcar(), Prohibited);
+        assert_eq!(access.bicycle(), Prohibited);
+        assert_eq!(access.foot(), Allowed);
+        assert!(outcome.issues.is_empty());
+
+        // A tag whose value is genuinely an empty string reads the same way as
+        // a tag with no `v` at all, which is the point of normalising one to
+        // the other.
+        let (explicit, _) = access_of(r#"<tag k="access" v=""/>"#);
+        let (absent, _) = access_of(r#"<tag k="access"/>"#);
+        assert_eq!(explicit, absent);
+    }
+
+    #[test]
+    fn a_tag_with_no_key_is_still_ignored() {
+        // Out of scope for this pass and deliberately unchanged: a tag with no
+        // `k` names nothing, so there is no key under which to record it.
+        let (access, outcome) = access_of(r#"<tag v="yes"/>"#);
+        assert_eq!(access, atlas_kernel::RoadAccess::unspecified());
+        assert!(outcome.issues.is_empty());
+    }
+
+    #[test]
+    fn an_undecodable_tag_attribute_is_still_fatal() {
+        // Preserving an absent `v` must not weaken the decode contract. An
+        // attribute Atlas cannot decode at all is still a broken document, and
+        // still fails the whole import rather than becoming a blank value.
+        for document in [
+            // Unquoted attribute value.
+            r#"<osm><way id="10"><tag k=access v="yes"/></way></osm>"#,
+            // Unresolvable entity in the value.
+            r#"<osm><way id="10"><tag k="access" v="&nope;"/></way></osm>"#,
+            // Unresolvable entity in the key.
+            r#"<osm><way id="10"><tag k="&nope;" v="yes"/></way></osm>"#,
+            // A malformed attribute after the ones Atlas reads.
+            r#"<osm><way id="10"><tag k="access" v="yes" extra=1/></way></osm>"#,
+        ] {
+            let source = OsmXmlSource::from_xml("test.osm", document);
+            let mut sink = CollectingSink::default();
+            let error = source
+                .import(&mut sink)
+                .expect_err("an undecodable attribute must fail the import");
+            assert!(
+                matches!(error, ImportError::MalformedSource { .. }),
+                "{document} gave {error:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn access_derivation_never_touches_the_geometry() {
+        // The same two nodes in the same order, with and without a prohibition
+        // on top. Coordinates must come out identical, in source order.
+        let geometry_of = |xml: &str| {
+            let (sink, _) = import(xml);
+            let atlas_kernel::Geometry::LineString(line) = sink.features[0].geometry();
+            line.coordinates()
+                .iter()
+                .map(|coordinate| {
+                    (
+                        coordinate.longitude_degrees(),
+                        coordinate.latitude_degrees(),
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
+
+        let plain = geometry_of(
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="2" lat="35.685" lon="51.385"/>
+                 <node id="3" lat="35.69" lon="51.39"/>
+                 <way id="10"><nd ref="1"/><nd ref="2"/><nd ref="3"/><tag k="highway" v="residential"/></way>
+               </osm>"#,
+        );
+        let barred = geometry_of(
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="2" lat="35.685" lon="51.385"/>
+                 <node id="3" lat="35.69" lon="51.39"/>
+                 <way id="10">
+                   <nd ref="1"/><nd ref="2"/><nd ref="3"/>
+                   <tag k="highway" v="residential"/>
+                   <tag k="access" v="no"/>
+                   <tag k="oneway" v="-1"/>
+                 </way>
+               </osm>"#,
+        );
+        assert_eq!(
+            plain,
+            vec![(51.38, 35.68), (51.385, 35.685), (51.39, 35.69)]
+        );
+        assert_eq!(plain, barred);
+    }
+
+    #[test]
+    fn access_and_direction_are_derived_independently() {
+        // A forward one-way that bars motorcars keeps both facts whole: the
+        // arrow still points forward, and the prohibition is still recorded.
+        let (sink, _) = import(
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="2" lat="35.69" lon="51.39"/>
+                 <way id="10">
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="highway" v="residential"/>
+                   <tag k="oneway" v="yes"/>
+                   <tag k="motor_vehicle" v="no"/>
+                 </way>
+               </osm>"#,
+        );
+        let kind = sink.features[0].kind();
+        let traversal = kind.road_traversal().expect("a road");
+        let access = kind.road_access().expect("a road");
+        assert_eq!(
+            traversal.motorcar(),
+            atlas_kernel::TravelDirection::Forward,
+            "a prohibition must not erase the direction"
+        );
+        assert_eq!(access.motorcar(), atlas_kernel::AccessRule::Prohibited);
+        assert_eq!(access.bicycle(), atlas_kernel::AccessRule::Unspecified);
+        assert_eq!(traversal.bicycle(), atlas_kernel::TravelDirection::Forward);
     }
 
     #[test]

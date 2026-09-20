@@ -2,6 +2,7 @@
 
 use std::fmt;
 
+use crate::access::RoadAccess;
 use crate::bounding_box::BoundingBox;
 use crate::geometry::Geometry;
 use crate::traversal::RoadTraversal;
@@ -154,9 +155,15 @@ impl fmt::Display for RoadClass {
 /// What kind of thing a feature is.
 ///
 /// Road semantics live *inside* the road variant rather than beside it. A
-/// classification and a traversal cannot become detached from one another, and
-/// neither can be attached to a feature that is not a road: there is no shape
-/// this type can take that carries one without the other.
+/// classification, a traversal and an access record cannot become detached
+/// from one another, and none of them can be attached to a feature that is not
+/// a road: there is no shape this type can take that carries one without the
+/// others.
+///
+/// The three are distinct values, not views of one another. Access is never
+/// reconstructed from the classification — a consumer that wants to know who
+/// may use a road reads `access`, and a consumer that wants to know which way
+/// it runs reads `traversal`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FeatureKind {
     /// A road, carrying its display classification and its travel semantics.
@@ -165,6 +172,8 @@ pub enum FeatureKind {
         class: RoadClass,
         /// In which direction each modelled mode travels it, access aside.
         traversal: RoadTraversal,
+        /// What the source says about each modelled mode's access to it.
+        access: RoadAccess,
     },
 }
 
@@ -187,6 +196,13 @@ impl FeatureKind {
     pub fn road_traversal(&self) -> Option<&RoadTraversal> {
         match self {
             FeatureKind::Road { traversal, .. } => Some(traversal),
+        }
+    }
+
+    /// The source-derived access facts, when the feature is a road.
+    pub fn road_access(&self) -> Option<&RoadAccess> {
+        match self {
+            FeatureKind::Road { access, .. } => Some(access),
         }
     }
 }
@@ -311,9 +327,20 @@ impl MapFeature {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::access::AccessRule;
     use crate::coordinate::GeoCoordinate;
     use crate::geometry::LineString;
     use crate::traversal::{TravelDirection, TravelMode};
+
+    /// A plain two-way road with nothing said about access, for the tests that
+    /// are not about road semantics at all.
+    fn plain_road(class: RoadClass) -> FeatureKind {
+        FeatureKind::Road {
+            class,
+            traversal: RoadTraversal::bidirectional(),
+            access: RoadAccess::unspecified(),
+        }
+    }
 
     fn geometry() -> Geometry {
         Geometry::from(
@@ -365,49 +392,131 @@ mod tests {
     }
 
     #[test]
-    fn feature_kind_exposes_name_class_and_traversal() {
+    fn feature_kind_exposes_name_class_traversal_and_access() {
         let traversal = RoadTraversal::new(
             TravelDirection::Forward,
             TravelDirection::Both,
             TravelDirection::Indeterminate,
         );
+        let access = RoadAccess::new(
+            AccessRule::DestinationOnly,
+            AccessRule::Designated,
+            AccessRule::Unspecified,
+        );
         let kind = FeatureKind::Road {
             class: RoadClass::Residential,
             traversal,
+            access,
         };
         assert_eq!(kind.name(), "road");
         assert_eq!(kind.road_class(), Some(&RoadClass::Residential));
         assert_eq!(kind.road_traversal(), Some(&traversal));
+        assert_eq!(kind.road_access(), Some(&access));
         assert_eq!(
             kind.road_traversal().map(|t| t.direction(TravelMode::Foot)),
             Some(TravelDirection::Indeterminate)
         );
+        assert_eq!(
+            kind.road_access().map(|a| a.rule(TravelMode::Foot)),
+            Some(AccessRule::Unspecified)
+        );
+    }
+
+    #[test]
+    fn access_and_direction_are_independent_values_on_one_road() {
+        // A forward one-way that bars cars, a two-way that is private, and a
+        // designated cycleway that is still one-way: direction says which way
+        // the road runs, access says who may use it, and neither is derivable
+        // from the other or from the class.
+        let barred_one_way = FeatureKind::Road {
+            class: RoadClass::Residential,
+            traversal: RoadTraversal::new(
+                TravelDirection::Forward,
+                TravelDirection::Forward,
+                TravelDirection::Both,
+            ),
+            access: RoadAccess::new(
+                AccessRule::Prohibited,
+                AccessRule::Allowed,
+                AccessRule::Allowed,
+            ),
+        };
+        assert_eq!(
+            barred_one_way.road_traversal().map(RoadTraversal::motorcar),
+            Some(TravelDirection::Forward)
+        );
+        assert_eq!(
+            barred_one_way.road_access().map(RoadAccess::motorcar),
+            Some(AccessRule::Prohibited)
+        );
+
+        let private_two_way = FeatureKind::Road {
+            class: RoadClass::Service,
+            traversal: RoadTraversal::bidirectional(),
+            access: RoadAccess::uniform(AccessRule::Private),
+        };
+        assert_eq!(
+            private_two_way
+                .road_traversal()
+                .map(RoadTraversal::motorcar),
+            Some(TravelDirection::Both)
+        );
+        assert_eq!(
+            private_two_way.road_access().map(RoadAccess::motorcar),
+            Some(AccessRule::Private)
+        );
+
+        // Two roads of the same class disagree about access, so access cannot
+        // have come from the class.
+        let ordinary_service = plain_road(RoadClass::Service);
+        assert_eq!(
+            ordinary_service.road_access(),
+            Some(&RoadAccess::unspecified())
+        );
+        assert_ne!(
+            ordinary_service.road_access(),
+            private_two_way.road_access()
+        );
+        assert_eq!(ordinary_service.road_class(), private_two_way.road_class());
     }
 
     #[test]
     fn road_semantics_cannot_be_detached_from_the_road_variant() {
-        // Every shape this type can take carries both halves. The exhaustive
-        // match is the point: a variant that could hold a class without a
-        // traversal, or road semantics on something that is not a road, would
-        // stop compiling here rather than ship.
+        // Every shape this type can take carries all three parts. The
+        // exhaustive match is the point: a variant that could hold a class
+        // without a traversal or an access record, or road semantics on
+        // something that is not a road, would stop compiling here rather than
+        // ship.
         for kind in [
             FeatureKind::Road {
                 class: RoadClass::Steps,
                 traversal: RoadTraversal::uniform(TravelDirection::Forward),
+                access: RoadAccess::new(
+                    AccessRule::Prohibited,
+                    AccessRule::DismountRequired,
+                    AccessRule::Designated,
+                ),
             },
             FeatureKind::Road {
                 class: RoadClass::Other("corn_maze".to_owned()),
                 traversal: RoadTraversal::bidirectional(),
+                access: RoadAccess::unspecified(),
             },
         ] {
             match &kind {
-                FeatureKind::Road { class, traversal } => {
+                FeatureKind::Road {
+                    class,
+                    traversal,
+                    access,
+                } => {
                     assert_eq!(kind.road_class(), Some(class));
                     assert_eq!(kind.road_traversal(), Some(traversal));
+                    assert_eq!(kind.road_access(), Some(access));
                 }
             }
             assert!(kind.road_class().is_some());
             assert!(kind.road_traversal().is_some());
+            assert!(kind.road_access().is_some());
         }
     }
 
@@ -433,10 +542,7 @@ mod tests {
     fn blank_names_are_normalised_away() {
         let feature = MapFeature::new(
             FeatureId::new("osm:way:1").expect("valid id"),
-            FeatureKind::Road {
-                class: RoadClass::Residential,
-                traversal: RoadTraversal::bidirectional(),
-            },
+            plain_road(RoadClass::Residential),
             geometry(),
             Some("   ".to_owned()),
             None,
@@ -448,10 +554,7 @@ mod tests {
     fn names_keep_unicode_intact() {
         let feature = MapFeature::new(
             FeatureId::new("osm:way:1").expect("valid id"),
-            FeatureKind::Road {
-                class: RoadClass::Residential,
-                traversal: RoadTraversal::bidirectional(),
-            },
+            plain_road(RoadClass::Residential),
             geometry(),
             Some("  خیابان ولیعصر  ".to_owned()),
             None,
@@ -463,10 +566,7 @@ mod tests {
     fn features_expose_geometry_bounds() {
         let feature = MapFeature::new(
             FeatureId::new("osm:way:1").expect("valid id"),
-            FeatureKind::Road {
-                class: RoadClass::Residential,
-                traversal: RoadTraversal::bidirectional(),
-            },
+            plain_road(RoadClass::Residential),
             geometry(),
             None,
             Some(SourceReference::new("openstreetmap", "way", "1").expect("valid reference")),

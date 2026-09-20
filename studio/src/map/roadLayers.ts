@@ -7,6 +7,7 @@
 
 import type { ExpressionSpecification, LayerSpecification } from 'maplibre-gl';
 
+import { accessOverlayLayers } from './accessOverlay.js';
 import { directionArrowLayer } from './directionArrows.js';
 import { DEFAULT_PROFILE, type TravelProfile } from './traversal.js';
 
@@ -97,10 +98,18 @@ const CLASS_WEIGHT: ExpressionSpecification = [
  * MapLibre insists that a `zoom` expression be the top-level expression of a
  * paint property, so the per-class weighting happens inside each zoom stop
  * rather than wrapping the interpolation.
+ *
+ * `extra` adds a constant to every stop, which is how the casing and the
+ * highlights sit proud of the road. `scale` multiplies the class-weighted base
+ * instead, which is how the access overlay sits *inside* the road: a fraction
+ * of its width at every zoom, so the class colour is still visible on both
+ * sides of it however far you zoom in.
  */
-function roadWidth(extra = 0): ExpressionSpecification {
-  const stop = (base: number): ExpressionSpecification =>
-    extra === 0 ? ['*', base, CLASS_WEIGHT] : ['+', ['*', base, CLASS_WEIGHT], extra];
+export function roadWidth(extra = 0, scale = 1): ExpressionSpecification {
+  const stop = (base: number): ExpressionSpecification => {
+    const weighted: ExpressionSpecification = ['*', base * scale, CLASS_WEIGHT];
+    return extra === 0 ? weighted : ['+', weighted, extra];
+  };
 
   return [
     'interpolate',
@@ -118,9 +127,14 @@ function roadWidth(extra = 0): ExpressionSpecification {
 }
 
 /**
- * The layers, bottom to top: a dark casing, the road itself, a fat invisible
- * hit target, the hover and selection highlights, and the one-way arrows on
- * top of all of it.
+ * The layers, bottom to top: a dark casing, the road itself, the access
+ * overlays, a fat invisible hit target, the hover and selection highlights,
+ * and the one-way arrows on top of all of it.
+ *
+ * The order is the whole design. The overlays go above the road so they can be
+ * seen, and below everything else so that pointing at a road, selecting one
+ * and reading its direction all keep working exactly as they did before access
+ * existed.
  */
 export function roadLayers(profile: TravelProfile = DEFAULT_PROFILE): LayerSpecification[] {
   return [
@@ -142,6 +156,7 @@ export function roadLayers(profile: TravelProfile = DEFAULT_PROFILE): LayerSpeci
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': ROAD_COLOR, 'line-width': roadWidth() },
     },
+    ...accessOverlayLayers(profile),
     {
       id: ROAD_HIT_LAYER_ID,
       type: 'line',

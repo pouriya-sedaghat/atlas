@@ -21,9 +21,9 @@ function feature(overrides: Partial<AtlasFeature> = {}): AtlasFeature {
       roadClass: 'residential',
       name: 'Reverse One-Way',
       traversal: {
-        motorcar: { direction: 'reverse' },
-        bicycle: { direction: 'reverse' },
-        foot: { direction: 'both' },
+        motorcar: { direction: 'reverse', access: 'private' },
+        bicycle: { direction: 'reverse', access: 'permissive' },
+        foot: { direction: 'both', access: 'allowed' },
       },
     },
     ...overrides,
@@ -64,6 +64,15 @@ describe('toMapCollection', () => {
     expect(mapped?.properties?.[FEATURE_KEY]).toBe('osm:way:303');
   });
 
+  it('flattens the access block onto one property per profile', () => {
+    const [mapped] = toMapCollection(collection([feature()])).features;
+    expect(mapped?.properties).toMatchObject({
+      'access:motorcar': 'private',
+      'access:bicycle': 'permissive',
+      'access:foot': 'allowed',
+    });
+  });
+
   it('marks a road with no traversal as indeterminate rather than guessing', () => {
     const bare = feature({ properties: { kind: 'road', roadClass: 'service' } });
     const [mapped] = toMapCollection(collection([bare])).features;
@@ -71,6 +80,59 @@ describe('toMapCollection', () => {
       'direction:motorcar': 'indeterminate',
       'direction:bicycle': 'indeterminate',
       'direction:foot': 'indeterminate',
+      'access:motorcar': 'indeterminate',
+      'access:bicycle': 'indeterminate',
+      'access:foot': 'indeterminate',
+    });
+    // Never `unspecified`: an absent member is the client not being told, not
+    // the source being silent.
+    expect(mapped?.properties?.['access:motorcar']).not.toBe('unspecified');
+  });
+
+  it('flattens a Milestone 2A block that has directions but no access', () => {
+    const older = feature({
+      properties: {
+        kind: 'road',
+        roadClass: 'residential',
+        traversal: {
+          motorcar: { direction: 'forward' },
+          bicycle: { direction: 'forward' },
+          foot: { direction: 'both' },
+        },
+      },
+    });
+    const [mapped] = toMapCollection(collection([older])).features;
+    expect(mapped?.properties).toMatchObject({
+      'direction:motorcar': 'forward',
+      'direction:foot': 'both',
+      'access:motorcar': 'indeterminate',
+      'access:foot': 'indeterminate',
+    });
+  });
+
+  it('keeps direction and access as independent properties', () => {
+    // A prohibited reverse one-way carries both facts; neither overwrites or
+    // qualifies the other.
+    const [mapped] = toMapCollection(
+      collection([
+        feature({
+          properties: {
+            kind: 'road',
+            roadClass: 'residential',
+            traversal: {
+              motorcar: { direction: 'forward', access: 'prohibited' },
+              bicycle: { direction: 'forward', access: 'designated' },
+              foot: { direction: 'both', access: 'unspecified' },
+            },
+          },
+        }),
+      ]),
+    ).features;
+    expect(mapped?.properties).toMatchObject({
+      'direction:motorcar': 'forward',
+      'access:motorcar': 'prohibited',
+      'direction:bicycle': 'forward',
+      'access:bicycle': 'designated',
     });
   });
 
@@ -96,9 +158,9 @@ describe('indexFeatures', () => {
   it('keeps the full wire feature, traversal block and all', () => {
     const index = indexFeatures(collection([feature()]));
     expect(index.get('osm:way:303')?.properties.traversal).toEqual({
-      motorcar: { direction: 'reverse' },
-      bicycle: { direction: 'reverse' },
-      foot: { direction: 'both' },
+      motorcar: { direction: 'reverse', access: 'private' },
+      bicycle: { direction: 'reverse', access: 'permissive' },
+      foot: { direction: 'both', access: 'allowed' },
     });
   });
 });

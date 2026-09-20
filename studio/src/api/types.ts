@@ -19,12 +19,18 @@ export interface SourceReference {
 /**
  * One mode's entry in a road's traversal block.
  *
- * `direction` is typed as a plain string on purpose: it is untrusted wire
- * data, and narrowing it to the known set is the parser's job, not the type
+ * Both members are typed as plain strings on purpose: they are untrusted wire
+ * data, and narrowing them to the known sets is the parser's job, not the type
  * declaration's.
+ *
+ * `access` is optional here for the same reason `traversal` is: a Studio build
+ * has to render against a Milestone 2A server that never heard of access. A
+ * missing value reads as `indeterminate`, never as `unspecified` — see
+ * `map/access.ts` for why that distinction matters.
  */
 export interface ModeTraversal {
   direction: string;
+  access?: string;
 }
 
 /** The travel semantics the API publishes for a road, one entry per mode. */
@@ -40,9 +46,10 @@ export interface RoadProperties {
   name?: string;
   source?: SourceReference;
   /**
-   * Present on every road served by an Atlas v1 server from Milestone 2A on.
-   * Optional here so that a Studio build still renders against an older
-   * server: a road with no traversal simply gets no arrows.
+   * Present on every road served by an Atlas v1 server from Milestone 2A on,
+   * carrying access as well from Milestone 2B on. Optional here so that a
+   * Studio build still renders against an older server: a road with no
+   * traversal simply gets no arrows and an unresolved access.
    */
   traversal?: RoadTraversal;
 }

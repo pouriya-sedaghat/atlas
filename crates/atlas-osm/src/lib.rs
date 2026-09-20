@@ -10,6 +10,7 @@
 //! Only plain XML is supported. `.osm.pbf`, compressed files and network
 //! downloads are deliberately out of scope for this milestone.
 
+mod access;
 mod direction;
 mod model;
 mod source;

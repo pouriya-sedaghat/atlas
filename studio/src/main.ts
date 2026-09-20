@@ -27,6 +27,7 @@ import { AtlasApiError, fetchCurrentDataset, fetchFeatures, fetchLiveness } from
 import type { FeatureQueryRequest } from './api/client.js';
 import type { AtlasFeature, AtlasFeatureCollection, Bbox, CurrentDataset } from './api/types.js';
 import { ARROW_IMAGE_ID, ARROW_PIXEL_RATIO, createArrowImage } from './map/arrowImage.js';
+import { applyAccessProfile } from './map/accessOverlay.js';
 import { applyDirectionProfile } from './map/directionArrows.js';
 import { EMPTY_COLLECTION, indexFeatures, toMapCollection } from './map/geojson.js';
 import {
@@ -41,6 +42,7 @@ import {
 import { BLANK_STYLE } from './map/style.js';
 import { DEFAULT_PROFILE, type TravelProfile } from './map/traversal.js';
 import { InspectorPanel, type InspectorSelection } from './ui/inspector.js';
+import { AccessLegend } from './ui/legend.js';
 import { ProfileSelector } from './ui/profile.js';
 import {
   DatasetPanel,
@@ -67,6 +69,7 @@ const inspectorPanel = new InspectorPanel(requireElement('inspector-panel'));
 const profileSelector = new ProfileSelector(requireElement('profile-panel'), (profile) =>
   selectProfile(profile),
 );
+const accessLegend = new AccessLegend(requireElement('legend-panel'));
 const banner = requireElement('banner');
 const attribution = requireElement('attribution');
 const debugToggle = requireElement<HTMLInputElement>('toggle-debug');
@@ -142,6 +145,8 @@ function renderAll(): void {
   warningsPanel.render(state.dataset);
   diagnosticsPanel.render(state.query, state.viewport);
   profileSelector.render(state.profile);
+  // The legend describes the categories, which do not depend on the profile.
+  accessLegend.render();
   inspectorPanel.render(state.selection, state.profile);
 }
 
@@ -259,10 +264,16 @@ function select(id: string | null): void {
  * Switches travel profile.
  *
  * Everything this touches is already in the browser: the arrows are re-pointed
- * from the flattened direction properties of the features that were loaded,
- * and the inspector relabels which profile is active. There is deliberately no
- * query here, no source update and no geometry change, so hover, selection and
- * the viewport diagnostics all survive untouched.
+ * and the access overlays re-filtered from the flattened properties of the
+ * features that were loaded, and the inspector relabels which profile is
+ * active. There is deliberately no query here, no source update and no
+ * geometry change, so hover, selection and the viewport diagnostics all
+ * survive untouched — including the selected road, which stays selected
+ * because nothing clears `state.selectedId`.
+ *
+ * The two map updates are independent calls on purpose. Direction and access
+ * are separate facts drawn by separate layers, and neither switch reads the
+ * other's properties.
  */
 function selectProfile(profile: TravelProfile): void {
   if (state.profile === profile) {
@@ -271,6 +282,7 @@ function selectProfile(profile: TravelProfile): void {
   state.profile = profile;
   profileSelector.render(profile);
   if (state.mapReady) {
+    applyAccessProfile(map, profile);
     applyDirectionProfile(map, profile);
   }
   inspectorPanel.render(state.selection, state.profile);

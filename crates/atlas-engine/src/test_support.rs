@@ -1,7 +1,7 @@
 //! Shared fixtures for the engine's own tests.
 
 use atlas_kernel::{
-    FeatureId, FeatureKind, GeoCoordinate, Geometry, LineString, MapFeature, RoadClass,
+    FeatureId, FeatureKind, GeoCoordinate, Geometry, LineString, MapFeature, RoadAccess, RoadClass,
     RoadTraversal,
 };
 
@@ -37,6 +37,9 @@ pub(crate) fn road(id: &str, class: RoadClass, points: &[(f64, f64)]) -> MapFeat
         FeatureKind::Road {
             class,
             traversal: RoadTraversal::bidirectional(),
+            // The engine's own tests are about datasets and queries, not road
+            // semantics, so their roads say nothing about access at all.
+            access: RoadAccess::unspecified(),
         },
         Geometry::from(LineString::new(coordinates).expect("valid line")),
         None,

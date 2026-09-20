@@ -24,6 +24,10 @@ fn directionality_fixture_path() -> PathBuf {
         .join("../../fixtures/synthetic/roads-directionality.osm")
 }
 
+fn access_fixture_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/synthetic/roads-access.osm")
+}
+
 fn state_for(path: PathBuf) -> SharedState {
     let registry = Arc::new(DatasetRegistry::new());
     let dataset = import::import_osm_file(&path).expect("the fixture must import");
@@ -38,6 +42,31 @@ fn ready_state() -> SharedState {
 /// A dataset built from the fixture that exercises every direction value.
 fn directionality_state() -> SharedState {
     state_for(directionality_fixture_path())
+}
+
+/// A dataset built from the fixture that exercises the access rules.
+fn access_state() -> SharedState {
+    state_for(access_fixture_path())
+}
+
+/// A dataset built from an in-memory document, for cases no fixture covers.
+///
+/// The fixtures on disk are laid out to be read by a human in Studio, which is
+/// a different job from exhausting a vocabulary. This builds a throwaway
+/// dataset from XML written inline, so the contract can assert every wire
+/// value without adding rows nobody would ever look at.
+fn state_from_xml(xml: &str) -> SharedState {
+    let source = atlas_osm::OsmXmlSource::from_xml("inline.osm", xml);
+    let mut builder = atlas_engine::DatasetBuilder::new(
+        atlas_engine::DatasetId::new("ds-inline"),
+        atlas_engine::MapSource::source_metadata(&source),
+    );
+    let outcome =
+        atlas_engine::MapSource::import(&source, &mut builder).expect("the document imports");
+    let dataset = builder.finish(outcome).expect("it produces features");
+    let registry = Arc::new(DatasetRegistry::new());
+    registry.publish(dataset);
+    Arc::new(AppState::new(registry))
 }
 
 fn loading_state() -> SharedState {
@@ -544,7 +573,12 @@ async fn every_road_carries_a_nested_traversal_block() {
         for mode in ["motorcar", "bicycle", "foot"] {
             assert!(
                 traversal[mode]["direction"].is_string(),
-                "{} is missing {mode}",
+                "{} is missing {mode} direction",
+                feature["id"]
+            );
+            assert!(
+                traversal[mode]["access"].is_string(),
+                "{} is missing {mode} access",
                 feature["id"]
             );
         }
@@ -560,9 +594,9 @@ async fn the_traversal_shape_is_exactly_as_documented() {
     assert_eq!(
         *traversal_of(&body, "osm:way:304"),
         serde_json::json!({
-            "motorcar": { "direction": "forward" },
-            "bicycle": { "direction": "both" },
-            "foot": { "direction": "both" },
+            "motorcar": { "direction": "forward", "access": "unspecified" },
+            "bicycle": { "direction": "both", "access": "unspecified" },
+            "foot": { "direction": "both", "access": "unspecified" },
         })
     );
     let properties = &body["features"]
@@ -630,9 +664,9 @@ async fn traversal_is_present_with_and_without_include_parameters() {
         assert_eq!(
             *traversal_of(body, "osm:way:303"),
             serde_json::json!({
-                "motorcar": { "direction": "reverse" },
-                "bicycle": { "direction": "reverse" },
-                "foot": { "direction": "both" },
+                "motorcar": { "direction": "reverse", "access": "unspecified" },
+                "bicycle": { "direction": "reverse", "access": "unspecified" },
+                "foot": { "direction": "both", "access": "unspecified" },
             }),
             "traversal must not depend on include"
         );
@@ -687,9 +721,9 @@ async fn the_milestone_one_fixture_gains_traversal_without_changing_anything_els
         assert_eq!(
             feature["properties"]["traversal"],
             serde_json::json!({
-                "motorcar": { "direction": "both" },
-                "bicycle": { "direction": "both" },
-                "foot": { "direction": "both" },
+                "motorcar": { "direction": "both", "access": "unspecified" },
+                "bicycle": { "direction": "both", "access": "unspecified" },
+                "foot": { "direction": "both", "access": "unspecified" },
             })
         );
     }
@@ -730,4 +764,430 @@ async fn a_client_that_ignores_traversal_still_sees_the_milestone_one_contract()
     assert!(feature["properties"]["name"].is_string());
     assert_eq!(body["type"], "FeatureCollection");
     assert_eq!(body["atlas"]["apiVersion"], "1");
+}
+
+// -- access ---------------------------------------------------------------
+
+/// The viewport that covers every road in the access fixture.
+const ACCESS_VIEWPORT: &str = "bbox=51.389,35.698,51.394,35.711";
+
+async fn access_features(query: &str) -> Value {
+    let response = get(
+        access_state(),
+        &format!("/api/v1/map/features?{ACCESS_VIEWPORT}{query}"),
+    )
+    .await;
+    assert_eq!(response.status, StatusCode::OK);
+    assert_eq!(response.content_type, "application/geo+json");
+    response.body
+}
+
+#[tokio::test]
+async fn every_road_carries_access_for_all_three_modes() {
+    let body = access_features("").await;
+    let features = body["features"].as_array().expect("features is an array");
+    assert_eq!(features.len(), 23);
+
+    for feature in features {
+        let traversal = &feature["properties"]["traversal"];
+        for mode in ["motorcar", "bicycle", "foot"] {
+            assert!(
+                traversal[mode]["access"].is_string(),
+                "{} is missing {mode} access",
+                feature["id"]
+            );
+            assert!(
+                traversal[mode]["direction"].is_string(),
+                "{} is missing {mode} direction",
+                feature["id"]
+            );
+        }
+        // Access stays inside the per-mode block; nothing is flattened or
+        // promoted to a top-level property server side.
+        assert!(feature["properties"].get("access").is_none());
+        assert!(feature["properties"].get("motorcarAccess").is_none());
+    }
+}
+
+#[tokio::test]
+async fn the_access_shape_is_exactly_as_documented() {
+    let body = access_features("").await;
+    // Way 407 layers three access keys over a reverse one-way: the example in
+    // the README and in ADR-008.
+    assert_eq!(
+        *traversal_of(&body, "osm:way:407"),
+        serde_json::json!({
+            "motorcar": { "direction": "reverse", "access": "private" },
+            "bicycle": { "direction": "reverse", "access": "permissive" },
+            "foot": { "direction": "both", "access": "allowed" },
+        })
+    );
+}
+
+#[tokio::test]
+async fn the_api_version_does_not_change_for_an_additive_member() {
+    let body = access_features("").await;
+    assert_eq!(body["atlas"]["apiVersion"], "1");
+    let dataset = get(access_state(), "/api/v1/datasets/current").await;
+    assert_eq!(dataset.body["apiVersion"], "1");
+}
+
+#[tokio::test]
+async fn the_access_fixture_serialises_the_documented_table() {
+    let body = access_features("").await;
+    let cases = [
+        ("osm:way:401", "unspecified", "unspecified", "unspecified"),
+        ("osm:way:402", "allowed", "allowed", "allowed"),
+        ("osm:way:403", "prohibited", "prohibited", "prohibited"),
+        ("osm:way:404", "prohibited", "prohibited", "allowed"),
+        ("osm:way:405", "prohibited", "allowed", "unspecified"),
+        (
+            "osm:way:406",
+            "destination-only",
+            "unspecified",
+            "unspecified",
+        ),
+        ("osm:way:407", "private", "permissive", "allowed"),
+        ("osm:way:408", "unspecified", "designated", "unspecified"),
+        ("osm:way:409", "unspecified", "unspecified", "permissive"),
+        (
+            "osm:way:410",
+            "customers-only",
+            "customers-only",
+            "customers-only",
+        ),
+        ("osm:way:411", "delivery-only", "unspecified", "unspecified"),
+        (
+            "osm:way:412",
+            "unspecified",
+            "dismount-required",
+            "unspecified",
+        ),
+        ("osm:way:413", "unspecified", "use-sidepath", "unspecified"),
+        (
+            "osm:way:414",
+            "permit-required",
+            "unspecified",
+            "unspecified",
+        ),
+        ("osm:way:415", "unspecified", "discouraged", "unspecified"),
+        (
+            "osm:way:416",
+            "indeterminate",
+            "indeterminate",
+            "indeterminate",
+        ),
+        ("osm:way:417", "indeterminate", "allowed", "allowed"),
+        ("osm:way:418", "conditional", "conditional", "conditional"),
+        ("osm:way:419", "conditional", "conditional", "allowed"),
+        ("osm:way:420", "allowed", "conditional", "unspecified"),
+        ("osm:way:421", "conditional", "unspecified", "unspecified"),
+        ("osm:way:422", "variable", "variable", "variable"),
+        (
+            "osm:way:423",
+            "indeterminate",
+            "indeterminate",
+            "indeterminate",
+        ),
+    ];
+    assert_eq!(cases.len(), 23);
+    for (id, motorcar, bicycle, foot) in cases {
+        let traversal = traversal_of(&body, id);
+        assert_eq!(traversal["motorcar"]["access"], motorcar, "{id} motorcar");
+        assert_eq!(traversal["bicycle"]["access"], bicycle, "{id} bicycle");
+        assert_eq!(traversal["foot"]["access"], foot, "{id} foot");
+    }
+}
+
+#[tokio::test]
+async fn every_wire_access_value_appears_on_the_wire() {
+    // The fixture shows sixteen of the nineteen rules. The three
+    // activity-specific ones have no fixture row, so they are serialised here
+    // from an inline document: a wire vocabulary is only a contract if every
+    // value in it has actually been produced by the real serialiser.
+    let xml = r#"<osm>
+      <node id="1" lat="35.70" lon="51.39"/>
+      <node id="2" lat="35.70" lon="51.391"/>
+      <way id="1"><nd ref="1"/><nd ref="2"/>
+        <tag k="highway" v="track"/><tag k="motorcar" v="agricultural"/></way>
+      <way id="2"><nd ref="1"/><nd ref="2"/>
+        <tag k="highway" v="track"/><tag k="motorcar" v="forestry"/></way>
+      <way id="3"><nd ref="1"/><nd ref="2"/>
+        <tag k="highway" v="track"/><tag k="motorcar" v="military"/></way>
+    </osm>"#;
+    let response = get(
+        state_from_xml(xml),
+        "/api/v1/map/features?bbox=51.389,35.699,51.392,35.701",
+    )
+    .await;
+    assert_eq!(response.status, StatusCode::OK);
+    let extra = [
+        ("osm:way:1", "agricultural-only"),
+        ("osm:way:2", "forestry-only"),
+        ("osm:way:3", "military-only"),
+    ];
+    for (id, expected) in extra {
+        assert_eq!(
+            traversal_of(&response.body, id)["motorcar"]["access"],
+            expected
+        );
+    }
+
+    // Together with the fixture table, every rule Atlas models has now been
+    // seen on the wire, spelled exactly as the contract says.
+    let body = access_features("").await;
+    let mut seen: std::collections::BTreeSet<String> = body["features"]
+        .as_array()
+        .expect("features is an array")
+        .iter()
+        .flat_map(|feature| {
+            ["motorcar", "bicycle", "foot"].map(|mode| {
+                feature["properties"]["traversal"][mode]["access"]
+                    .as_str()
+                    .expect("access is a string")
+                    .to_owned()
+            })
+        })
+        .collect();
+    seen.extend(extra.iter().map(|(_, value)| (*value).to_owned()));
+    assert_eq!(
+        seen,
+        [
+            "agricultural-only",
+            "allowed",
+            "conditional",
+            "customers-only",
+            "delivery-only",
+            "designated",
+            "destination-only",
+            "discouraged",
+            "dismount-required",
+            "forestry-only",
+            "indeterminate",
+            "military-only",
+            "permissive",
+            "permit-required",
+            "private",
+            "prohibited",
+            "unspecified",
+            "use-sidepath",
+            "variable",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect()
+    );
+    assert_eq!(seen.len(), 19);
+}
+
+#[tokio::test]
+async fn access_is_present_with_and_without_include_parameters() {
+    let bare = access_features("").await;
+    let with_source = access_features("&include=source").await;
+    let with_diagnostics = access_features("&include=diagnostics").await;
+    let with_both = access_features("&include=source,diagnostics").await;
+
+    for body in [&bare, &with_source, &with_diagnostics, &with_both] {
+        assert_eq!(
+            *traversal_of(body, "osm:way:404"),
+            serde_json::json!({
+                "motorcar": { "direction": "both", "access": "prohibited" },
+                "bicycle": { "direction": "both", "access": "prohibited" },
+                "foot": { "direction": "both", "access": "allowed" },
+            }),
+            "access must not depend on include"
+        );
+    }
+
+    // The include parameters keep doing exactly what they did before.
+    assert!(bare["features"][0]["properties"].get("source").is_none());
+    assert!(bare["atlas"].get("diagnostics").is_none());
+    assert!(with_source["features"][0]["properties"]["source"].is_object());
+    assert!(with_diagnostics["atlas"]["diagnostics"].is_object());
+    assert!(with_both["features"][0]["properties"]["source"].is_object());
+    assert!(with_both["atlas"]["diagnostics"].is_object());
+}
+
+#[tokio::test]
+async fn access_never_exposes_raw_osm_tags() {
+    let body = access_features("&include=source,diagnostics").await;
+    let rendered = body.to_string();
+    for leaked in [
+        "access:conditional",
+        "motor_vehicle",
+        "motorcar:conditional",
+        "vehicle:conditional",
+        "use_sidepath",
+        "oneway",
+        "junction",
+        "highway",
+        "@ (",
+        "Mo-Fr",
+        "07:00",
+    ] {
+        assert!(
+            !rendered.contains(leaked),
+            "the response leaked the OSM tag or value `{leaked}`"
+        );
+    }
+    // The conditional roads are on the wire, described in Atlas's own words.
+    assert_eq!(
+        traversal_of(&body, "osm:way:418")["motorcar"]["access"],
+        "conditional"
+    );
+}
+
+#[tokio::test]
+async fn a_conditional_never_serialises_as_a_plain_yes_or_no() {
+    // The fixture's conditional expressions all read `no @ (...)`. Reading one
+    // as an unconditional prohibition would be the single worst thing Atlas
+    // could do with a tag it has decided not to parse.
+    let body = access_features("").await;
+    for id in ["osm:way:418", "osm:way:419", "osm:way:420", "osm:way:421"] {
+        let traversal = traversal_of(&body, id);
+        let rules: Vec<&str> = ["motorcar", "bicycle", "foot"]
+            .iter()
+            .map(|mode| traversal[*mode]["access"].as_str().expect("a string"))
+            .collect();
+        assert!(rules.contains(&"conditional"), "{id}: {rules:?}");
+        assert!(!rules.contains(&"prohibited"), "{id}: {rules:?}");
+    }
+}
+
+#[tokio::test]
+async fn direction_and_access_stay_independent_on_the_wire() {
+    let body = access_features("").await;
+    // A road closed to everyone still states its one-way direction.
+    let closed = traversal_of(&body, "osm:way:403");
+    assert_eq!(closed["motorcar"]["access"], "prohibited");
+    assert_eq!(closed["motorcar"]["direction"], "forward");
+    assert_eq!(closed["foot"]["direction"], "both");
+
+    // Two roads with the same direction and different access, and two with the
+    // same access and different direction.
+    let conditional = traversal_of(&body, "osm:way:418");
+    assert_eq!(conditional["motorcar"]["direction"], "forward");
+    assert_ne!(
+        conditional["motorcar"]["access"],
+        closed["motorcar"]["access"]
+    );
+
+    let open_two_way = traversal_of(&body, "osm:way:402");
+    let barred_two_way = traversal_of(&body, "osm:way:404");
+    assert_eq!(
+        open_two_way["motorcar"]["direction"],
+        barred_two_way["motorcar"]["direction"]
+    );
+    assert_ne!(
+        open_two_way["motorcar"]["access"],
+        barred_two_way["motorcar"]["access"]
+    );
+}
+
+#[tokio::test]
+async fn the_older_fixtures_serialise_unspecified_for_every_mode() {
+    // roads-basic and roads-directionality carry no access tags at all. The
+    // honest wire answer is `unspecified`, never `allowed`.
+    for state in [ready_state(), directionality_state()] {
+        let viewport = "bbox=51.380,35.680,51.400,35.700";
+        let response = get(state, &format!("/api/v1/map/features?{viewport}")).await;
+        assert_eq!(response.status, StatusCode::OK);
+        let features = response.body["features"]
+            .as_array()
+            .expect("features is an array");
+        assert!(!features.is_empty());
+        for feature in features {
+            for mode in ["motorcar", "bicycle", "foot"] {
+                assert_eq!(
+                    feature["properties"]["traversal"][mode]["access"], "unspecified",
+                    "{} {mode} must be unspecified, not allowed",
+                    feature["id"]
+                );
+            }
+        }
+    }
+}
+
+#[tokio::test]
+async fn the_access_dataset_reports_its_access_warnings() {
+    let response = get(access_state(), "/api/v1/datasets/current").await;
+    assert_eq!(response.status, StatusCode::OK);
+    assert_eq!(response.body["apiVersion"], "1");
+    assert_eq!(response.body["status"], "ready");
+    assert_eq!(
+        response.body["warnings"],
+        serde_json::json!([
+            { "code": "UNKNOWN_ACCESS_VALUE", "count": 1, "samples": ["way/417"] },
+            { "code": "INVALID_ACCESS_SCOPE", "count": 1, "samples": ["way/423"] },
+            {
+                "code": "UNSUPPORTED_CONDITIONAL_ACCESS",
+                "count": 4,
+                "samples": ["way/418", "way/419", "way/420", "way/421"],
+            },
+        ])
+    );
+    assert_eq!(response.body["statistics"]["featureCount"], 23);
+    assert_eq!(response.body["statistics"]["featuresSkipped"], 0);
+    assert_eq!(response.body["statistics"]["featuresEmitted"], 23);
+}
+
+#[tokio::test]
+async fn access_problems_never_change_the_error_or_media_type_contracts() {
+    // An access warning is a property of a dataset, not of a request. Every
+    // error body and media type stays exactly as Milestone 1 defined it.
+    let bad = get(
+        access_state(),
+        "/api/v1/map/features?bbox=51.400,35.680,51.380,35.700",
+    )
+    .await;
+    assert_eq!(bad.status, StatusCode::BAD_REQUEST);
+    assert_eq!(bad.content_type, "application/json");
+    assert_eq!(error_code(&bad.body), "INVALID_BOUNDING_BOX");
+    assert!(bad.body["error"]["requestId"].is_string());
+
+    let missing = get(access_state(), "/api/v1/map/features").await;
+    assert_eq!(missing.status, StatusCode::BAD_REQUEST);
+    assert_eq!(missing.content_type, "application/json");
+    assert_eq!(error_code(&missing.body), "INVALID_QUERY");
+
+    let ok = get(
+        access_state(),
+        &format!("/api/v1/map/features?{ACCESS_VIEWPORT}"),
+    )
+    .await;
+    assert_eq!(ok.content_type, "application/geo+json");
+}
+
+#[tokio::test]
+async fn a_client_that_ignores_access_still_sees_the_earlier_contract() {
+    let body = access_features("&include=source").await;
+    let feature = &body["features"][0];
+    assert_eq!(feature["type"], "Feature");
+    assert!(feature["id"].is_string());
+    assert_eq!(feature["geometry"]["type"], "LineString");
+    assert!(feature["geometry"]["coordinates"].is_array());
+    assert!(feature["properties"]["kind"].is_string());
+    assert!(feature["properties"]["roadClass"].is_string());
+    assert!(feature["properties"]["name"].is_string());
+    // Milestone 2A's member is still exactly where it was, spelled the same.
+    assert!(feature["properties"]["traversal"]["motorcar"]["direction"].is_string());
+    assert_eq!(body["type"], "FeatureCollection");
+    assert_eq!(body["atlas"]["apiVersion"], "1");
+}
+
+#[tokio::test]
+async fn access_does_not_disturb_the_geometry_on_the_wire() {
+    let body = access_features("").await;
+    for feature in body["features"].as_array().expect("features is an array") {
+        assert_eq!(
+            feature["geometry"]["coordinates"],
+            serde_json::json!([
+                [51.39, feature["geometry"]["coordinates"][0][1]],
+                [51.3915, feature["geometry"]["coordinates"][1][1]],
+                [51.393, feature["geometry"]["coordinates"][2][1]],
+            ]),
+            "{} lost or reordered its coordinates",
+            feature["id"]
+        );
+    }
 }

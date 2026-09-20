@@ -10,12 +10,14 @@
 //! Everything here is validated on construction and immutable afterwards, so a
 //! value that exists is a value that is already known to be well formed.
 
+mod access;
 mod bounding_box;
 mod coordinate;
 mod feature;
 mod geometry;
 mod traversal;
 
+pub use access::{AccessRule, RoadAccess};
 pub use bounding_box::{BoundingBox, BoundingBoxError};
 pub use coordinate::{CoordinateError, GeoCoordinate, Latitude, Longitude};
 pub use feature::{FeatureError, FeatureId, FeatureKind, MapFeature, RoadClass, SourceReference};

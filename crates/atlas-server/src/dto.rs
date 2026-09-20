@@ -10,7 +10,9 @@ use atlas_engine::{
     Attribution, Dataset, ImportFailure, ImportReport, IssueGroup, MapQueryResult,
     QueryDiagnostics, SourceMetadata,
 };
-use atlas_kernel::{BoundingBox, Geometry, MapFeature, RoadTraversal, TravelDirection};
+use atlas_kernel::{
+    AccessRule, BoundingBox, Geometry, MapFeature, RoadAccess, RoadTraversal, TravelDirection,
+};
 use serde::Serialize;
 
 /// The API version carried in every Atlas metadata block.
@@ -82,28 +84,43 @@ pub struct SourceReferenceV1 {
     pub entity_id: String,
 }
 
-/// In which direction one mode travels a road, relative to the geometry.
+/// What one mode's travel on a road looks like: which way, and on what terms.
 ///
-/// A direction, not a permission: it says which way along the road the mode
-/// would go if access allows it there at all, and Atlas does not yet model
-/// access.
+/// The object shape is what made this additive. Direction was the first thing
+/// Atlas knew per mode and was never going to be the only one, so a client
+/// that read `traversal.foot.direction` in Milestone 2A keeps working now that
+/// `access` sits beside it, and will keep working when speed joins them.
 ///
-/// An object rather than a bare string: direction is the first thing Atlas
-/// knows per mode, not the only thing it will ever know, and a client that
-/// reads `traversal.foot.direction` today keeps working when access or speed
-/// joins it tomorrow.
+/// The two members are independent facts and neither implies the other. A road
+/// may be `forward` and `prohibited` at once — the direction says which way it
+/// runs, the access says what the source said about using it — and a client
+/// must not read one as a qualifier on the other.
+///
+/// Neither member is a routing decision. `access` records what the source
+/// said; whether that permits a particular journey is a routing-profile
+/// question Atlas does not answer.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModeTraversalV1 {
     /// `both`, `forward`, `reverse`, `reversible`, `alternating` or
     /// `indeterminate`.
     pub direction: &'static str,
+    /// `unspecified`, `allowed`, `designated`, `permissive`, `discouraged`,
+    /// `destination-only`, `customers-only`, `delivery-only`,
+    /// `agricultural-only`, `forestry-only`, `military-only`, `private`,
+    /// `permit-required`, `dismount-required`, `use-sidepath`, `prohibited`,
+    /// `variable`, `conditional` or `indeterminate`.
+    ///
+    /// `unspecified` means the source said nothing applicable, which is not
+    /// the same as `allowed`.
+    pub access: &'static str,
 }
 
 impl ModeTraversalV1 {
-    fn from_domain(direction: TravelDirection) -> Self {
+    fn from_domain(direction: TravelDirection, access: AccessRule) -> Self {
         Self {
             direction: direction.as_str(),
+            access: access.as_str(),
         }
     }
 }
@@ -112,20 +129,25 @@ impl ModeTraversalV1 {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RoadTraversalV1 {
-    /// Direction for a private motor car.
+    /// Direction and access for a private motor car.
     pub motorcar: ModeTraversalV1,
-    /// Direction for a bicycle.
+    /// Direction and access for a bicycle.
     pub bicycle: ModeTraversalV1,
-    /// Direction for a pedestrian.
+    /// Direction and access for a pedestrian.
     pub foot: ModeTraversalV1,
 }
 
 impl RoadTraversalV1 {
-    fn from_domain(traversal: &RoadTraversal) -> Self {
+    /// Maps the two road records onto one per-mode block.
+    ///
+    /// They arrive as separate domain values and are only zipped together
+    /// here, at the wire boundary, because that is the shape a client reads
+    /// most naturally. Nothing in the domain treats them as one thing.
+    fn from_domain(traversal: &RoadTraversal, access: &RoadAccess) -> Self {
         Self {
-            motorcar: ModeTraversalV1::from_domain(traversal.motorcar()),
-            bicycle: ModeTraversalV1::from_domain(traversal.bicycle()),
-            foot: ModeTraversalV1::from_domain(traversal.foot()),
+            motorcar: ModeTraversalV1::from_domain(traversal.motorcar(), access.motorcar()),
+            bicycle: ModeTraversalV1::from_domain(traversal.bicycle(), access.bicycle()),
+            foot: ModeTraversalV1::from_domain(traversal.foot(), access.foot()),
         }
     }
 }
@@ -142,10 +164,11 @@ pub struct FeaturePropertiesV1 {
     /// The road classification, for roads.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub road_class: Option<String>,
-    /// The travel direction semantics, for roads.
+    /// The per-mode direction and access semantics, for roads.
     ///
-    /// Always present on a road, and never gated behind an `include`
-    /// parameter: it is what the feature *is*, not extra diagnostics about it.
+    /// Always present on a road, with every mode filled in, and never gated
+    /// behind an `include` parameter: it is what the feature *is*, not extra
+    /// diagnostics about it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub traversal: Option<RoadTraversalV1>,
     /// The feature name, verbatim from the source.
@@ -184,7 +207,8 @@ impl FeatureV1 {
                 traversal: feature
                     .kind()
                     .road_traversal()
-                    .map(RoadTraversalV1::from_domain),
+                    .zip(feature.kind().road_access())
+                    .map(|(traversal, access)| RoadTraversalV1::from_domain(traversal, access)),
                 name: feature.name().map(str::to_owned),
                 source: include_source
                     .then(|| feature.source())

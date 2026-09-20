@@ -127,31 +127,34 @@ coordinates are numeric `[longitude, latitude]` pairs, with Atlas metadata in a
 top-level `atlas` foreign member rather than inside `properties`.
 
 Every road carries its travel semantics in `properties.traversal`, always, with
-or without any `include` parameter:
+or without any `include` parameter. Each mode gets a `direction` and an
+`access`, which are independent facts:
 
 ```json
 {
   "type": "Feature",
-  "id": "osm:way:304",
+  "id": "osm:way:407",
   "geometry": {
     "type": "LineString",
-    "coordinates": [[51.39, 35.6965], [51.3915, 35.6965], [51.393, 35.6965]]
+    "coordinates": [[51.39, 35.707], [51.3915, 35.707], [51.393, 35.707]]
   },
   "properties": {
     "kind": "road",
     "roadClass": "residential",
-    "name": "Contraflow Cycle Street",
+    "name": "Layered Override Street",
     "traversal": {
-      "motorcar": { "direction": "forward" },
-      "bicycle": { "direction": "both" },
-      "foot": { "direction": "both" }
+      "motorcar": { "direction": "reverse", "access": "private" },
+      "bicycle": { "direction": "reverse", "access": "permissive" },
+      "foot": { "direction": "both", "access": "allowed" }
     }
   }
 }
 ```
 
 This is additive: the API is still version 1, and a client written against
-Milestone 1 that ignores unknown members keeps working unchanged.
+Milestone 1 or 2A that ignores unknown members keeps working unchanged. A road
+whose source carried no access tags reports `unspecified` for every mode, which
+is not the same as `allowed`.
 
 Errors are `application/json`, never GeoJSON:
 
@@ -174,11 +177,11 @@ paths, stack traces or parser internals.
 
 Atlas derives, per road, in which direction each of three modes travels it.
 
-This is direction, not access. If access otherwise allows the mode, the value
-describes the permitted direction relative to the geometry; it never says that
-the mode may use the road in the first place. Atlas does not model access yet,
-so a road can carry a direction for a mode that would in reality be barred
-from it.
+This is direction, not access. The value describes which way along the road the
+mode travels; it never says that the mode may use the road in the first place.
+What the source said about that is [a separate fact](#road-access), derived from
+separate tags and recorded beside this one — and a road can carry a direction
+for a mode that the very same road prohibits.
 
 ### Modes
 
@@ -287,6 +290,256 @@ import and never skips the road.
 
 [`IssueLog`]: crates/atlas-engine/src/import.rs
 
+## Road access
+
+Atlas derives, per road, what the source says about each of three modes' access
+to it.
+
+### Direction, access and routing policy
+
+Three different questions, deliberately kept apart:
+
+| Question | Answered by | Status |
+| --- | --- | --- |
+| Which way along this road does the mode travel? | `traversal.<mode>.direction` | Milestone 2A |
+| What did the source say about the mode using it? | `traversal.<mode>.access` | Milestone 2B |
+| May a route actually send someone down it? | a routing profile | **not implemented** |
+
+Access is not direction. A forward one-way road may prohibit motorcars; a
+bidirectional road may be private; a bicycle-designated way still has a
+direction of its own. The two never affect each other, and **a direction arrow
+never disappears because access is prohibited** — Studio draws them in separate
+layers from separate properties.
+
+Access is not a routing answer either. `destination` records that the source
+limits the road to destination traffic; whether *your* journey counts as
+destination traffic depends on where you are going, which country you are in
+and what vehicle you are driving. That is a routing profile's decision, and
+Atlas has no routing profiles yet. See
+[ADR-008](docs/decisions/ADR-008-explicit-access-facts-and-routing-policy.md).
+
+### Access values
+
+| Value | Meaning |
+| --- | --- |
+| `unspecified` | No applicable explicit access tag was present. Not permission, not prohibition. |
+| `allowed` | Explicitly allowed by the source. |
+| `designated` | Legally or officially designated for the mode. |
+| `permissive` | Permitted by the owner, and potentially revocable. |
+| `discouraged` | Legal access exists but use is discouraged. |
+| `destination-only` | Limited to traffic whose destination is on the way. |
+| `customers-only` | Limited to customers of whatever the way serves. |
+| `delivery-only` | Limited to deliveries. |
+| `agricultural-only` | Limited to agricultural traffic. |
+| `forestry-only` | Limited to forestry traffic. |
+| `military-only` | Limited to military traffic. |
+| `private` | An explicit private access restriction. |
+| `permit-required` | Access requires a permit. |
+| `dismount-required` | The mode must be dismounted or handled as the restriction says. |
+| `use-sidepath` | The mode is expected or required to use a separate path. |
+| `prohibited` | An explicit no-access fact. |
+| `variable` | The source explicitly declares access to be variable. |
+| `conditional` | A condition applies that Atlas detected and does not evaluate. |
+| `indeterminate` | Atlas saw access information and cannot derive a trustworthy rule. |
+
+`unspecified` is the one to read carefully. It is **not** `allowed`: most roads
+in OpenStreetMap carry no access tag, and "nobody has said" is a different state
+of knowledge from "somebody checked and said yes". Only the first can be
+improved by surveying, and only the first is where a future country-default
+table would apply.
+
+### Source values
+
+The OSM adapter reads access values with surrounding whitespace trimmed and
+ASCII case ignored, so `access=" NO "` and `access=no` are the same thing.
+
+| Source value | Reads as |
+| --- | --- |
+| `yes` | `allowed` |
+| `no` | `prohibited` |
+| `designated` | `designated` |
+| `permissive` | `permissive` |
+| `discouraged` | `discouraged` |
+| `destination` | `destination-only` |
+| `customers` | `customers-only` |
+| `delivery` | `delivery-only` |
+| `agricultural` | `agricultural-only` |
+| `forestry` | `forestry-only` |
+| `military` | `military-only` |
+| `private` | `private` |
+| `permit` | `permit-required` |
+| `dismount` | `dismount-required` |
+| `use_sidepath` | `use-sidepath` |
+| `variable` | `variable` |
+| `unknown` | `indeterminate`, **without** a warning |
+| anything else, or blank | `indeterminate`, with `UNKNOWN_ACCESS_VALUE` |
+
+`unknown` is a recognised OSM value: a surveyor saying they could not tell.
+Atlas records that faithfully and does not complain about it.
+
+No legacy aliases are folded in. `public` and `restricted` appear in the wild
+and mean different things to different people, so Atlas refuses to pick one:
+they stay `indeterminate` and visible in the warnings.
+
+### Hierarchy and precedence
+
+Each mode has its own chain, most specific first. The first key the way
+actually carries wins, and nothing below it is consulted.
+
+| # | Motorcar | Bicycle | Foot |
+| --- | --- | --- | --- |
+| 1 | `motorcar:conditional` | `bicycle:conditional` | `foot:conditional` |
+| 2 | `motorcar` | `bicycle` | `foot` |
+| 3 | `motor_vehicle:conditional` | `vehicle:conditional` | `access:conditional` |
+| 4 | `motor_vehicle` | `vehicle` | `access` |
+| 5 | `vehicle:conditional` | `access:conditional` | `unspecified` |
+| 6 | `vehicle` | `access` | |
+| 7 | `access:conditional` | `unspecified` | |
+| 8 | `access` | | |
+| 9 | `unspecified` | | |
+
+Two rules decide the interleaving:
+
+- **Specificity wins across levels.** A plain `motorcar` beats a
+  `vehicle:conditional`: the mapper said something about cars in particular.
+- **The conditional form wins within one level.** `motorcar:conditional` beats
+  `motorcar`.
+
+And three rules apply throughout:
+
+- A present but unreadable value **stops the chain**. `motorcar=maybe` makes the
+  car `indeterminate`; it never falls through to a broader tag that happens to
+  be readable.
+- Absence produces `unspecified`, never `allowed`.
+- Access derivation never changes geometry and never reverses coordinate order.
+
+#### Precedence examples
+
+| Tags | Motorcar | Bicycle | Foot |
+| --- | --- | --- | --- |
+| `access=no` + `foot=yes` | `prohibited` | `prohibited` | `allowed` |
+| `vehicle=no` + `bicycle=yes` | `prohibited` | `allowed` | `unspecified` |
+| `access=yes` + `vehicle=permissive` + `motorcar=private` | `private` | `permissive` | `allowed` |
+| `access:conditional="no @ (…)"` + `foot=yes` | `conditional` | `conditional` | `allowed` |
+| `vehicle:conditional="no @ (…)"` + `motorcar=yes` | `allowed` | `conditional` | `unspecified` |
+| `motorcar=yes` + `motorcar:conditional="no @ (…)"` | `conditional` | `unspecified` | `unspecified` |
+| `access=yes` + `motorcar=maybe` | `indeterminate` | `allowed` | `allowed` |
+
+### Access is never inferred from highway class
+
+`derive_access` is given tags and nothing else. It never reads `highway`, it is
+never handed the `RoadClass`, and there is no country default table anywhere in
+Atlas.
+
+A motorway usually bars pedestrians and a footway usually bars cars — but those
+are *legal defaults*, not facts about the way. They vary by jurisdiction, they
+change without the road changing, and once stored they would be
+indistinguishable from a surveyed fact. Nothing downstream could then apply a
+different default, and no surveyor could find out what still needs surveying.
+
+This is deliberately the opposite of the direction rules, where the
+classification *is* an input: a motorway implies `forward` for vehicles, and the
+class decides whether a plain `oneway` reaches pedestrians. The motorway
+direction rule is near-universal and is about the road's physical design; the
+motorway access rule is a traffic law. Leaving `unspecified` intact is what
+makes a jurisdiction-aware routing profile possible later.
+
+### Conditional tags
+
+Atlas recognises `access:conditional`, `vehicle:conditional`,
+`motor_vehicle:conditional`, `motorcar:conditional`, `bicycle:conditional` and
+`foot:conditional`.
+
+**Detection is by key. The value is never parsed.** If a conditional key is the
+one precedence lands on for a mode, that mode becomes `conditional` and the road
+records `UNSUPPORTED_CONDITIONAL_ACCESS`.
+
+A conditional is never read as an unconditional `yes` or `no`. Reading
+`no @ (Mo-Fr 07:00-09:00)` as a plain `no` would encode a rush-hour restriction
+as a permanent closure; reading it as `yes` would drop the restriction. Both
+would look exactly like facts.
+
+Limitations that follow: time-dependent access is not modelled, opening hours,
+dates and weight expressions are not evaluated, and `access:lanes`,
+`access:forward` and `access:backward` are not read at all. A conditional that
+is out-ranked for every modelled mode decided nothing and warns about nothing.
+
+### Values that need a named mode
+
+`designated`, `dismount` and `use_sidepath` each name something a particular
+mode does. On the general `access` key there is no mode to name — designated for
+whom? — so any mode that reaches one of them there becomes `indeterminate` and
+the road records `INVALID_ACCESS_SCOPE`. A more specific override still wins.
+
+| Tags | Motorcar | Bicycle | Foot |
+| --- | --- | --- | --- |
+| `access=designated` | `indeterminate` | `indeterminate` | `indeterminate` |
+| `access=designated` + `bicycle=yes` | `indeterminate` | `allowed` | `indeterminate` |
+| `bicycle=designated` | `unspecified` | `designated` | `unspecified` |
+
+The check stops at the general key. `vehicle=designated` is unusual, but it is an
+explicit source fact with a subject, so Atlas records it: deciding a mapper is
+wrong about a vehicle key would be routing policy, and this milestone is not a
+policy validator.
+
+### Access warnings
+
+| Code | Recorded when | Scope |
+| --- | --- | --- |
+| `UNKNOWN_ACCESS_VALUE` | Any of `access`, `vehicle`, `motor_vehicle`, `motorcar`, `bicycle` or `foot` carried a value Atlas cannot read, including a blank one. | every such key on the road, **regardless of precedence** |
+| `INVALID_ACCESS_SCOPE` | The general `access` key carried `designated`, `dismount` or `use_sidepath`. | the `access` key, **regardless of precedence** |
+| `UNSUPPORTED_CONDITIONAL_ACCESS` | A conditional key was **selected by precedence** for at least one mode. | selected keys only |
+
+Each is recorded at most once per road, however many tags contributed to it, so
+the counts are counts of roads rather than counts of tags. They use the same
+bounded [`IssueLog`] as every other import warning and are appended after the
+Milestone 1 and 2A codes, so the group order a client already sees does not
+shuffle. All three are evaluated only for ways that actually become road
+features; a way with no `highway` tag, or one skipped for broken geometry,
+contributes nothing.
+
+#### Precedence decides the value; diagnostics describe the source
+
+These are two different questions and Atlas answers them in two separate
+passes.
+
+`UNKNOWN_ACCESS_VALUE` and `INVALID_ACCESS_SCOPE` are **data-quality findings
+about the file**. A static scan reads every recognised static access key the
+road carries and asks whether the value is readable and whether it can mean
+what it says there. Neither question depends on which key precedence went on to
+choose, so a mistake that a more specific tag happens to shadow is still
+reported:
+
+```
+access=bogus
+motorcar=yes
+bicycle=yes
+foot=yes
+```
+
+derives `allowed` for all three modes — precedence is untouched — **and**
+records `UNKNOWN_ACCESS_VALUE` once. Staying quiet here would hide exactly the
+mistakes a mapper most needs to find: the broken value would be invisible in
+every diagnostic Atlas publishes. The same holds for `access=designated` behind
+three valid overrides, which records `INVALID_ACCESS_SCOPE`.
+
+`UNSUPPORTED_CONDITIONAL_ACCESS` is different, and stays **selected-only**. A
+conditional tag is not a defect — it is valid, correct data that Atlas has
+chosen not to evaluate. The warning is a statement about a limitation of Atlas,
+and Atlas is only limited by a condition that reaches the answer. A conditional
+out-ranked for all three modes shaped nothing, so it produces neither a
+`conditional` rule nor a warning.
+
+In short: a shadowed **malformed or misplaced** value still warns and never
+changes a derived rule; a shadowed **conditional** does neither.
+
+The recognised value `unknown` never warns in any position, shadowed or not: it
+is a surveyor reporting uncertainty accurately, not a data problem.
+
+An access problem never fails the import, never skips a road, never mutates
+geometry and never reverses coordinate order. Only malformed XML or attribute
+decoding is still fatal.
+
 ## Atlas Studio
 
 Studio is a debugging tool, not a product surface. It shows:
@@ -296,9 +549,10 @@ Studio is a debugging tool, not a product surface. It shows:
 - grouped import warnings with their bounded entity samples
 - the current viewport, features examined, candidates found, features returned,
   query duration and truncation state
-- a travel profile selector, and one-way arrows for the selected profile
-- a feature inspector: id, kind, road class, name, the direction for all three
-  profiles, source reference, coordinate count and bounds
+- a travel profile selector, with one-way arrows and an access overlay for the
+  selected profile, and a legend for the overlay
+- a feature inspector: id, kind, road class, name, the direction *and* the
+  access for all three profiles, source reference, coordinate count and bounds
 - OpenStreetMap attribution with a working licence link
 
 Pan and zoom trigger a debounced viewport query; an obsolete request is aborted
@@ -309,16 +563,54 @@ after it leaves the queried viewport, flagged as out of view.
 
 The **Travel profile** panel offers Car, Bicycle and Foot as a keyboard-navigable
 radio group; Car is the default. Switching profile is entirely local: it issues
-no HTTP request, does not alter or reverse any geometry, preserves hover and
-selection, leaves the viewport diagnostics untouched, and immediately re-points
-the arrows.
+no HTTP request, does not alter or reverse any geometry, preserves hover and the
+selected feature, leaves the viewport diagnostics untouched, and immediately
+re-points the arrows and re-filters the access overlay.
 
 Arrows are drawn only for `forward` and `reverse`. A `both` road has no one-way
 direction to draw, and `reversible`, `alternating` and `indeterminate` have no
 direction Atlas is willing to state, so none of them gets an arrow — the
 inspector names them instead. The inspector always lists all three profiles, not
 just the selected one, because the interesting roads are the ones where the
-profiles disagree.
+profiles disagree; both the direction and the access row of the selected profile
+are highlighted.
+
+### The access overlay
+
+The overlay is a thin dashed line drawn *over* each road and *under* everything
+that highlights one. It is narrower than the road and dashed, so the road-class
+colour still shows on both sides of it and through the gaps: the overlay adds a
+fact, it does not replace one.
+
+Nineteen access values collapse into four drawing categories — four is about as
+many as a reader can hold at once on a map that is already coloured by road
+class. The inspector always shows the exact value in words.
+
+| Overlay | Colour | Dash | Values |
+| --- | --- | --- | --- |
+| none | — | — | `unspecified`, `allowed`, `designated` |
+| Restricted or special purpose | amber `#ffb02e` | long dashes | `permissive`, `discouraged`, `destination-only`, `customers-only`, `delivery-only`, `agricultural-only`, `forestry-only`, `military-only`, `private`, `permit-required`, `dismount-required`, `use-sidepath` |
+| Prohibited | red `#ff5d5d` | tight beads | `prohibited` |
+| Dynamic or unresolved | purple `#c79bf2` | long-short | `variable`, `conditional`, `indeterminate` |
+
+`unspecified` draws nothing, alongside `allowed` and `designated`. An overlay on
+every untagged road would map how complete OpenStreetMap is, not how accessible
+the roads are. The inspector still calls it "Not stated", never "Allowed".
+
+The overlay sits below the hover and selection highlights and below the
+direction arrows, so **a prohibited one-way still shows its arrow**. Access and
+direction are separate facts drawn by separate layers, and neither layer's
+filter reads the other's property.
+
+A compact legend in the same panel shows the four categories, drawn as inline
+SVG with the same colours and dash rhythms the map uses. Nothing is fetched for
+it: no sprite, no icon font, no image.
+
+If an older server omits `access`, Studio reads it as `indeterminate` — the
+purple overlay — and not as `unspecified`. A server that never sent the member
+has not established that the source lacked access tags; `unspecified` is a claim
+about a source, and a client must not make it on a server's behalf. An
+unrecognised future value degrades the same way.
 
 The arrow itself is rasterised in the browser at runtime and handed to MapLibre
 as a raw RGBA buffer. There is no sprite sheet, no glyph server and no icon CDN:
@@ -435,18 +727,116 @@ The expected outcome is asserted in full in
 | 317 | Unknown Motorcar Override | `indeterminate` | `forward` | `both` |
 
 Some of these are not sensible roads — a motorway is no place for a bicycle,
-and a footway is no place for a car. Direction is not access, and access is not
-modelled yet, so Atlas states the direction the source implies and says nothing
-about who may use the road.
+and a footway is no place for a car. Direction is not access: this fixture
+carries no access tags at all, so every road in it reports `unspecified` access
+for every mode, and Atlas states the direction the source implies without
+claiming anything about who may use the road.
+
+### The access fixture
+
+[`fixtures/synthetic/roads-access.osm`](fixtures/synthetic/roads-access.osm)
+covers the access rules. Every road is a short straight segment on its own row,
+running west to east, with the rows in way-id order from north to south, so each
+rule can be seen on its own in Studio without any road overlapping another.
+
+Run it:
+
+```bash
+cargo run -p atlas-server -- --source fixtures/synthetic/roads-access.osm
+# and, in another terminal, from studio/
+npm run dev
+```
+
+Then open <http://localhost:5173> and switch between Car, Bicycle and Foot. The
+overlay changes and the arrows stay put.
+
+Everything in it imports cleanly, so the only warnings are the access ones. The
+expected outcome is asserted in full in
+`crates/atlas-osm/tests/access_fixture.rs` and repeated in the fixture header:
+
+| Counter | Value |
+| --- | --- |
+| nodes seen / indexed | 69 / 69 |
+| ways seen | 23 |
+| road ways selected | 23 |
+| features emitted | 23 |
+| features skipped | 0 |
+| relations seen | 0 |
+
+| Warning | Count | Samples |
+| --- | --- | --- |
+| `UNKNOWN_ACCESS_VALUE` | 1 | `way/417` |
+| `INVALID_ACCESS_SCOPE` | 1 | `way/423` |
+| `UNSUPPORTED_CONDITIONAL_ACCESS` | 4 | `way/418`, `way/419`, `way/420`, `way/421` |
+
+| Way | Name | Tags | Motorcar | Bicycle | Foot |
+| --- | --- | --- | --- | --- | --- |
+| 401 | Untagged Lane | — | `unspecified` | `unspecified` | `unspecified` |
+| 402 | Open Access Street | `access=yes` | `allowed` | `allowed` | `allowed` |
+| 403 | Closed Access Street | `access=no` | `prohibited` | `prohibited` | `prohibited` |
+| 404 | Foot Exception Street | `access=no` `foot=yes` | `prohibited` | `prohibited` | `allowed` |
+| 405 | Cycle Exception Street | `vehicle=no` `bicycle=yes` | `prohibited` | `allowed` | `unspecified` |
+| 406 | Destination Motor Road | `motor_vehicle=destination` | `destination-only` | `unspecified` | `unspecified` |
+| 407 | Layered Override Street | `access=yes` `vehicle=permissive` `motorcar=private` | `private` | `permissive` | `allowed` |
+| 408 | Designated Cycleway | `bicycle=designated` | `unspecified` | `designated` | `unspecified` |
+| 409 | Permissive Footpath | `foot=permissive` | `unspecified` | `unspecified` | `permissive` |
+| 410 | Customers Car Park Road | `access=customers` | `customers-only` | `customers-only` | `customers-only` |
+| 411 | Delivery Service Road | `motor_vehicle=delivery` | `delivery-only` | `unspecified` | `unspecified` |
+| 412 | Dismount Bridge Path | `bicycle=dismount` | `unspecified` | `dismount-required` | `unspecified` |
+| 413 | Sidepath Cycle Street | `bicycle=use_sidepath` | `unspecified` | `use-sidepath` | `unspecified` |
+| 414 | Permit Motorcar Track | `motorcar=permit` | `permit-required` | `unspecified` | `unspecified` |
+| 415 | Discouraged Cycle Lane | `bicycle=discouraged` | `unspecified` | `discouraged` | `unspecified` |
+| 416 | Unknown Access Road | `access=unknown` | `indeterminate` | `indeterminate` | `indeterminate` |
+| 417 | Unreadable Motorcar Street | `access=yes` `motorcar=maybe` | `indeterminate` | `allowed` | `allowed` |
+| 418 | Conditional Access Street | `access:conditional="no @ (…)"` | `conditional` | `conditional` | `conditional` |
+| 419 | Conditional With Foot Exception | `access:conditional="no @ (…)"` `foot=yes` | `conditional` | `conditional` | `allowed` |
+| 420 | Conditional Vehicle Street | `vehicle:conditional="no @ (…)"` `motorcar=yes` | `allowed` | `conditional` | `unspecified` |
+| 421 | Conditional Motorcar Street | `motorcar=yes` `motorcar:conditional="no @ (…)"` | `conditional` | `unspecified` | `unspecified` |
+| 422 | Variable Access Street | `access=variable` | `variable` | `variable` | `variable` |
+| 423 | Invalid Scope Street | `access=designated` | `indeterminate` | `indeterminate` | `indeterminate` |
+
+Way 416 raises no warning: `unknown` is a recognised value, not a data problem.
+
+Four rows carry an orthogonal `oneway` tag so that the overlay and the arrows
+can be watched together. Neither derivation reads the other's tags, and these
+directions are exactly what the same `oneway` values produce with no access tag
+present:
+
+| Way | `oneway` | Motorcar | Bicycle | Foot |
+| --- | --- | --- | --- | --- |
+| 403 Closed Access Street | `yes` | `forward` | `forward` | `both` |
+| 407 Layered Override Street | `-1` | `reverse` | `reverse` | `both` |
+| 408 Designated Cycleway | `yes` | `forward` | `forward` | `both` |
+| 418 Conditional Access Street | `yes` | `forward` | `forward` | `both` |
+
+Every other row is two-way for every mode. Way 403 is the one to look at: it is
+prohibited for everybody and still draws its one-way arrows.
+
+Sixteen of the nineteen access values appear in this table.
+`agricultural-only`, `forestry-only` and `military-only` are left out because
+they behave identically to the purpose limits already shown — same key, same
+precedence, same overlay — and three more near-identical rows would cost a
+screen of height to demonstrate nothing new. They are covered by the adapter's
+value-table unit test and serialised by an HTTP contract test, and
+`fixture_shows_every_rule_but_the_three_activity_restrictions` fails if a
+twentieth value is ever added without a decision about whether the fixture
+should grow a row for it.
+
+None of these rules says whether a router may use the road. They record what the
+source said.
 
 ## Limitations
 
 This milestone is deliberately narrow. Not implemented, and not stubbed:
 
 - routing, shortest paths, road graphs, turn restrictions, route costs
-- access rules: Atlas says which *direction* a mode may travel, never whether
-  that mode may use the road at all. A motorway can report a bicycle direction
-  and a footway a motorcar direction; both are direction facts, not permission
+- routing policy of any kind: Atlas records what the source said about access,
+  never whether a route may use the road. A motorway can report a bicycle
+  direction and a footway a motorcar direction, and both may report
+  `unspecified` access; these are source facts, not permissions
+- country-specific default access tables, and access inferred from highway
+  class. Both are jurisdictional legal defaults rather than facts about the
+  way, and storing one would make it indistinguishable from a surveyed fact
 - `maxspeed`, `surface` and every other `highway` semantic — apart from travel
   direction, the `highway` value is used for display classification only
 - `.osm.pbf`, compressed input, network downloads, file upload
@@ -454,6 +844,29 @@ This milestone is deliberately narrow. Not implemented, and not stubbed:
 - spatial indexing; queries are a linear scan, with diagnostics to prove when
   that stops being acceptable
 - vector tiles, authentication, geocoding, live traffic, external map tiles
+
+Access, specifically, is bounded as follows:
+
+- Conditional access expressions are **detected, never parsed**. Any applicable
+  one makes that mode `conditional`. Opening hours, dates, weights and every
+  other condition are unevaluated, and time-dependent access is not modelled.
+- `access:lanes`, `access:forward`, `access:backward` and every other
+  directional or per-lane access key are not read. Access is derived for the
+  whole way.
+- Barriers, gates, bollards and node-level access are not read. Vehicle
+  dimensions, weight, height and axle restrictions are not modelled.
+- `hgv`, `psv`, `bus`, `horse`, `motorcycle`, `ski`, `inline_skates` and the
+  rest of the long tail of mode keys are not read: only `access`, `vehicle`,
+  `motor_vehicle`, `motorcar`, `bicycle`, `foot` and their conditional
+  siblings.
+- No legacy aliases are accepted. `public`, `restricted`, `official` and
+  anything else outside the documented table stay `indeterminate` and visible
+  in the warnings.
+- `AgriculturalOnly`, `ForestryOnly` and `MilitaryOnly` are recorded faithfully
+  and consumed by nothing yet.
+- Access says nothing about direction and direction says nothing about access.
+  A road can be one-way and prohibited, and Atlas records both without letting
+  either qualify the other.
 
 Direction, specifically, is bounded as follows:
 
