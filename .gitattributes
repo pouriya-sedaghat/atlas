@@ -1,0 +1,15 @@
+# Repository text is stored and checked out with LF, on every platform.
+# Git still detects binary content automatically and leaves it untouched.
+* text=auto eol=lf
+
+# Binary assets: never inspected for text, never line-ending converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.zip binary
