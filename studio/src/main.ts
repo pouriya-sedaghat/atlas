@@ -26,6 +26,8 @@ import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&ur
 import { AtlasApiError, fetchCurrentDataset, fetchFeatures, fetchLiveness } from './api/client.js';
 import type { FeatureQueryRequest } from './api/client.js';
 import type { AtlasFeature, AtlasFeatureCollection, Bbox, CurrentDataset } from './api/types.js';
+import { ARROW_IMAGE_ID, ARROW_PIXEL_RATIO, createArrowImage } from './map/arrowImage.js';
+import { applyDirectionProfile } from './map/directionArrows.js';
 import { EMPTY_COLLECTION, indexFeatures, toMapCollection } from './map/geojson.js';
 import {
   FEATURE_KEY,
@@ -37,7 +39,9 @@ import {
   roadLayers,
 } from './map/roadLayers.js';
 import { BLANK_STYLE } from './map/style.js';
+import { DEFAULT_PROFILE, type TravelProfile } from './map/traversal.js';
 import { InspectorPanel, type InspectorSelection } from './ui/inspector.js';
+import { ProfileSelector } from './ui/profile.js';
 import {
   DatasetPanel,
   DiagnosticsPanel,
@@ -60,11 +64,15 @@ const datasetPanel = new DatasetPanel(requireElement('dataset-panel'));
 const warningsPanel = new WarningsPanel(requireElement('warnings-panel'));
 const diagnosticsPanel = new DiagnosticsPanel(requireElement('diagnostics-panel'));
 const inspectorPanel = new InspectorPanel(requireElement('inspector-panel'));
+const profileSelector = new ProfileSelector(requireElement('profile-panel'), (profile) =>
+  selectProfile(profile),
+);
 const banner = requireElement('banner');
 const attribution = requireElement('attribution');
 const debugToggle = requireElement<HTMLInputElement>('toggle-debug');
 
 interface AppState {
+  profile: TravelProfile;
   connection: ConnectionState;
   connectionError: string | null;
   dataset: CurrentDataset | null;
@@ -79,6 +87,7 @@ interface AppState {
 }
 
 const state: AppState = {
+  profile: DEFAULT_PROFILE,
   connection: 'connecting',
   connectionError: null,
   dataset: null,
@@ -132,7 +141,8 @@ function renderAll(): void {
   datasetPanel.render(state.dataset, state.connectionError);
   warningsPanel.render(state.dataset);
   diagnosticsPanel.render(state.query, state.viewport);
-  inspectorPanel.render(state.selection);
+  profileSelector.render(state.profile);
+  inspectorPanel.render(state.selection, state.profile);
 }
 
 function renderBanner(): void {
@@ -181,8 +191,11 @@ function describeError(error: unknown): string {
 // -- map wiring -----------------------------------------------------------
 
 map.on('load', () => {
+  // The arrow is generated here and now. Nothing is fetched: no sprite sheet,
+  // no glyph range, no icon CDN.
+  map.addImage(ARROW_IMAGE_ID, createArrowImage(), { pixelRatio: ARROW_PIXEL_RATIO });
   map.addSource(ROAD_SOURCE_ID, { type: 'geojson', data: state.mapData });
-  for (const layer of roadLayers()) {
+  for (const layer of roadLayers(state.profile)) {
     map.addLayer(layer);
   }
   state.mapReady = true;
@@ -239,7 +252,28 @@ function select(id: string | null): void {
   state.selectedId = id;
   updateSelection();
   applyHighlights();
-  inspectorPanel.render(state.selection);
+  inspectorPanel.render(state.selection, state.profile);
+}
+
+/**
+ * Switches travel profile.
+ *
+ * Everything this touches is already in the browser: the arrows are re-pointed
+ * from the flattened direction properties of the features that were loaded,
+ * and the inspector relabels which profile is active. There is deliberately no
+ * query here, no source update and no geometry change, so hover, selection and
+ * the viewport diagnostics all survive untouched.
+ */
+function selectProfile(profile: TravelProfile): void {
+  if (state.profile === profile) {
+    return;
+  }
+  state.profile = profile;
+  profileSelector.render(profile);
+  if (state.mapReady) {
+    applyDirectionProfile(map, profile);
+  }
+  inspectorPanel.render(state.selection, state.profile);
 }
 
 function applyHighlights(): void {
@@ -322,7 +356,7 @@ function applyCollection(collection: AtlasFeatureCollection, request: FeatureQue
   applyHighlights();
   renderStatus();
   diagnosticsPanel.render(state.query, state.viewport);
-  inspectorPanel.render(state.selection);
+  inspectorPanel.render(state.selection, state.profile);
   renderBanner();
 }
 

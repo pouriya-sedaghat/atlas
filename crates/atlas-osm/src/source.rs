@@ -18,6 +18,7 @@ use atlas_kernel::{
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::{Reader, XmlVersion};
 
+use crate::direction::derive_traversal;
 use crate::model::{OsmNode, OsmNodeRef, OsmRelation, OsmWay};
 
 /// The attribution every OpenStreetMap-derived dataset must carry.
@@ -501,6 +502,14 @@ fn emit_way(
         issues.record(IssueCode::UnknownHighwayClass, entity.clone());
     }
 
+    // Direction is derived only for ways that actually become features, so a
+    // road skipped for broken geometry never contributes direction warnings
+    // about a road nobody can see.
+    let derived = derive_traversal(&way.tags, &road_class);
+    for code in derived.issues.codes() {
+        issues.record(code, entity.clone());
+    }
+
     let feature_id = FeatureId::new(format!("osm:way:{id}"));
     let reference = SourceReference::new(SOURCE_SYSTEM, "way", id.to_string());
     let (Ok(feature_id), Ok(reference)) = (feature_id, reference) else {
@@ -511,7 +520,10 @@ fn emit_way(
 
     let feature = MapFeature::new(
         feature_id,
-        FeatureKind::Road(road_class),
+        FeatureKind::Road {
+            class: road_class,
+            traversal: derived.traversal,
+        },
         Geometry::from(line),
         way.tags.get("name").map(str::to_owned),
         Some(reference),

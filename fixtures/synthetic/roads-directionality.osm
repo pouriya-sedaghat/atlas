@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Atlas synthetic directionality fixture.
+
+  Hand written and deliberately schematic: every road is a short straight
+  segment on its own row, except the two roundabouts, which are square loops to
+  the east. The point is that each direction rule can be seen on its own in
+  Atlas Studio without any road overlapping another.
+
+  Nothing in this file was downloaded from OpenStreetMap. The coordinates are
+  invented and sit in an empty part of Tehran purely so that the numbers look
+  plausible in the viewer.
+
+  Every way here imports cleanly: there are no skipped features, no invalid
+  coordinates and no relations, so the only warnings are the three direction
+  warnings. That is what makes them easy to read off in Studio.
+
+  Expected import outcome (asserted in
+  crates/atlas-osm/tests/directionality_fixture.rs):
+    nodes seen ............ 53
+    nodes indexed ......... 53
+    ways seen ............. 17
+    road ways selected .... 17
+    features emitted ...... 17
+    features skipped ...... 0
+    relations seen ........ 0
+
+  Expected warnings, in the order the API reports them:
+    UNKNOWN_ONEWAY_VALUE ............. 2   way/311, way/317
+    AMBIGUOUS_ONEWAY_SCOPE ........... 2   way/312, way/316
+    UNSUPPORTED_CONDITIONAL_ONEWAY ... 1   way/313
+
+  Expected direction per way, as motorcar / bicycle / foot:
+    301 Two-Way Residential ......... both          / both          / both
+    302 Forward One-Way ............. forward       / forward       / both
+    303 Reverse One-Way ............. reverse       / reverse       / both
+    304 Contraflow Cycle Street ..... forward       / both          / both
+    305 Implicit Roundabout ......... forward       / forward       / both
+    306 Two-Way Roundabout .......... both          / both          / both
+    307 Implicit Motorway ........... forward       / forward       / both
+    308 Independent Overrides Road .. reverse       / both          / forward
+    309 Reversible Ramp ............. reversible    / reversible    / both
+    310 Alternating Tunnel .......... alternating   / alternating   / both
+    311 Unsupported Value Street .... indeterminate / indeterminate / both
+    312 Ambiguous Footway ........... forward       / forward       / indeterminate
+    313 Conditional Corridor ........ indeterminate / indeterminate / both
+    314 One-Way Steps ............... forward       / forward       / forward
+    315 Legacy Alias Lane ........... forward       / forward       / both
+    316 Ambiguous Path .............. reverse       / reverse       / indeterminate
+    317 Unknown Motorcar Override ... indeterminate / forward       / both
+
+  Direction is always relative to the coordinate order of each way's geometry,
+  which runs west to east for the straight roads and anticlockwise for the two
+  roundabout loops. Atlas never reverses a geometry to express a direction.
+
+  Some of these combinations are not sensible roads: a motorway is not a place
+  for a bicycle and a footway is not a place for a car. Direction is not
+  access, and access is not modelled in this milestone, so Atlas states the
+  direction the source implies and says nothing about who may use the road.
+-->
+<osm version="0.6" generator="atlas-synthetic-fixture">
+  <bounds minlat="35.6910" minlon="51.3900" maxlat="35.6985" maxlon="51.3955"/>
+
+  <!-- Three nodes per straight road, four corners per roundabout, in way order. -->
+  <node id="1" lat="35.6980" lon="51.3900"/>
+  <node id="2" lat="35.6980" lon="51.3915"/>
+  <node id="3" lat="35.6980" lon="51.3930"/>
+  <node id="4" lat="35.6975" lon="51.3900"/>
+  <node id="5" lat="35.6975" lon="51.3915"/>
+  <node id="6" lat="35.6975" lon="51.3930"/>
+  <node id="7" lat="35.6970" lon="51.3900"/>
+  <node id="8" lat="35.6970" lon="51.3915"/>
+  <node id="9" lat="35.6970" lon="51.3930"/>
+  <node id="10" lat="35.6965" lon="51.3900"/>
+  <node id="11" lat="35.6965" lon="51.3915"/>
+  <node id="12" lat="35.6965" lon="51.3930"/>
+  <node id="13" lat="35.6975" lon="51.3945"/>
+  <node id="14" lat="35.6975" lon="51.3955"/>
+  <node id="15" lat="35.6985" lon="51.3955"/>
+  <node id="16" lat="35.6985" lon="51.3945"/>
+  <node id="17" lat="35.6955" lon="51.3945"/>
+  <node id="18" lat="35.6955" lon="51.3955"/>
+  <node id="19" lat="35.6965" lon="51.3955"/>
+  <node id="20" lat="35.6965" lon="51.3945"/>
+  <node id="21" lat="35.6960" lon="51.3900"/>
+  <node id="22" lat="35.6960" lon="51.3915"/>
+  <node id="23" lat="35.6960" lon="51.3930"/>
+  <node id="24" lat="35.6955" lon="51.3900"/>
+  <node id="25" lat="35.6955" lon="51.3915"/>
+  <node id="26" lat="35.6955" lon="51.3930"/>
+  <node id="27" lat="35.6950" lon="51.3900"/>
+  <node id="28" lat="35.6950" lon="51.3915"/>
+  <node id="29" lat="35.6950" lon="51.3930"/>
+  <node id="30" lat="35.6945" lon="51.3900"/>
+  <node id="31" lat="35.6945" lon="51.3915"/>
+  <node id="32" lat="35.6945" lon="51.3930"/>
+  <node id="33" lat="35.6940" lon="51.3900"/>
+  <node id="34" lat="35.6940" lon="51.3915"/>
+  <node id="35" lat="35.6940" lon="51.3930"/>
+  <node id="36" lat="35.6935" lon="51.3900"/>
+  <node id="37" lat="35.6935" lon="51.3915"/>
+  <node id="38" lat="35.6935" lon="51.3930"/>
+  <node id="39" lat="35.6930" lon="51.3900"/>
+  <node id="40" lat="35.6930" lon="51.3915"/>
+  <node id="41" lat="35.6930" lon="51.3930"/>
+  <node id="42" lat="35.6925" lon="51.3900"/>
+  <node id="43" lat="35.6925" lon="51.3915"/>
+  <node id="44" lat="35.6925" lon="51.3930"/>
+  <node id="45" lat="35.6920" lon="51.3900"/>
+  <node id="46" lat="35.6920" lon="51.3915"/>
+  <node id="47" lat="35.6920" lon="51.3930"/>
+  <node id="48" lat="35.6915" lon="51.3900"/>
+  <node id="49" lat="35.6915" lon="51.3915"/>
+  <node id="50" lat="35.6915" lon="51.3930"/>
+  <node id="51" lat="35.6910" lon="51.3900"/>
+  <node id="52" lat="35.6910" lon="51.3915"/>
+  <node id="53" lat="35.6910" lon="51.3930"/>
+
+  <!-- No direction tag at all: two-way for every mode. -->
+  <way id="301">
+    <nd ref="1"/>
+    <nd ref="2"/>
+    <nd ref="3"/>
+    <tag k="name" v="Two-Way Residential"/>
+    <tag k="highway" v="residential"/>
+  </way>
+
+  <!--
+       Plain oneway=yes: vehicles follow the coordinate order, pedestrians do
+       not. The arrows in Studio point west to east for Car and Bicycle.
+  -->
+  <way id="302">
+    <nd ref="4"/>
+    <nd ref="5"/>
+    <nd ref="6"/>
+    <tag k="name" v="Forward One-Way"/>
+    <tag k="highway" v="residential"/>
+    <tag k="oneway" v="yes"/>
+  </way>
+
+  <!--
+       oneway=-1: vehicles run against the coordinate order. The geometry is
+       never reversed to express this; only the direction value changes.
+  -->
+  <way id="303">
+    <nd ref="7"/>
+    <nd ref="8"/>
+    <nd ref="9"/>
+    <tag k="name" v="Reverse One-Way"/>
+    <tag k="highway" v="residential"/>
+    <tag k="oneway" v="-1"/>
+  </way>
+
+  <!--
+       A one-way street with a contraflow cycle lane: the per-mode override
+       beats the plain value, for bicycles only.
+  -->
+  <way id="304">
+    <nd ref="10"/>
+    <nd ref="11"/>
+    <nd ref="12"/>
+    <tag k="name" v="Contraflow Cycle Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="oneway" v="yes"/>
+    <tag k="oneway:bicycle" v="no"/>
+  </way>
+
+  <!--
+       junction=roundabout with no oneway tag: forward is implied for vehicles
+       and pedestrians stay two-way. Drawn anticlockwise, so the arrows run
+       anticlockwise too.
+  -->
+  <way id="305">
+    <nd ref="13"/>
+    <nd ref="14"/>
+    <nd ref="15"/>
+    <nd ref="16"/>
+    <nd ref="13"/>
+    <tag k="name" v="Implicit Roundabout"/>
+    <tag k="highway" v="tertiary"/>
+    <tag k="junction" v="roundabout"/>
+  </way>
+
+  <!--
+       An explicit oneway=no overrides the implied roundabout direction, so
+       this loop carries no arrows at all.
+  -->
+  <way id="306">
+    <nd ref="17"/>
+    <nd ref="18"/>
+    <nd ref="19"/>
+    <nd ref="20"/>
+    <nd ref="17"/>
+    <tag k="name" v="Two-Way Roundabout"/>
+    <tag k="highway" v="tertiary"/>
+    <tag k="junction" v="roundabout"/>
+    <tag k="oneway" v="no"/>
+  </way>
+
+  <!--
+       highway=motorway with no oneway tag: forward is implied for vehicles.
+       Whether a bicycle may legally be here is an access question Atlas does
+       not model yet.
+  -->
+  <way id="307">
+    <nd ref="21"/>
+    <nd ref="22"/>
+    <nd ref="23"/>
+    <tag k="name" v="Implicit Motorway"/>
+    <tag k="highway" v="motorway"/>
+  </way>
+
+  <!--
+       Three independent per-mode overrides on one way: reverse for cars,
+       two-way for bicycles, forward for pedestrians. Switching profiles in
+       Studio changes this road's arrow three different ways.
+  -->
+  <way id="308">
+    <nd ref="24"/>
+    <nd ref="25"/>
+    <nd ref="26"/>
+    <tag k="name" v="Independent Overrides Road"/>
+    <tag k="highway" v="residential"/>
+    <tag k="oneway" v="yes"/>
+    <tag k="oneway:motorcar" v="-1"/>
+    <tag k="oneway:bicycle" v="no"/>
+    <tag k="oneway:foot" v="yes"/>
+  </way>
+
+  <!--
+       A tidal-flow ramp. Atlas records that the direction changes rather than
+       picking whichever one happened to apply when the file was written.
+  -->
+  <way id="309">
+    <nd ref="27"/>
+    <nd ref="28"/>
+    <nd ref="29"/>
+    <tag k="name" v="Reversible Ramp"/>
+    <tag k="highway" v="unclassified"/>
+    <tag k="oneway" v="reversible"/>
+  </way>
+
+  <!-- A single-lane tunnel under signals: traffic alternates frequently. -->
+  <way id="310">
+    <nd ref="30"/>
+    <nd ref="31"/>
+    <nd ref="32"/>
+    <tag k="name" v="Alternating Tunnel"/>
+    <tag k="highway" v="unclassified"/>
+    <tag k="oneway" v="alternating"/>
+  </way>
+
+  <!--
+       A oneway value Atlas cannot read. Vehicles become indeterminate rather
+       than quietly two-way; pedestrians stay two-way, because a plain oneway
+       on an ordinary street was never about them.
+       Warns UNKNOWN_ONEWAY_VALUE.
+  -->
+  <way id="311">
+    <nd ref="33"/>
+    <nd ref="34"/>
+    <nd ref="35"/>
+    <tag k="name" v="Unsupported Value Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="oneway" v="sometimes"/>
+  </way>
+
+  <!--
+       A shared way with a plain oneway and no oneway:foot: the source does not
+       say whether the restriction is about the pedestrians or about the
+       cyclists sharing the way, so foot is indeterminate.
+       Warns AMBIGUOUS_ONEWAY_SCOPE.
+  -->
+  <way id="312">
+    <nd ref="36"/>
+    <nd ref="37"/>
+    <nd ref="38"/>
+    <tag k="name" v="Ambiguous Footway"/>
+    <tag k="highway" v="footway"/>
+    <tag k="oneway" v="yes"/>
+  </way>
+
+  <!--
+       A direction that depends on the time of day. Atlas detects the
+       conditional tag and refuses to state a static direction for the modes it
+       reaches; it never parses the expression. Pedestrians are untouched,
+       because a generic conditional is a vehicle statement.
+       Warns UNSUPPORTED_CONDITIONAL_ONEWAY.
+  -->
+  <way id="313">
+    <nd ref="39"/>
+    <nd ref="40"/>
+    <nd ref="41"/>
+    <tag k="name" v="Conditional Corridor"/>
+    <tag k="highway" v="residential"/>
+    <tag k="oneway" v="yes"/>
+    <tag k="oneway:conditional" v="-1 @ (Mo-Fr 07:00-09:00)"/>
+  </way>
+
+  <!--
+       On steps a plain oneway really is about the people using them, so it
+       applies to foot as well as to the vehicles that will never be here.
+  -->
+  <way id="314">
+    <nd ref="42"/>
+    <nd ref="43"/>
+    <nd ref="44"/>
+    <tag k="name" v="One-Way Steps"/>
+    <tag k="highway" v="steps"/>
+    <tag k="oneway" v="yes"/>
+  </way>
+
+  <!--
+       A legacy alias, padded and shouted. Trimming and case folding read it as
+       yes, and no warning is recorded: it is perfectly clear.
+  -->
+  <way id="315">
+    <nd ref="45"/>
+    <nd ref="46"/>
+    <nd ref="47"/>
+    <tag k="name" v="Legacy Alias Lane"/>
+    <tag k="highway" v="service"/>
+    <tag k="oneway" v=" TRUE "/>
+  </way>
+
+  <!--
+       The second ambiguous shared way, so the ambiguity count is not 1.
+       Warns AMBIGUOUS_ONEWAY_SCOPE.
+  -->
+  <way id="316">
+    <nd ref="48"/>
+    <nd ref="49"/>
+    <nd ref="50"/>
+    <tag k="name" v="Ambiguous Path"/>
+    <tag k="highway" v="path"/>
+    <tag k="oneway" v="-1"/>
+  </way>
+
+  <!--
+       An unreadable per-mode override must not fall back to the plain value:
+       cars become indeterminate while bicycles still follow oneway=yes.
+       Warns UNKNOWN_ONEWAY_VALUE.
+  -->
+  <way id="317">
+    <nd ref="51"/>
+    <nd ref="52"/>
+    <nd ref="53"/>
+    <tag k="name" v="Unknown Motorcar Override"/>
+    <tag k="highway" v="residential"/>
+    <tag k="oneway" v="yes"/>
+    <tag k="oneway:motorcar" v="maybe"/>
+  </way>
+</osm>

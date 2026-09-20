@@ -14,8 +14,10 @@ mod bounding_box;
 mod coordinate;
 mod feature;
 mod geometry;
+mod traversal;
 
 pub use bounding_box::{BoundingBox, BoundingBoxError};
 pub use coordinate::{CoordinateError, GeoCoordinate, Latitude, Longitude};
 pub use feature::{FeatureError, FeatureId, FeatureKind, MapFeature, RoadClass, SourceReference};
 pub use geometry::{Geometry, GeometryError, LineString};
+pub use traversal::{RoadTraversal, TravelDirection, TravelMode};

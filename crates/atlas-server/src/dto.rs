@@ -10,7 +10,7 @@ use atlas_engine::{
     Attribution, Dataset, ImportFailure, ImportReport, IssueGroup, MapQueryResult,
     QueryDiagnostics, SourceMetadata,
 };
-use atlas_kernel::{BoundingBox, Geometry, MapFeature};
+use atlas_kernel::{BoundingBox, Geometry, MapFeature, RoadTraversal, TravelDirection};
 use serde::Serialize;
 
 /// The API version carried in every Atlas metadata block.
@@ -82,6 +82,54 @@ pub struct SourceReferenceV1 {
     pub entity_id: String,
 }
 
+/// In which direction one mode travels a road, relative to the geometry.
+///
+/// A direction, not a permission: it says which way along the road the mode
+/// would go if access allows it there at all, and Atlas does not yet model
+/// access.
+///
+/// An object rather than a bare string: direction is the first thing Atlas
+/// knows per mode, not the only thing it will ever know, and a client that
+/// reads `traversal.foot.direction` today keeps working when access or speed
+/// joins it tomorrow.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModeTraversalV1 {
+    /// `both`, `forward`, `reverse`, `reversible`, `alternating` or
+    /// `indeterminate`.
+    pub direction: &'static str,
+}
+
+impl ModeTraversalV1 {
+    fn from_domain(direction: TravelDirection) -> Self {
+        Self {
+            direction: direction.as_str(),
+        }
+    }
+}
+
+/// The travel semantics of a road, one entry per mode Atlas models.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RoadTraversalV1 {
+    /// Direction for a private motor car.
+    pub motorcar: ModeTraversalV1,
+    /// Direction for a bicycle.
+    pub bicycle: ModeTraversalV1,
+    /// Direction for a pedestrian.
+    pub foot: ModeTraversalV1,
+}
+
+impl RoadTraversalV1 {
+    fn from_domain(traversal: &RoadTraversal) -> Self {
+        Self {
+            motorcar: ModeTraversalV1::from_domain(traversal.motorcar()),
+            bicycle: ModeTraversalV1::from_domain(traversal.bicycle()),
+            foot: ModeTraversalV1::from_domain(traversal.foot()),
+        }
+    }
+}
+
 /// The non-presentational properties Atlas publishes for a feature.
 ///
 /// Colours, widths and z-order are the client's business; the server only says
@@ -94,6 +142,12 @@ pub struct FeaturePropertiesV1 {
     /// The road classification, for roads.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub road_class: Option<String>,
+    /// The travel direction semantics, for roads.
+    ///
+    /// Always present on a road, and never gated behind an `include`
+    /// parameter: it is what the feature *is*, not extra diagnostics about it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub traversal: Option<RoadTraversalV1>,
     /// The feature name, verbatim from the source.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -127,6 +181,10 @@ impl FeatureV1 {
                     .kind()
                     .road_class()
                     .map(|class| class.as_str().to_owned()),
+                traversal: feature
+                    .kind()
+                    .road_traversal()
+                    .map(RoadTraversalV1::from_domain),
                 name: feature.name().map(str::to_owned),
                 source: include_source
                     .then(|| feature.source())

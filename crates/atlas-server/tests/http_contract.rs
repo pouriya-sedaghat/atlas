@@ -19,11 +19,25 @@ fn fixture_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/synthetic/roads-basic.osm")
 }
 
-fn ready_state() -> SharedState {
+fn directionality_fixture_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../fixtures/synthetic/roads-directionality.osm")
+}
+
+fn state_for(path: PathBuf) -> SharedState {
     let registry = Arc::new(DatasetRegistry::new());
-    let dataset = import::import_osm_file(&fixture_path()).expect("the fixture must import");
+    let dataset = import::import_osm_file(&path).expect("the fixture must import");
     registry.publish(dataset);
     Arc::new(AppState::new(registry))
+}
+
+fn ready_state() -> SharedState {
+    state_for(fixture_path())
+}
+
+/// A dataset built from the fixture that exercises every direction value.
+fn directionality_state() -> SharedState {
+    state_for(directionality_fixture_path())
 }
 
 fn loading_state() -> SharedState {
@@ -485,4 +499,235 @@ async fn pinning_the_active_dataset_succeeds() {
     .await;
     assert_eq!(response.status, StatusCode::OK);
     assert_eq!(response.body["atlas"]["datasetId"], active);
+}
+
+// -- traversal ------------------------------------------------------------
+
+/// The viewport that covers every road in the directionality fixture.
+const DIRECTION_VIEWPORT: &str = "bbox=51.389,35.690,51.397,35.699";
+
+async fn direction_features(query: &str) -> Value {
+    let response = get(
+        directionality_state(),
+        &format!("/api/v1/map/features?{DIRECTION_VIEWPORT}{query}"),
+    )
+    .await;
+    assert_eq!(response.status, StatusCode::OK);
+    assert_eq!(response.content_type, "application/geo+json");
+    response.body
+}
+
+/// The traversal block of one feature, looked up by its Atlas id.
+fn traversal_of<'a>(body: &'a Value, id: &str) -> &'a Value {
+    let feature = body["features"]
+        .as_array()
+        .expect("features is an array")
+        .iter()
+        .find(|feature| feature["id"] == id)
+        .unwrap_or_else(|| panic!("{id} is in the response"));
+    &feature["properties"]["traversal"]
+}
+
+#[tokio::test]
+async fn every_road_carries_a_nested_traversal_block() {
+    let body = direction_features("").await;
+    let features = body["features"].as_array().expect("features is an array");
+    assert_eq!(features.len(), 17);
+
+    for feature in features {
+        let traversal = &feature["properties"]["traversal"];
+        assert!(
+            traversal.is_object(),
+            "{} has no traversal block",
+            feature["id"]
+        );
+        for mode in ["motorcar", "bicycle", "foot"] {
+            assert!(
+                traversal[mode]["direction"].is_string(),
+                "{} is missing {mode}",
+                feature["id"]
+            );
+        }
+        // The wire format stays nested; nothing is flattened server side.
+        assert!(feature["properties"].get("motorcarDirection").is_none());
+    }
+}
+
+#[tokio::test]
+async fn the_traversal_shape_is_exactly_as_documented() {
+    let body = direction_features("").await;
+    // A plain one-way residential street: the example in the README and ADR.
+    assert_eq!(
+        *traversal_of(&body, "osm:way:304"),
+        serde_json::json!({
+            "motorcar": { "direction": "forward" },
+            "bicycle": { "direction": "both" },
+            "foot": { "direction": "both" },
+        })
+    );
+    let properties = &body["features"]
+        .as_array()
+        .expect("features is an array")
+        .iter()
+        .find(|feature| feature["id"] == "osm:way:304")
+        .expect("way 304 is in the response")["properties"];
+    assert_eq!(properties["kind"], "road");
+    assert_eq!(properties["roadClass"], "residential");
+}
+
+#[tokio::test]
+async fn every_wire_direction_value_appears_on_the_wire() {
+    let body = direction_features("").await;
+    let cases = [
+        ("osm:way:301", "both", "both", "both"),
+        ("osm:way:302", "forward", "forward", "both"),
+        ("osm:way:303", "reverse", "reverse", "both"),
+        ("osm:way:308", "reverse", "both", "forward"),
+        ("osm:way:309", "reversible", "reversible", "both"),
+        ("osm:way:310", "alternating", "alternating", "both"),
+        ("osm:way:311", "indeterminate", "indeterminate", "both"),
+        ("osm:way:312", "forward", "forward", "indeterminate"),
+        ("osm:way:314", "forward", "forward", "forward"),
+    ];
+    for (id, motorcar, bicycle, foot) in cases {
+        let traversal = traversal_of(&body, id);
+        assert_eq!(
+            traversal["motorcar"]["direction"], motorcar,
+            "{id} motorcar"
+        );
+        assert_eq!(traversal["bicycle"]["direction"], bicycle, "{id} bicycle");
+        assert_eq!(traversal["foot"]["direction"], foot, "{id} foot");
+    }
+
+    // Every value Atlas can emit is covered by the cases above.
+    let seen: std::collections::BTreeSet<&str> = cases
+        .iter()
+        .flat_map(|(_, motorcar, bicycle, foot)| [*motorcar, *bicycle, *foot])
+        .collect();
+    assert_eq!(
+        seen,
+        [
+            "alternating",
+            "both",
+            "forward",
+            "indeterminate",
+            "reverse",
+            "reversible",
+        ]
+        .into_iter()
+        .collect()
+    );
+}
+
+#[tokio::test]
+async fn traversal_is_present_with_and_without_include_parameters() {
+    let bare = direction_features("").await;
+    let with_source = direction_features("&include=source").await;
+    let with_both = direction_features("&include=source,diagnostics").await;
+    let with_diagnostics = direction_features("&include=diagnostics").await;
+
+    for body in [&bare, &with_source, &with_both, &with_diagnostics] {
+        assert_eq!(
+            *traversal_of(body, "osm:way:303"),
+            serde_json::json!({
+                "motorcar": { "direction": "reverse" },
+                "bicycle": { "direction": "reverse" },
+                "foot": { "direction": "both" },
+            }),
+            "traversal must not depend on include"
+        );
+    }
+
+    // The include parameters keep doing exactly what they did before.
+    assert!(bare["features"][0]["properties"].get("source").is_none());
+    assert!(bare["atlas"].get("diagnostics").is_none());
+    assert!(with_source["features"][0]["properties"]["source"].is_object());
+    assert!(with_source["atlas"].get("diagnostics").is_none());
+    assert!(
+        with_diagnostics["features"][0]["properties"]
+            .get("source")
+            .is_none()
+    );
+    assert!(with_diagnostics["atlas"]["diagnostics"].is_object());
+}
+
+#[tokio::test]
+async fn traversal_never_exposes_raw_osm_tags() {
+    let body = direction_features("&include=source,diagnostics").await;
+    let rendered = body.to_string();
+    for leaked in [
+        "oneway",
+        "junction",
+        "roundabout",
+        "highway",
+        "motor_vehicle",
+        "conditional",
+    ] {
+        assert!(
+            !rendered.contains(leaked),
+            "the response leaked the OSM tag `{leaked}`"
+        );
+    }
+}
+
+#[tokio::test]
+async fn the_milestone_one_fixture_gains_traversal_without_changing_anything_else() {
+    // roads-basic has no direction tags at all, so every road there is simply
+    // two-way. Its other properties must be untouched.
+    let response = get(ready_state(), &format!("/api/v1/map/features?{VIEWPORT}")).await;
+    assert_eq!(response.status, StatusCode::OK);
+    assert_eq!(response.content_type, "application/geo+json");
+    assert_eq!(response.body["atlas"]["returned"], 4);
+
+    for feature in response.body["features"]
+        .as_array()
+        .expect("features is an array")
+    {
+        assert_eq!(feature["properties"]["kind"], "road");
+        assert_eq!(
+            feature["properties"]["traversal"],
+            serde_json::json!({
+                "motorcar": { "direction": "both" },
+                "bicycle": { "direction": "both" },
+                "foot": { "direction": "both" },
+            })
+        );
+    }
+}
+
+#[tokio::test]
+async fn the_directionality_dataset_reports_its_direction_warnings() {
+    let response = get(directionality_state(), "/api/v1/datasets/current").await;
+    assert_eq!(response.status, StatusCode::OK);
+    assert_eq!(response.body["apiVersion"], "1");
+    assert_eq!(response.body["status"], "ready");
+    assert_eq!(
+        response.body["warnings"],
+        serde_json::json!([
+            { "code": "UNKNOWN_ONEWAY_VALUE", "count": 2, "samples": ["way/311", "way/317"] },
+            { "code": "AMBIGUOUS_ONEWAY_SCOPE", "count": 2, "samples": ["way/312", "way/316"] },
+            {
+                "code": "UNSUPPORTED_CONDITIONAL_ONEWAY",
+                "count": 1,
+                "samples": ["way/313"],
+            },
+        ])
+    );
+    assert_eq!(response.body["statistics"]["featureCount"], 17);
+    assert_eq!(response.body["statistics"]["featuresSkipped"], 0);
+}
+
+#[tokio::test]
+async fn a_client_that_ignores_traversal_still_sees_the_milestone_one_contract() {
+    let body = direction_features("&include=source").await;
+    let feature = &body["features"][0];
+    assert_eq!(feature["type"], "Feature");
+    assert!(feature["id"].is_string());
+    assert_eq!(feature["geometry"]["type"], "LineString");
+    assert!(feature["geometry"]["coordinates"].is_array());
+    assert!(feature["properties"]["kind"].is_string());
+    assert!(feature["properties"]["roadClass"].is_string());
+    assert!(feature["properties"]["name"].is_string());
+    assert_eq!(body["type"], "FeatureCollection");
+    assert_eq!(body["atlas"]["apiVersion"], "1");
 }

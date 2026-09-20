@@ -4,6 +4,7 @@ use std::fmt;
 
 use crate::bounding_box::BoundingBox;
 use crate::geometry::Geometry;
+use crate::traversal::RoadTraversal;
 
 /// Everything that can go wrong while constructing feature metadata.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -49,10 +50,18 @@ impl fmt::Display for FeatureId {
     }
 }
 
-/// How a road is classified for display purposes.
+/// How a road is classified.
 ///
-/// This is a display-oriented classification only. Atlas does not derive
-/// access, speed or direction semantics from it in this milestone.
+/// The classification itself carries no access, speed or direction semantics:
+/// it says what kind of road this is, not what may be done on it.
+///
+/// It is, however, legitimate *input* to deriving those semantics elsewhere.
+/// The OSM adapter reads it when it derives the separate travel direction of a
+/// road — a motorway implies a forward direction for vehicles, and the class
+/// decides whether a plain one-way statement is about pedestrians — but the
+/// direction it derives is stored alongside the class in
+/// [`FeatureKind::Road`], never inferred from the class on the fly by whoever
+/// happens to be reading it.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RoadClass {
     /// Motorway.
@@ -143,24 +152,41 @@ impl fmt::Display for RoadClass {
 }
 
 /// What kind of thing a feature is.
+///
+/// Road semantics live *inside* the road variant rather than beside it. A
+/// classification and a traversal cannot become detached from one another, and
+/// neither can be attached to a feature that is not a road: there is no shape
+/// this type can take that carries one without the other.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FeatureKind {
-    /// A road, carrying its display classification.
-    Road(RoadClass),
+    /// A road, carrying its display classification and its travel semantics.
+    Road {
+        /// How the road is classified for display.
+        class: RoadClass,
+        /// In which direction each modelled mode travels it, access aside.
+        traversal: RoadTraversal,
+    },
 }
 
 impl FeatureKind {
     /// The coarse kind name used by filters and by the wire format.
     pub fn name(&self) -> &'static str {
         match self {
-            FeatureKind::Road(_) => "road",
+            FeatureKind::Road { .. } => "road",
         }
     }
 
     /// The road classification, when the feature is a road.
     pub fn road_class(&self) -> Option<&RoadClass> {
         match self {
-            FeatureKind::Road(class) => Some(class),
+            FeatureKind::Road { class, .. } => Some(class),
+        }
+    }
+
+    /// The travel direction semantics, when the feature is a road.
+    pub fn road_traversal(&self) -> Option<&RoadTraversal> {
+        match self {
+            FeatureKind::Road { traversal, .. } => Some(traversal),
         }
     }
 }
@@ -287,6 +313,7 @@ mod tests {
     use super::*;
     use crate::coordinate::GeoCoordinate;
     use crate::geometry::LineString;
+    use crate::traversal::{TravelDirection, TravelMode};
 
     fn geometry() -> Geometry {
         Geometry::from(
@@ -338,10 +365,50 @@ mod tests {
     }
 
     #[test]
-    fn feature_kind_exposes_name_and_class() {
-        let kind = FeatureKind::Road(RoadClass::Residential);
+    fn feature_kind_exposes_name_class_and_traversal() {
+        let traversal = RoadTraversal::new(
+            TravelDirection::Forward,
+            TravelDirection::Both,
+            TravelDirection::Indeterminate,
+        );
+        let kind = FeatureKind::Road {
+            class: RoadClass::Residential,
+            traversal,
+        };
         assert_eq!(kind.name(), "road");
         assert_eq!(kind.road_class(), Some(&RoadClass::Residential));
+        assert_eq!(kind.road_traversal(), Some(&traversal));
+        assert_eq!(
+            kind.road_traversal().map(|t| t.direction(TravelMode::Foot)),
+            Some(TravelDirection::Indeterminate)
+        );
+    }
+
+    #[test]
+    fn road_semantics_cannot_be_detached_from_the_road_variant() {
+        // Every shape this type can take carries both halves. The exhaustive
+        // match is the point: a variant that could hold a class without a
+        // traversal, or road semantics on something that is not a road, would
+        // stop compiling here rather than ship.
+        for kind in [
+            FeatureKind::Road {
+                class: RoadClass::Steps,
+                traversal: RoadTraversal::uniform(TravelDirection::Forward),
+            },
+            FeatureKind::Road {
+                class: RoadClass::Other("corn_maze".to_owned()),
+                traversal: RoadTraversal::bidirectional(),
+            },
+        ] {
+            match &kind {
+                FeatureKind::Road { class, traversal } => {
+                    assert_eq!(kind.road_class(), Some(class));
+                    assert_eq!(kind.road_traversal(), Some(traversal));
+                }
+            }
+            assert!(kind.road_class().is_some());
+            assert!(kind.road_traversal().is_some());
+        }
     }
 
     #[test]
@@ -366,7 +433,10 @@ mod tests {
     fn blank_names_are_normalised_away() {
         let feature = MapFeature::new(
             FeatureId::new("osm:way:1").expect("valid id"),
-            FeatureKind::Road(RoadClass::Residential),
+            FeatureKind::Road {
+                class: RoadClass::Residential,
+                traversal: RoadTraversal::bidirectional(),
+            },
             geometry(),
             Some("   ".to_owned()),
             None,
@@ -378,7 +448,10 @@ mod tests {
     fn names_keep_unicode_intact() {
         let feature = MapFeature::new(
             FeatureId::new("osm:way:1").expect("valid id"),
-            FeatureKind::Road(RoadClass::Residential),
+            FeatureKind::Road {
+                class: RoadClass::Residential,
+                traversal: RoadTraversal::bidirectional(),
+            },
             geometry(),
             Some("  خیابان ولیعصر  ".to_owned()),
             None,
@@ -390,7 +463,10 @@ mod tests {
     fn features_expose_geometry_bounds() {
         let feature = MapFeature::new(
             FeatureId::new("osm:way:1").expect("valid id"),
-            FeatureKind::Road(RoadClass::Residential),
+            FeatureKind::Road {
+                class: RoadClass::Residential,
+                traversal: RoadTraversal::bidirectional(),
+            },
             geometry(),
             None,
             Some(SourceReference::new("openstreetmap", "way", "1").expect("valid reference")),

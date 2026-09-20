@@ -2,6 +2,7 @@
 
 use atlas_kernel::{
     FeatureId, FeatureKind, GeoCoordinate, Geometry, LineString, MapFeature, RoadClass,
+    RoadTraversal,
 };
 
 use crate::import::{Attribution, ImportStats, IssueLog, SourceImportOutcome, SourceMetadata};
@@ -33,7 +34,10 @@ pub(crate) fn road(id: &str, class: RoadClass, points: &[(f64, f64)]) -> MapFeat
         .collect();
     MapFeature::new(
         FeatureId::new(id).expect("valid id"),
-        FeatureKind::Road(class),
+        FeatureKind::Road {
+            class,
+            traversal: RoadTraversal::bidirectional(),
+        },
         Geometry::from(LineString::new(coordinates).expect("valid line")),
         None,
         None,

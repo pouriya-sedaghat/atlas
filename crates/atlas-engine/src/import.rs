@@ -171,6 +171,12 @@ pub enum IssueCode {
     MalformedEntity,
     /// A relation was counted but deliberately not interpreted.
     UnsupportedRelation,
+    /// A direction value was present but is not one Atlas understands.
+    UnknownOnewayValue,
+    /// A plain direction value did not say which modes it applies to.
+    AmbiguousOnewayScope,
+    /// A direction that depends on a condition Atlas does not evaluate.
+    UnsupportedConditionalOneway,
 }
 
 impl IssueCode {
@@ -183,6 +189,9 @@ impl IssueCode {
             IssueCode::UnknownHighwayClass => "UNKNOWN_HIGHWAY_CLASS",
             IssueCode::MalformedEntity => "MALFORMED_ENTITY",
             IssueCode::UnsupportedRelation => "UNSUPPORTED_RELATION",
+            IssueCode::UnknownOnewayValue => "UNKNOWN_ONEWAY_VALUE",
+            IssueCode::AmbiguousOnewayScope => "AMBIGUOUS_ONEWAY_SCOPE",
+            IssueCode::UnsupportedConditionalOneway => "UNSUPPORTED_CONDITIONAL_ONEWAY",
         }
     }
 }
@@ -416,6 +425,41 @@ mod tests {
         assert_eq!(
             IssueCode::UnsupportedRelation.as_str(),
             "UNSUPPORTED_RELATION"
+        );
+        assert_eq!(
+            IssueCode::UnknownOnewayValue.as_str(),
+            "UNKNOWN_ONEWAY_VALUE"
+        );
+        assert_eq!(
+            IssueCode::AmbiguousOnewayScope.as_str(),
+            "AMBIGUOUS_ONEWAY_SCOPE"
+        );
+        assert_eq!(
+            IssueCode::UnsupportedConditionalOneway.as_str(),
+            "UNSUPPORTED_CONDITIONAL_ONEWAY"
+        );
+    }
+
+    #[test]
+    fn direction_codes_sort_after_the_milestone_one_codes() {
+        // Group order is the declaration order of the codes, so an added code
+        // must not reshuffle the warnings a Milestone 1 client already sees.
+        let mut log = IssueLog::new();
+        log.record(IssueCode::UnsupportedConditionalOneway, "way/3");
+        log.record(IssueCode::UnknownOnewayValue, "way/1");
+        log.record(IssueCode::UnsupportedRelation, "relation/1");
+        log.record(IssueCode::AmbiguousOnewayScope, "way/2");
+        log.record(IssueCode::InvalidCoordinate, "node/1");
+        let codes: Vec<_> = log.groups().map(IssueGroup::code).collect();
+        assert_eq!(
+            codes,
+            vec![
+                IssueCode::InvalidCoordinate,
+                IssueCode::UnsupportedRelation,
+                IssueCode::UnknownOnewayValue,
+                IssueCode::AmbiguousOnewayScope,
+                IssueCode::UnsupportedConditionalOneway,
+            ]
         );
     }
 

@@ -1,6 +1,14 @@
 /** The feature inspector. */
 
 import type { AtlasFeature } from '../api/types.js';
+import {
+  DEFAULT_PROFILE,
+  PROFILE_LABELS,
+  TRAVEL_PROFILES,
+  directionLabel,
+  readFeatureDirections,
+} from '../map/traversal.js';
+import type { TravelProfile } from '../map/traversal.js';
 import { boundsOfCoordinates, formatBbox } from '../viewport/bbox.js';
 import { appendRow, clear, element, formatNumber } from './dom.js';
 
@@ -16,7 +24,7 @@ export interface InspectorSelection {
 export class InspectorPanel {
   constructor(private readonly root: HTMLElement) {}
 
-  render(selection: InspectorSelection | null): void {
+  render(selection: InspectorSelection | null, profile: TravelProfile = DEFAULT_PROFILE): void {
     clear(this.root);
 
     if (!selection) {
@@ -34,6 +42,26 @@ export class InspectorPanel {
     appendRow(list, 'Kind', feature.properties.kind);
     appendRow(list, 'Road class', feature.properties.roadClass ?? '—');
     appendRow(list, 'Name', feature.properties.name ?? '(unnamed)');
+
+    // Every profile, every time. The map draws one profile at a time, but the
+    // interesting roads are the ones where the profiles disagree, and you
+    // cannot see a disagreement one profile at a time.
+    const directions = readFeatureDirections(feature.properties);
+    for (const candidate of TRAVEL_PROFILES) {
+      const direction = directions[candidate];
+      const active = candidate === profile;
+      const term = element(
+        'dt',
+        active ? 'row-term row-active' : 'row-term',
+        `${PROFILE_LABELS[candidate]} direction`,
+      );
+      if (active) {
+        term.setAttribute('aria-current', 'true');
+      }
+      const value = element('dd', 'row-value', directionLabel(direction));
+      value.dataset.direction = direction;
+      list.append(term, value);
+    }
 
     const source = feature.properties.source;
     appendRow(

@@ -59,7 +59,7 @@ impl FeatureKindFilter {
 
     fn matches(self, kind: &FeatureKind) -> bool {
         match self {
-            FeatureKindFilter::Road => matches!(kind, FeatureKind::Road(_)),
+            FeatureKindFilter::Road => matches!(kind, FeatureKind::Road { .. }),
         }
     }
 }

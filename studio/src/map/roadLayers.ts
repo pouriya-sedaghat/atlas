@@ -7,6 +7,9 @@
 
 import type { ExpressionSpecification, LayerSpecification } from 'maplibre-gl';
 
+import { directionArrowLayer } from './directionArrows.js';
+import { DEFAULT_PROFILE, type TravelProfile } from './traversal.js';
+
 export const ROAD_SOURCE_ID = 'atlas-roads';
 export const ROAD_LAYER_ID = 'atlas-roads-line';
 export const ROAD_CASING_LAYER_ID = 'atlas-roads-casing';
@@ -116,9 +119,10 @@ function roadWidth(extra = 0): ExpressionSpecification {
 
 /**
  * The layers, bottom to top: a dark casing, the road itself, a fat invisible
- * hit target, then the hover and selection highlights.
+ * hit target, the hover and selection highlights, and the one-way arrows on
+ * top of all of it.
  */
-export function roadLayers(): LayerSpecification[] {
+export function roadLayers(profile: TravelProfile = DEFAULT_PROFILE): LayerSpecification[] {
   return [
     {
       id: ROAD_CASING_LAYER_ID,
@@ -161,6 +165,7 @@ export function roadLayers(): LayerSpecification[] {
       filter: ['==', ['get', FEATURE_KEY], ''],
       paint: { 'line-color': SELECTED_COLOR, 'line-width': roadWidth(2.5) },
     },
+    directionArrowLayer(profile),
   ];
 }
 
