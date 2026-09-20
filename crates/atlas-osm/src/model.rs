@@ -37,11 +37,25 @@ impl OsmTags {
     }
 }
 
+/// One `<nd>` entry of a way, in document order.
+///
+/// A reference Atlas cannot read is kept in the sequence as
+/// [`OsmNodeRef::Malformed`] rather than dropped. Dropping it would join the
+/// nodes on either side into a straight segment that does not exist in the
+/// source, which is worse than having no road at all.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum OsmNodeRef {
+    /// A reference that parsed as a node identifier.
+    Id(i64),
+    /// A reference whose `ref` attribute was missing or not a number.
+    Malformed,
+}
+
 /// An OSM way as read from the file, before any Atlas interpretation.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct OsmWay {
     pub(crate) id: Option<i64>,
-    pub(crate) node_refs: Vec<i64>,
+    pub(crate) node_refs: Vec<OsmNodeRef>,
     pub(crate) tags: OsmTags,
 }
 
@@ -76,6 +90,13 @@ mod tests {
     #[test]
     fn a_relation_carries_only_its_id() {
         assert_eq!(OsmRelation { id: Some(7) }.id, Some(7));
+    }
+
+    #[test]
+    fn a_malformed_reference_keeps_its_place_in_the_sequence() {
+        let refs = [OsmNodeRef::Id(1), OsmNodeRef::Malformed, OsmNodeRef::Id(3)];
+        assert_eq!(refs.len(), 3);
+        assert_eq!(refs[1], OsmNodeRef::Malformed);
     }
 
     #[test]

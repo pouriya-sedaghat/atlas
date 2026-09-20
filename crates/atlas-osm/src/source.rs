@@ -1,6 +1,7 @@
 //! Streaming import of plain OSM XML.
 
 use std::collections::HashMap;
+use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Cursor};
 use std::path::{Path, PathBuf};
@@ -17,7 +18,7 @@ use atlas_kernel::{
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::{Reader, XmlVersion};
 
-use crate::model::{OsmNode, OsmRelation, OsmWay};
+use crate::model::{OsmNode, OsmNodeRef, OsmRelation, OsmWay};
 
 /// The attribution every OpenStreetMap-derived dataset must carry.
 pub const OSM_ATTRIBUTION_TEXT: &str = "© OpenStreetMap contributors";
@@ -137,7 +138,11 @@ impl OsmXmlSource {
                                 stats.nodes_indexed += 1;
                                 index.insert(node.id, node.coordinate);
                             }
-                            Err(problem) => {
+                            // Broken markup is the file's problem, not this
+                            // node's, so it stops the import rather than
+                            // becoming one more warning among thousands.
+                            Err(NodeProblem::Source(error)) => return Err(error.into()),
+                            Err(NodeProblem::Entity(problem)) => {
                                 issues.record(problem.code, problem.entity);
                             }
                         }
@@ -170,15 +175,15 @@ impl OsmXmlSource {
                     "way" => {
                         stats.ways_seen += 1;
                         current_way = Some(OsmWay {
-                            id: read_id(&element),
+                            id: read_id(&element)?,
                             ..OsmWay::default()
                         });
                     }
                     "relation" => {
-                        count_relation(&element, stats, issues);
+                        count_relation(&element, stats, issues)?;
                     }
                     "nd" | "tag" => {
-                        collect_way_child(&element, current_way.as_mut());
+                        collect_way_child(&element, current_way.as_mut())?;
                     }
                     _ => {}
                 },
@@ -188,10 +193,10 @@ impl OsmXmlSource {
                         stats.ways_seen += 1;
                     }
                     "relation" => {
-                        count_relation(&element, stats, issues);
+                        count_relation(&element, stats, issues)?;
                     }
                     "nd" | "tag" => {
-                        collect_way_child(&element, current_way.as_mut());
+                        collect_way_child(&element, current_way.as_mut())?;
                     }
                     _ => {}
                 },
@@ -244,51 +249,144 @@ struct EntityProblem {
     entity: String,
 }
 
+/// An attribute that could not be decoded at all.
+///
+/// This is a problem with the XML, not with the data it carries, so it fails
+/// the whole import. An attribute that decodes cleanly but holds a value Atlas
+/// cannot use is an [`EntityProblem`] instead: bounded warning, import
+/// continues.
+#[derive(Debug)]
+struct AttributeDecodeError {
+    detail: String,
+}
+
+impl From<AttributeDecodeError> for ImportError {
+    fn from(error: AttributeDecodeError) -> Self {
+        ImportError::MalformedSource {
+            detail: error.detail,
+        }
+    }
+}
+
+/// Why a node could not be indexed.
+enum NodeProblem {
+    /// The XML could not be decoded: fatal for the import.
+    Source(AttributeDecodeError),
+    /// The node's data was unusable: bounded warning, import continues.
+    Entity(EntityProblem),
+}
+
+impl From<AttributeDecodeError> for NodeProblem {
+    fn from(error: AttributeDecodeError) -> Self {
+        NodeProblem::Source(error)
+    }
+}
+
+/// Why a selected road way could not become a feature.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WayGeometryProblem {
+    /// One `<nd>` reference could not be read at all.
+    MalformedReference,
+    /// Every reference parsed, but one named a node the file never defined.
+    MissingNode,
+}
+
+impl WayGeometryProblem {
+    fn issue_code(self) -> IssueCode {
+        match self {
+            WayGeometryProblem::MalformedReference => IssueCode::MalformedEntity,
+            WayGeometryProblem::MissingNode => IssueCode::MissingNodeReference,
+        }
+    }
+}
+
 fn malformed(error: quick_xml::Error) -> ImportError {
     ImportError::MalformedSource {
         detail: error.to_string(),
     }
 }
 
-fn attribute_value(element: &BytesStart<'_>, wanted: &str) -> Option<String> {
-    for attribute in element.attributes() {
-        let Ok(attribute) = attribute else { continue };
-        if attribute.key.local_name().as_ref() != wanted {
-            continue;
-        }
-        return attribute
-            .normalized_value(XmlVersion::Implicit1_0)
-            .ok()
-            .map(|value| value.into_owned());
+fn decode_error(
+    element: &BytesStart<'_>,
+    what: &str,
+    error: &dyn fmt::Display,
+) -> AttributeDecodeError {
+    AttributeDecodeError {
+        detail: format!(
+            "<{}>: could not decode {what}: {error}",
+            element.local_name().as_ref()
+        ),
     }
-    None
 }
 
-fn read_id(element: &BytesStart<'_>) -> Option<i64> {
-    attribute_value(element, "id").and_then(|value| value.trim().parse().ok())
+/// Reads one attribute, refusing to guess when the XML cannot be decoded.
+///
+/// The whole attribute list is walked and every value is normalised, even once
+/// `wanted` has been found. Returning early would make the outcome depend on
+/// attribute order: `<node id="1" broken=1/>` would import cleanly while
+/// `<node broken=1 id="1"/>` would fail, and a file Atlas cannot actually
+/// decode would be reported as though it had been read.
+///
+/// Any error, from the iterator or from normalisation, fails the import. A
+/// value Atlas can decode but cannot use is a different thing entirely and
+/// stays an entity-level warning.
+///
+/// The cost is that an element's attributes are decoded once per lookup. With
+/// a handful of attributes per OSM element that is not worth a multi-attribute
+/// reader until a profile says otherwise.
+fn attribute_value(
+    element: &BytesStart<'_>,
+    wanted: &str,
+) -> Result<Option<String>, AttributeDecodeError> {
+    let mut found: Option<String> = None;
+
+    for attribute in element.attributes() {
+        let attribute = attribute.map_err(|error| decode_error(element, "an attribute", &error))?;
+        let key = attribute.key.local_name();
+        let key_name = key.as_ref();
+        let value = attribute
+            .normalized_value(XmlVersion::Implicit1_0)
+            .map_err(|error| {
+                decode_error(element, &format!("the `{key_name}` attribute"), &error)
+            })?;
+        // Keep the first occurrence. quick-xml rejects duplicate keys outright,
+        // so this only matters if it ever stops doing so.
+        if key_name == wanted && found.is_none() {
+            found = Some(value.into_owned());
+        }
+    }
+
+    Ok(found)
 }
 
-fn read_node(element: &BytesStart<'_>) -> Result<OsmNode, EntityProblem> {
-    let id = read_id(element).ok_or_else(|| EntityProblem {
-        code: IssueCode::MalformedEntity,
-        entity: format!("node/{UNKNOWN_ENTITY}"),
+fn read_id(element: &BytesStart<'_>) -> Result<Option<i64>, AttributeDecodeError> {
+    Ok(attribute_value(element, "id")?.and_then(|value| value.trim().parse().ok()))
+}
+
+fn read_node(element: &BytesStart<'_>) -> Result<OsmNode, NodeProblem> {
+    let id = read_id(element)?.ok_or_else(|| {
+        NodeProblem::Entity(EntityProblem {
+            code: IssueCode::MalformedEntity,
+            entity: format!("node/{UNKNOWN_ENTITY}"),
+        })
     })?;
     let entity = format!("node/{id}");
 
-    let longitude = attribute_value(element, "lon").and_then(|value| parse_degrees(&value));
-    let latitude = attribute_value(element, "lat").and_then(|value| parse_degrees(&value));
+    let longitude = attribute_value(element, "lon")?.and_then(|value| parse_degrees(&value));
+    let latitude = attribute_value(element, "lat")?.and_then(|value| parse_degrees(&value));
     let (Some(longitude), Some(latitude)) = (longitude, latitude) else {
-        return Err(EntityProblem {
+        return Err(NodeProblem::Entity(EntityProblem {
             code: IssueCode::InvalidCoordinate,
             entity,
-        });
+        }));
     };
 
-    let coordinate =
-        GeoCoordinate::from_degrees(longitude, latitude).map_err(|_| EntityProblem {
+    let coordinate = GeoCoordinate::from_degrees(longitude, latitude).map_err(|_| {
+        NodeProblem::Entity(EntityProblem {
             code: IssueCode::InvalidCoordinate,
             entity,
-        })?;
+        })
+    })?;
 
     Ok(OsmNode { id, coordinate })
 }
@@ -301,37 +399,51 @@ fn parse_degrees(value: &str) -> Option<f64> {
         .filter(|degrees| degrees.is_finite())
 }
 
-fn count_relation(element: &BytesStart<'_>, stats: &mut ImportStats, issues: &mut IssueLog) {
+fn count_relation(
+    element: &BytesStart<'_>,
+    stats: &mut ImportStats,
+    issues: &mut IssueLog,
+) -> Result<(), AttributeDecodeError> {
     stats.relations_seen += 1;
     let relation = OsmRelation {
-        id: read_id(element),
+        id: read_id(element)?,
     };
     let entity = relation.id.map_or_else(
         || format!("relation/{UNKNOWN_ENTITY}"),
         |id| format!("relation/{id}"),
     );
     issues.record(IssueCode::UnsupportedRelation, entity);
+    Ok(())
 }
 
-fn collect_way_child(element: &BytesStart<'_>, way: Option<&mut OsmWay>) {
-    let Some(way) = way else { return };
+fn collect_way_child(
+    element: &BytesStart<'_>,
+    way: Option<&mut OsmWay>,
+) -> Result<(), AttributeDecodeError> {
+    let Some(way) = way else { return Ok(()) };
     match element.local_name().as_ref() {
         "nd" => {
-            if let Some(node_ref) =
-                attribute_value(element, "ref").and_then(|value| value.trim().parse::<i64>().ok())
-            {
-                way.node_refs.push(node_ref);
-            }
+            let node_ref =
+                attribute_value(element, "ref")?.and_then(|value| value.trim().parse::<i64>().ok());
+            // A reference Atlas cannot read is recorded as a hole, never
+            // skipped: silently closing the gap would join the nodes on either
+            // side into a segment the source never described.
+            way.node_refs.push(match node_ref {
+                Some(id) => OsmNodeRef::Id(id),
+                None => OsmNodeRef::Malformed,
+            });
         }
         "tag" => {
-            if let (Some(key), Some(value)) =
-                (attribute_value(element, "k"), attribute_value(element, "v"))
-            {
+            if let (Some(key), Some(value)) = (
+                attribute_value(element, "k")?,
+                attribute_value(element, "v")?,
+            ) {
                 way.tags.insert(key, value);
             }
         }
         _ => {}
     }
+    Ok(())
 }
 
 /// Turns one finished way into a feature, or reports why it could not be.
@@ -345,18 +457,22 @@ fn emit_way(
     stats: &mut ImportStats,
     issues: &mut IssueLog,
 ) -> Result<(), ImportError> {
-    let Some(id) = way.id else {
-        issues.record(IssueCode::MalformedEntity, format!("way/{UNKNOWN_ENTITY}"));
-        return Ok(());
-    };
-    let entity = format!("way/{id}");
-
-    // Ways that are not roads are dropped before any node reference is
-    // resolved, which is what keeps a city-sized extract cheap to import.
+    // Ways that are not roads are dropped before anything else is inspected,
+    // which is what keeps a city-sized extract cheap to import: no identifier
+    // is parsed, no reference is resolved and no warning is recorded.
     let Some(highway) = way.tags.get("highway") else {
         return Ok(());
     };
     stats.road_ways_selected += 1;
+
+    // A road way counts as selected even when its own identifier is unusable,
+    // so that selected = emitted + skipped always reconciles.
+    let Some(id) = way.id else {
+        issues.record(IssueCode::MalformedEntity, format!("way/{UNKNOWN_ENTITY}"));
+        stats.features_skipped += 1;
+        return Ok(());
+    };
+    let entity = format!("way/{id}");
 
     let highway = highway.trim();
     if highway.is_empty() {
@@ -365,10 +481,13 @@ fn emit_way(
         return Ok(());
     }
 
-    let Some(coordinates) = resolve_coordinates(&way, nodes) else {
-        issues.record(IssueCode::MissingNodeReference, entity);
-        stats.features_skipped += 1;
-        return Ok(());
+    let coordinates = match resolve_coordinates(&way, nodes) {
+        Ok(coordinates) => coordinates,
+        Err(problem) => {
+            issues.record(problem.issue_code(), entity);
+            stats.features_skipped += 1;
+            return Ok(());
+        }
     };
 
     let Ok(line) = LineString::new(coordinates) else {
@@ -404,20 +523,26 @@ fn emit_way(
 
 /// Resolves node references, collapsing adjacent duplicates.
 ///
-/// Returns `None` as soon as a reference cannot be resolved: a road with a hole
-/// in it would be worse than no road at all.
+/// Gives up as soon as a reference cannot be turned into a coordinate, whether
+/// because the reference itself was unreadable or because it named a node the
+/// file never defined. Either way the remaining nodes are never joined across
+/// the gap: a road with a hole silently stitched shut would be worse than no
+/// road at all.
 fn resolve_coordinates(
     way: &OsmWay,
     nodes: &HashMap<i64, GeoCoordinate>,
-) -> Option<Vec<GeoCoordinate>> {
+) -> Result<Vec<GeoCoordinate>, WayGeometryProblem> {
     let mut coordinates: Vec<GeoCoordinate> = Vec::with_capacity(way.node_refs.len());
     for node_ref in &way.node_refs {
-        let coordinate = nodes.get(node_ref)?;
+        let OsmNodeRef::Id(id) = node_ref else {
+            return Err(WayGeometryProblem::MalformedReference);
+        };
+        let coordinate = nodes.get(id).ok_or(WayGeometryProblem::MissingNode)?;
         if coordinates.last() != Some(coordinate) {
             coordinates.push(*coordinate);
         }
     }
-    Some(coordinates)
+    Ok(coordinates)
 }
 
 /// A sink that keeps every feature, used by the crate's own tests.
@@ -525,6 +650,271 @@ mod tests {
         assert_eq!(outcome.stats.road_ways_selected, 0);
         assert_eq!(outcome.stats.features_skipped, 0);
         assert!(outcome.issues.is_empty());
+    }
+
+    #[test]
+    fn a_malformed_node_reference_never_joins_the_nodes_around_it() {
+        // The middle reference cannot be read. Dropping it would leave a tidy
+        // two-point road straight from node 1 to node 3 that the source never
+        // described, which is the one outcome that must not happen.
+        let (sink, outcome) = import(
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="3" lat="35.70" lon="51.40"/>
+                 <way id="10">
+                   <nd ref="1"/>
+                   <nd ref="not-a-number"/>
+                   <nd ref="3"/>
+                   <tag k="highway" v="residential"/>
+                 </way>
+               </osm>"#,
+        );
+
+        assert!(
+            sink.features.is_empty(),
+            "a road was invented across the malformed reference"
+        );
+        assert_eq!(outcome.stats.road_ways_selected, 1);
+        assert_eq!(outcome.stats.features_emitted, 0);
+        assert_eq!(outcome.stats.features_skipped, 1);
+        assert_eq!(outcome.issues.count_of(IssueCode::MalformedEntity), 1);
+        assert_eq!(
+            outcome.issues.samples_of(IssueCode::MalformedEntity),
+            &["way/10".to_owned()]
+        );
+        // Both real nodes exist, so this is not a missing-node problem.
+        assert_eq!(outcome.issues.count_of(IssueCode::MissingNodeReference), 0);
+    }
+
+    #[test]
+    fn an_nd_element_with_no_ref_attribute_is_a_malformed_reference() {
+        let (sink, outcome) = import(
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="3" lat="35.70" lon="51.40"/>
+                 <way id="10">
+                   <nd ref="1"/><nd/><nd ref="3"/>
+                   <tag k="highway" v="residential"/>
+                 </way>
+               </osm>"#,
+        );
+        assert!(sink.features.is_empty());
+        assert_eq!(outcome.stats.features_skipped, 1);
+        assert_eq!(outcome.issues.count_of(IssueCode::MalformedEntity), 1);
+    }
+
+    #[test]
+    fn a_malformed_reference_and_a_missing_node_are_reported_differently() {
+        // Way 10 has an unreadable reference; way 11 has a perfectly readable
+        // reference to a node the file never defines. They are not the same
+        // problem and must not be counted as the same problem.
+        let (sink, outcome) = import(
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="3" lat="35.70" lon="51.40"/>
+                 <way id="10">
+                   <nd ref="1"/><nd ref="oops"/><nd ref="3"/>
+                   <tag k="highway" v="residential"/>
+                 </way>
+                 <way id="11">
+                   <nd ref="1"/><nd ref="404"/>
+                   <tag k="highway" v="service"/>
+                 </way>
+               </osm>"#,
+        );
+
+        assert!(sink.features.is_empty());
+        assert_eq!(outcome.stats.road_ways_selected, 2);
+        assert_eq!(outcome.stats.features_skipped, 2);
+        assert_eq!(
+            outcome.issues.samples_of(IssueCode::MalformedEntity),
+            &["way/10".to_owned()]
+        );
+        assert_eq!(
+            outcome.issues.samples_of(IssueCode::MissingNodeReference),
+            &["way/11".to_owned()]
+        );
+    }
+
+    #[test]
+    fn a_highway_way_without_a_usable_id_is_counted_and_skipped() {
+        let (sink, outcome) = import(
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="2" lat="35.69" lon="51.39"/>
+                 <way>
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="highway" v="residential"/>
+                 </way>
+               </osm>"#,
+        );
+
+        assert!(sink.features.is_empty());
+        assert_eq!(outcome.stats.ways_seen, 1);
+        assert_eq!(outcome.stats.road_ways_selected, 1);
+        assert_eq!(outcome.stats.features_skipped, 1);
+        assert_eq!(outcome.issues.count_of(IssueCode::MalformedEntity), 1);
+        assert_eq!(
+            outcome.issues.samples_of(IssueCode::MalformedEntity),
+            &["way/unknown".to_owned()]
+        );
+    }
+
+    #[test]
+    fn non_highway_ways_stay_cheap_to_ignore_even_when_broken() {
+        // No id and an unreadable reference, but also no highway tag: Atlas
+        // must not resolve it, count it or warn about it.
+        let (sink, outcome) = import(
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <way>
+                   <nd ref="1"/><nd ref="garbage"/><nd/>
+                   <tag k="building" v="yes"/>
+                 </way>
+               </osm>"#,
+        );
+
+        assert!(sink.features.is_empty());
+        assert_eq!(outcome.stats.ways_seen, 1);
+        assert_eq!(outcome.stats.road_ways_selected, 0);
+        assert_eq!(outcome.stats.features_skipped, 0);
+        assert!(
+            outcome.issues.is_empty(),
+            "a non-highway way produced warnings: {:?}",
+            outcome.issues
+        );
+    }
+
+    #[test]
+    fn selected_road_ways_always_reconcile_with_emitted_plus_skipped() {
+        let (_, outcome) = import(
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="2" lat="35.69" lon="51.39"/>
+                 <way id="10"><nd ref="1"/><nd ref="2"/><tag k="highway" v="residential"/></way>
+                 <way id="11"><nd ref="1"/><nd ref="bad"/><tag k="highway" v="service"/></way>
+                 <way id="12"><nd ref="1"/><nd ref="404"/><tag k="highway" v="primary"/></way>
+                 <way id="13"><nd ref="1"/><tag k="highway" v="track"/></way>
+                 <way id="14"><nd ref="1"/><nd ref="2"/><tag k="highway" v=""/></way>
+                 <way><nd ref="1"/><nd ref="2"/><tag k="highway" v="path"/></way>
+                 <way id="16"><nd ref="1"/><nd ref="2"/><tag k="building" v="yes"/></way>
+               </osm>"#,
+        );
+
+        let stats = outcome.stats;
+        assert_eq!(stats.ways_seen, 7);
+        assert_eq!(stats.road_ways_selected, 6);
+        assert_eq!(stats.features_emitted, 1);
+        assert_eq!(stats.features_skipped, 5);
+        assert_eq!(
+            stats.road_ways_selected,
+            stats.features_emitted + stats.features_skipped
+        );
+    }
+
+    #[test]
+    fn an_undecodable_attribute_fails_the_whole_import() {
+        // An unquoted attribute value: the attribute iterator cannot walk the
+        // element, which makes this a broken file rather than a broken entity.
+        let source = OsmXmlSource::from_xml(
+            "broken-attribute.osm",
+            r#"<osm><node id=1 lat="35.68" lon="51.38"/></osm>"#,
+        );
+        let mut sink = CollectingSink::default();
+        let error = source
+            .import(&mut sink)
+            .expect_err("an undecodable attribute must fail the import");
+        assert!(matches!(error, ImportError::MalformedSource { .. }));
+        assert_eq!(error.public_category(), "malformed-source");
+    }
+
+    #[test]
+    fn an_unresolvable_entity_reference_fails_the_whole_import() {
+        let source = OsmXmlSource::from_xml(
+            "broken-entity.osm",
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="2" lat="35.69" lon="51.39"/>
+                 <way id="10">
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="highway" v="residential"/>
+                   <tag k="name" v="&bogus;"/>
+                 </way>
+               </osm>"#,
+        );
+        let mut sink = CollectingSink::default();
+        let error = source
+            .import(&mut sink)
+            .expect_err("an unresolvable entity must fail the import");
+        assert!(matches!(error, ImportError::MalformedSource { .. }));
+    }
+
+    #[test]
+    fn a_malformed_trailing_attribute_fails_the_import() {
+        // Everything Atlas needs from this node comes before the broken
+        // attribute. Stopping at `lon` would report a clean import of a file
+        // that cannot actually be decoded.
+        let source = OsmXmlSource::from_xml(
+            "trailing-attribute.osm",
+            r#"<osm><node id="1" lat="35.68" lon="51.38" broken=1/></osm>"#,
+        );
+        let mut sink = CollectingSink::default();
+        let error = source
+            .import(&mut sink)
+            .expect_err("a malformed trailing attribute must fail the import");
+        assert!(matches!(error, ImportError::MalformedSource { .. }));
+        assert_eq!(error.public_category(), "malformed-source");
+    }
+
+    #[test]
+    fn an_unresolvable_trailing_entity_on_a_tag_fails_the_import() {
+        // `k` and `v` are both read and both fine; the damage is in an
+        // attribute Atlas does not even want.
+        let source = OsmXmlSource::from_xml(
+            "trailing-entity.osm",
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="2" lat="35.69" lon="51.39"/>
+                 <way id="10">
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="highway" v="residential" note="&bogus;"/>
+                 </way>
+               </osm>"#,
+        );
+        let mut sink = CollectingSink::default();
+        let error = source
+            .import(&mut sink)
+            .expect_err("an unresolvable trailing entity must fail the import");
+        assert!(matches!(error, ImportError::MalformedSource { .. }));
+    }
+
+    #[test]
+    fn attributes_after_the_ones_atlas_reads_do_not_disturb_a_valid_import() {
+        // Real extracts carry version, timestamp, changeset and user metadata
+        // that Atlas ignores. Walking the whole attribute list must decode
+        // them without tripping over them, escapes included.
+        let (sink, outcome) = import(
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38" version="3" timestamp="2024-01-01T00:00:00Z" changeset="99" user="mapper"/>
+                 <node id="2" lat="35.69" lon="51.39" version="1" user="Tom &amp; Jerry"/>
+                 <way id="10" version="2" visible="true" user="mapper">
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="highway" v="residential" note="a &amp; b"/>
+                   <tag k="name" v="Main Street"/>
+                 </way>
+               </osm>"#,
+        );
+
+        assert_eq!(outcome.stats.nodes_seen, 2);
+        assert_eq!(outcome.stats.nodes_indexed, 2);
+        assert_eq!(outcome.stats.features_emitted, 1);
+        assert_eq!(outcome.stats.features_skipped, 0);
+        assert!(outcome.issues.is_empty());
+
+        let feature = &sink.features[0];
+        assert_eq!(feature.id().as_str(), "osm:way:10");
+        assert_eq!(feature.name(), Some("Main Street"));
+        assert_eq!(road_classes(&sink), vec!["residential"]);
     }
 
     #[test]

@@ -33,8 +33,13 @@ export class ViewportQueryController {
   private readonly debounceMs: number;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private inFlight: AbortController | null = null;
-  private queued: FeatureQueryRequest | null = null;
-  private dispatched = 0;
+  private queued: { request: FeatureQueryRequest; generation: number } | null = null;
+  /**
+   * Bumped the moment a new viewport is asked for, not when its query is
+   * finally sent. Anything carrying an older generation is answering a view
+   * nobody is looking at any more.
+   */
+  private generation = 0;
   private disposed = false;
 
   constructor(options: ViewportQueryControllerOptions) {
@@ -47,7 +52,17 @@ export class ViewportQueryController {
     if (this.disposed) {
       return;
     }
-    this.queued = request;
+
+    // Claim a generation now. Waiting until dispatch would leave a window,
+    // the length of the debounce, in which an in-flight request still counts
+    // as current and can render its answer over a newer viewport.
+    this.generation += 1;
+    this.queued = { request, generation: this.generation };
+
+    // Whatever is running has just been superseded, so stop paying for it.
+    this.inFlight?.abort();
+    this.inFlight = null;
+
     if (this.timer !== null) {
       clearTimeout(this.timer);
     }
@@ -70,6 +85,7 @@ export class ViewportQueryController {
   /** Cancels everything; the controller accepts no further requests. */
   dispose(): void {
     this.disposed = true;
+    this.generation += 1;
     if (this.timer !== null) {
       clearTimeout(this.timer);
       this.timer = null;
@@ -85,29 +101,32 @@ export class ViewportQueryController {
   }
 
   private async dispatch(): Promise<void> {
-    const request = this.queued;
+    const queued = this.queued;
     this.queued = null;
-    if (this.disposed || !request) {
+    if (this.disposed || !queued) {
+      return;
+    }
+    const { request, generation } = queued;
+    // A newer viewport was queued between this one being scheduled and the
+    // timer firing, so this query is obsolete before it is even sent.
+    if (generation !== this.generation) {
       return;
     }
 
-    // Anything still running is now obsolete.
-    this.inFlight?.abort();
     const controller = new AbortController();
     this.inFlight = controller;
-    const ticket = ++this.dispatched;
 
     this.options.onLoading?.(request);
 
     try {
       const collection = await this.options.run(request, controller.signal);
-      if (this.isStale(ticket)) {
+      if (this.isStale(generation, controller)) {
         return;
       }
       this.inFlight = null;
       this.options.onResult(collection, request);
     } catch (error) {
-      if (this.isStale(ticket) || isAbort(error) || controller.signal.aborted) {
+      if (this.isStale(generation, controller) || isAbort(error)) {
         return;
       }
       this.inFlight = null;
@@ -115,8 +134,14 @@ export class ViewportQueryController {
     }
   }
 
-  /** A response is stale if a newer query went out, or the map went away. */
-  private isStale(ticket: number): boolean {
-    return this.disposed || ticket !== this.dispatched;
+  /**
+   * Whether an answer may still be delivered.
+   *
+   * Stale means the map went away, a newer viewport was asked for, or this
+   * request was cancelled. The abort check is belt and braces: a runner that
+   * ignores its signal and resolves anyway must still not reach the UI.
+   */
+  private isStale(generation: number, controller: AbortController): boolean {
+    return this.disposed || generation !== this.generation || controller.signal.aborted;
   }
 }

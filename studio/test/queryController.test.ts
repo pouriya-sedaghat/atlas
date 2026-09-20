@@ -128,6 +128,86 @@ describe('ViewportQueryController', () => {
     controller.dispose();
   });
 
+  it('a viewport queued during the debounce makes the in-flight answer stale', async () => {
+    // The exact race: A is already in flight, B is queued but its debounce
+    // timer has not fired yet, and A answers in that window. A is answering a
+    // viewport the user has already left, so it must not reach the UI.
+    const { run, pending } = deferredRunner();
+    const onResult = vi.fn();
+    const onError = vi.fn();
+    const controller = new ViewportQueryController({
+      run,
+      onResult,
+      onError,
+      debounceMs: DEBOUNCE_MS,
+    });
+
+    // Dispatch A.
+    controller.request(request(51.3));
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 1);
+    expect(run).toHaveBeenCalledTimes(1);
+
+    // Queue B without advancing through its debounce.
+    controller.request(request(51.5));
+    expect(run).toHaveBeenCalledTimes(1);
+
+    // A answers now, while B is still only queued.
+    pending[0]?.resolve(collection('A'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onResult).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+
+    // Now let B go out and answer.
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 1);
+    expect(run).toHaveBeenCalledTimes(2);
+    pending[1]?.resolve(collection('B'));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(onResult).toHaveBeenCalledTimes(1);
+    expect((onResult.mock.calls[0]?.[0] as AtlasFeatureCollection).atlas.datasetId).toBe('B');
+    controller.dispose();
+  });
+
+  it('a viewport queued during the debounce aborts the in-flight request at once', async () => {
+    const { run, pending } = deferredRunner();
+    const controller = new ViewportQueryController({
+      run,
+      onResult: vi.fn(),
+      debounceMs: DEBOUNCE_MS,
+    });
+
+    controller.request(request(51.3));
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 1);
+    expect(pending[0]?.signal.aborted).toBe(false);
+
+    // Merely queueing the next viewport is enough; no timer has to fire.
+    controller.request(request(51.5));
+    expect(pending[0]?.signal.aborted).toBe(true);
+    controller.dispose();
+  });
+
+  it('a superseded request that rejects late is not reported as an error', async () => {
+    const { run, pending } = deferredRunner();
+    const onError = vi.fn();
+    const controller = new ViewportQueryController({
+      run,
+      onResult: vi.fn(),
+      onError,
+      debounceMs: DEBOUNCE_MS,
+    });
+
+    controller.request(request(51.3));
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 1);
+    controller.request(request(51.5));
+
+    // A runner that does not honour its abort signal, failing on its own terms.
+    pending[0]?.reject(new Error('server exploded'));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(onError).not.toHaveBeenCalled();
+    controller.dispose();
+  });
+
   it('reports a genuine failure', async () => {
     const { run, pending } = deferredRunner();
     const onError = vi.fn();
