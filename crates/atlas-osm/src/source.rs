@@ -132,21 +132,21 @@ impl OsmXmlSource {
         loop {
             match reader.read_event_into(&mut buffer).map_err(malformed)? {
                 Event::Eof => break,
-                Event::Start(element) | Event::Empty(element) => {
-                    if element.local_name().as_ref() == "node" {
-                        stats.nodes_seen += 1;
-                        match read_node(&element) {
-                            Ok(node) => {
-                                stats.nodes_indexed += 1;
-                                index.insert(node.id, node.coordinate);
-                            }
-                            // Broken markup is the file's problem, not this
-                            // node's, so it stops the import rather than
-                            // becoming one more warning among thousands.
-                            Err(NodeProblem::Source(error)) => return Err(error.into()),
-                            Err(NodeProblem::Entity(problem)) => {
-                                issues.record(problem.code, problem.entity);
-                            }
+                Event::Start(element) | Event::Empty(element)
+                    if element.local_name().as_ref() == "node" =>
+                {
+                    stats.nodes_seen += 1;
+                    match read_node(&element) {
+                        Ok(node) => {
+                            stats.nodes_indexed += 1;
+                            index.insert(node.id, node.coordinate);
+                        }
+                        // Broken markup is the file's problem, not this
+                        // node's, so it stops the import rather than
+                        // becoming one more warning among thousands.
+                        Err(NodeProblem::Source(error)) => return Err(error.into()),
+                        Err(NodeProblem::Entity(problem)) => {
+                            issues.record(problem.code, problem.entity);
                         }
                     }
                 }
