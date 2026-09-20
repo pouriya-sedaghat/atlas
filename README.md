@@ -626,13 +626,27 @@ Rust, from the repository root:
 
 ```bash
 cargo fmt --all --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
 ```
 
-Studio, from `studio/`:
+`--locked` makes a command fail rather than quietly update `Cargo.lock`. Drop it
+when you are deliberately changing dependencies.
+
+The minimum supported Rust version is checked separately, and needs its own
+toolchain: `cargo +1.90.0` fails unless 1.90.0 has been installed through
+`rustup` first.
 
 ```bash
+rustup toolchain install 1.90.0 --profile minimal
+cargo +1.90.0 check --workspace --all-targets --locked
+```
+
+Studio, from `studio/`. The first command is dependency installation, not a
+quality gate; the five after it are the gates:
+
+```bash
+npm ci
 npm run format:check
 npm run lint
 npm run typecheck
@@ -640,8 +654,52 @@ npm test
 npm run build
 ```
 
+`npm ci` installs exactly `studio/package-lock.json` and fails rather than
+rewriting it. Use `npm install` only when you mean to change dependencies.
+
 No test touches the network. The HTTP contract tests drive the real Axum router
 in-process through `tower`'s `oneshot`.
+
+## Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull
+request and on every push to the default Atlas branch,
+`claude/atlas-geospatial-mvp-r3xj00`. It is deliberately read-only: top-level
+`permissions: contents: read`, `persist-credentials: false` on checkout, no
+repository secrets, no artifact uploads, and only first-party `actions/*`
+actions. Runs for the same ref cancel each other.
+
+Three independent jobs, all on `ubuntu-24.04`:
+
+| Job | Commands | What it protects |
+| --- | --- | --- |
+| **Rust quality** | `cargo fmt --all --check`, `cargo clippy --workspace --all-targets --locked -- -D warnings`, `cargo test --workspace --locked` | Formatting, lint cleanliness at `-D warnings`, and the whole workspace test suite. Stable Rust with `rustfmt` and `clippy`, installed through the `rustup` already on the runner. |
+| **Rust MSRV** | `cargo +1.90.0 check --workspace --all-targets --locked` | The `rust-version = "1.90"` contract in `Cargo.toml`. A type check on the minimal profile; it does not duplicate the test suite. |
+| **Atlas Studio** | `npm ci`, `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` | Prettier formatting, ESLint, `tsc --noEmit`, the Vitest suite and a real production build. Node.js 22, with npm caching keyed to `studio/package-lock.json`. |
+
+CI runs no gate you cannot run yourself. It executes the same project checks
+listed under [Tests and checks](#tests-and-checks), in a controlled
+`ubuntu-24.04` environment with locked dependency resolution — `--locked` and
+`npm ci` fail rather than quietly update `Cargo.lock` or
+`studio/package-lock.json` — and it adds the explicit Rust 1.90.0 MSRV check as
+a job of its own. A clean local run is a good predictor of CI rather than a
+guarantee of it: the runner brings its own operating system, its own toolchain
+versions and a dependency tree built from scratch.
+
+Repository text is normalized to LF through the root
+[`.gitattributes`](.gitattributes). `* text=auto eol=lf` lets Git detect text
+automatically and then stores and checks it out with LF on every platform, and
+common binary assets (`*.png`, `*.woff2`, `*.zip` and friends) are marked
+`binary` so they are never inspected or converted.
+
+Generated build directories stay untracked: `/target`, `node_modules/` and
+`dist/` are listed in [`.gitignore`](.gitignore), and CI recreates them from
+the lockfiles on every run.
+
+Review patches and archives are operational artifacts rather than repository
+content. Git does not stop you from adding one — `*.zip`, `*.patch` and
+`*.diff` are not ignored — so keep them outside the working tree by
+convention, alongside the repository and not inside it.
 
 ## The synthetic fixture
 
