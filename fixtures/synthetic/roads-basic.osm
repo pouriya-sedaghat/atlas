@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Atlas synthetic import fixture.
+
+  Hand written, deliberately small, and deliberately imperfect: every branch of
+  the importer that a real extract would eventually exercise is represented
+  here exactly once, so the expected counters in the tests can be written out
+  in full.
+
+  Nothing in this file was downloaded from OpenStreetMap. The coordinates are
+  invented and sit in an empty part of Tehran purely so that the numbers look
+  plausible in the viewer.
+
+  Expected import outcome (asserted in crates/atlas-osm/tests/fixture_import.rs):
+    nodes seen ............ 8
+    nodes indexed ......... 7   (node 8 has an out-of-range latitude)
+    ways seen ............. 8
+    road ways selected .... 7   (way 103 has no highway tag)
+    features emitted ...... 4   (ways 101, 102, 105, 106)
+    features skipped ...... 3   (ways 104, 107, 108)
+    relations seen ........ 2   (counted, never interpreted)
+-->
+<osm version="0.6" generator="atlas-synthetic-fixture">
+  <bounds minlat="35.6880" minlon="51.3850" maxlat="35.6970" maxlon="51.3940"/>
+
+  <!-- Valid nodes. -->
+  <node id="1" lat="35.6890" lon="51.3880"/>
+  <node id="2" lat="35.6900" lon="51.3900"/>
+  <node id="3" lat="35.6910" lon="51.3920"/>
+  <node id="4" lat="35.6930" lon="51.3860"/>
+  <node id="5" lat="35.6950" lon="51.3890"/>
+  <node id="6" lat="35.6960" lon="51.3930"/>
+
+  <!-- Same position as node 6: produces an adjacent duplicate coordinate. -->
+  <node id="7" lat="35.6960" lon="51.3930"/>
+
+  <!-- Latitude outside [-90, 90]: rejected, never enters the node index. -->
+  <node id="8" lat="95.0000" lon="51.3870"/>
+
+  <!-- A perfectly ordinary residential street with a Persian name. -->
+  <way id="101">
+    <nd ref="1"/>
+    <nd ref="2"/>
+    <nd ref="3"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="خیابان ولیعصر"/>
+  </way>
+
+  <!-- A service road. -->
+  <way id="102">
+    <nd ref="4"/>
+    <nd ref="5"/>
+    <tag k="highway" v="service"/>
+    <tag k="name" v="Service Lane"/>
+  </way>
+
+  <!-- No highway tag: ignored without resolving its node references. -->
+  <way id="103">
+    <nd ref="1"/>
+    <nd ref="4"/>
+    <tag k="building" v="yes"/>
+    <tag k="name" v="Not A Road"/>
+  </way>
+
+  <!-- References a node that this file never defines. -->
+  <way id="104">
+    <nd ref="2"/>
+    <nd ref="999"/>
+    <tag k="highway" v="primary"/>
+    <tag k="name" v="Missing Reference Road"/>
+  </way>
+
+  <!-- A highway value Atlas does not model: preserved verbatim. -->
+  <way id="105">
+    <nd ref="5"/>
+    <nd ref="6"/>
+    <tag k="highway" v="corn_maze"/>
+    <tag k="name" v="Corn Maze Track"/>
+  </way>
+
+  <!-- Nodes 6 and 7 share a position; the duplicate is collapsed. -->
+  <way id="106">
+    <nd ref="6"/>
+    <nd ref="7"/>
+    <nd ref="3"/>
+    <tag k="highway" v="footway"/>
+    <tag k="name" v="گذر پیاده"/>
+  </way>
+
+  <!-- References node 8, which was rejected for its invalid coordinate. -->
+  <way id="107">
+    <nd ref="8"/>
+    <nd ref="1"/>
+    <tag k="highway" v="track"/>
+  </way>
+
+  <!-- Only one node reference: cannot become a line. -->
+  <way id="108">
+    <nd ref="1"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Single Point Way"/>
+  </way>
+
+  <!-- Relations are counted so the report is honest, and nothing more. -->
+  <relation id="201">
+    <member type="way" ref="101" role=""/>
+    <member type="way" ref="102" role=""/>
+    <tag k="type" v="route"/>
+    <tag k="route" v="bus"/>
+  </relation>
+
+  <relation id="202">
+    <member type="way" ref="106" role="outer"/>
+    <tag k="type" v="multipolygon"/>
+  </relation>
+</osm>

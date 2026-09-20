@@ -1,0 +1,11 @@
+[package]
+name = "atlas-kernel"
+description = "Atlas domain kernel: validated coordinates, bounding boxes, geometry and map features."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+thiserror = "2.0.20"

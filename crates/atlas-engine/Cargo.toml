@@ -1,0 +1,12 @@
+[package]
+name = "atlas-engine"
+description = "Atlas application layer: import contracts, immutable datasets and viewport map queries."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+atlas-kernel = { path = "../atlas-kernel" }
+thiserror = "2.0.20"

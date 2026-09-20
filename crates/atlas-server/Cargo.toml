@@ -1,0 +1,26 @@
+[package]
+name = "atlas-server"
+description = "Atlas HTTP server exposing dataset metadata and viewport GeoJSON queries."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+atlas-kernel = { path = "../atlas-kernel" }
+atlas-engine = { path = "../atlas-engine" }
+atlas-osm = { path = "../atlas-osm" }
+axum = "0.8.9"
+tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "signal"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.20"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
+clap = { version = "4.6.7", features = ["derive"] }
+tower-http = { version = "0.7.1", features = ["trace"] }
+
+[dev-dependencies]
+http-body-util = "0.1.5"
+tower = { version = "0.5.3", features = ["util"] }
