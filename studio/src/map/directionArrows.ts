@@ -13,7 +13,7 @@
 import type { ExpressionSpecification, LayerSpecification } from 'maplibre-gl';
 
 import { ARROW_IMAGE_ID } from './arrowImage.js';
-import { ROAD_SOURCE_ID } from './roadLayers.js';
+import { ROAD_SOURCE_ID } from './roadPrimitives.js';
 import { directionPropertyKey, type TravelProfile } from './traversal.js';
 
 export const ROAD_DIRECTION_LAYER_ID = 'atlas-roads-direction';

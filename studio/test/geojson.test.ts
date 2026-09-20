@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { AtlasFeature, AtlasFeatureCollection } from '../src/api/types.js';
 import { EMPTY_COLLECTION, indexFeatures, toMapCollection } from '../src/map/geojson.js';
-import { FEATURE_KEY } from '../src/map/roadLayers.js';
+import { FEATURE_KEY } from '../src/map/roadPrimitives.js';
 
 function feature(overrides: Partial<AtlasFeature> = {}): AtlasFeature {
   return {
