@@ -5,6 +5,7 @@ use std::fmt;
 use crate::access::RoadAccess;
 use crate::bounding_box::BoundingBox;
 use crate::geometry::Geometry;
+use crate::speed::RoadSpeedLimits;
 use crate::traversal::RoadTraversal;
 
 /// Everything that can go wrong while constructing feature metadata.
@@ -155,15 +156,25 @@ impl fmt::Display for RoadClass {
 /// What kind of thing a feature is.
 ///
 /// Road semantics live *inside* the road variant rather than beside it. A
-/// classification, a traversal and an access record cannot become detached
-/// from one another, and none of them can be attached to a feature that is not
-/// a road: there is no shape this type can take that carries one without the
-/// others.
+/// classification, a traversal, an access record and a speed record cannot
+/// become detached from one another, and none of them can be attached to a
+/// feature that is not a road: there is no shape this type can take that
+/// carries one without the others.
 ///
-/// The three are distinct values, not views of one another. Access is never
-/// reconstructed from the classification — a consumer that wants to know who
-/// may use a road reads `access`, and a consumer that wants to know which way
-/// it runs reads `traversal`.
+/// The four are **inseparable from a road and independent of one another**.
+/// None is a view of, or derivable from, any other:
+///
+/// * a consumer that wants to know which way the road runs reads `traversal`;
+/// * one that wants to know who may use it reads `access`;
+/// * one that wants to know what the source said the legal maximum is reads
+///   `speed_limits`;
+/// * and `class` explains none of the other three.
+///
+/// The combinations that look contradictory are the point. A road prohibited
+/// to motorcars may still carry a motorcar speed limit, because the sign is on
+/// the post whether or not anyone may drive past it. A reverse one-way carries
+/// both a forward and a backward limit, because the source describes the road
+/// rather than the traffic. None of the four is a routing decision.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FeatureKind {
     /// A road, carrying its display classification and its travel semantics.
@@ -174,6 +185,9 @@ pub enum FeatureKind {
         traversal: RoadTraversal,
         /// What the source says about each modelled mode's access to it.
         access: RoadAccess,
+        /// What the source says the legal maximum speed is, per mode and per
+        /// geometry direction. A legal maximum, never a travel speed.
+        speed_limits: RoadSpeedLimits,
     },
 }
 
@@ -203,6 +217,17 @@ impl FeatureKind {
     pub fn road_access(&self) -> Option<&RoadAccess> {
         match self {
             FeatureKind::Road { access, .. } => Some(access),
+        }
+    }
+
+    /// The source-derived legal maximum-speed facts, when the feature is a
+    /// road.
+    ///
+    /// These are what the source said, not how fast anything travels and not
+    /// what a router should assume.
+    pub fn road_speed_limits(&self) -> Option<&RoadSpeedLimits> {
+        match self {
+            FeatureKind::Road { speed_limits, .. } => Some(speed_limits),
         }
     }
 }
@@ -330,16 +355,30 @@ mod tests {
     use crate::access::AccessRule;
     use crate::coordinate::GeoCoordinate;
     use crate::geometry::LineString;
+    use crate::speed::{
+        ConditionalSpeedLimit, DirectionalSpeedLimits, Speed, SpeedDirection, SpeedLimitFact,
+        SpeedLimitValue, SpeedUnit, VariableSpeedLimit,
+    };
     use crate::traversal::{TravelDirection, TravelMode};
 
-    /// A plain two-way road with nothing said about access, for the tests that
-    /// are not about road semantics at all.
+    /// A plain two-way road with nothing said about access or speed, for the
+    /// tests that are not about road semantics at all.
+    ///
+    /// Every silent value is spelled out: there is no default to fall back on,
+    /// and a test fixture must say what it claims about its source like
+    /// everybody else.
     fn plain_road(class: RoadClass) -> FeatureKind {
         FeatureKind::Road {
             class,
             traversal: RoadTraversal::bidirectional(),
             access: RoadAccess::unspecified(),
+            speed_limits: RoadSpeedLimits::unspecified(),
         }
+    }
+
+    /// A numeric limit, for the tests that need one.
+    fn numeric(magnitude: &str, unit: SpeedUnit) -> SpeedLimitValue {
+        SpeedLimitValue::Numeric(Speed::new(magnitude, unit).expect("a valid magnitude"))
     }
 
     fn geometry() -> Geometry {
@@ -403,15 +442,31 @@ mod tests {
             AccessRule::Designated,
             AccessRule::Unspecified,
         );
+        let speed_limits = RoadSpeedLimits::new(
+            DirectionalSpeedLimits::new(
+                SpeedLimitFact::plain(numeric("70", SpeedUnit::KilometresPerHour)),
+                SpeedLimitFact::plain(numeric("30", SpeedUnit::MilesPerHour)),
+            ),
+            DirectionalSpeedLimits::unspecified(),
+            DirectionalSpeedLimits::uniform(SpeedLimitFact::plain(SpeedLimitValue::WalkingPace)),
+        );
         let kind = FeatureKind::Road {
             class: RoadClass::Residential,
             traversal,
             access,
+            speed_limits: speed_limits.clone(),
         };
         assert_eq!(kind.name(), "road");
         assert_eq!(kind.road_class(), Some(&RoadClass::Residential));
         assert_eq!(kind.road_traversal(), Some(&traversal));
         assert_eq!(kind.road_access(), Some(&access));
+        assert_eq!(kind.road_speed_limits(), Some(&speed_limits));
+        assert_eq!(
+            kind.road_speed_limits().map(|limits| limits
+                .fact(TravelMode::Motorcar, SpeedDirection::Backward)
+                .limit()),
+            Some(&numeric("30", SpeedUnit::MilesPerHour))
+        );
         assert_eq!(
             kind.road_traversal().map(|t| t.direction(TravelMode::Foot)),
             Some(TravelDirection::Indeterminate)
@@ -440,6 +495,11 @@ mod tests {
                 AccessRule::Allowed,
                 AccessRule::Allowed,
             ),
+            // Prohibited to cars and still signed at 50 in both directions:
+            // the sign is on the post whether or not anyone may drive past it.
+            speed_limits: RoadSpeedLimits::uniform(DirectionalSpeedLimits::uniform(
+                SpeedLimitFact::plain(numeric("50", SpeedUnit::KilometresPerHour)),
+            )),
         };
         assert_eq!(
             barred_one_way.road_traversal().map(RoadTraversal::motorcar),
@@ -454,6 +514,7 @@ mod tests {
             class: RoadClass::Service,
             traversal: RoadTraversal::bidirectional(),
             access: RoadAccess::uniform(AccessRule::Private),
+            speed_limits: RoadSpeedLimits::unspecified(),
         };
         assert_eq!(
             private_two_way
@@ -481,12 +542,97 @@ mod tests {
     }
 
     #[test]
+    fn speed_is_a_fourth_independent_record_not_a_view_of_the_other_three() {
+        // Four roads that agree on three of the four records and disagree on
+        // the fourth, in every direction. If any one of them were derived from
+        // another, at least one of these pairs would be impossible to build.
+        let signed_prohibited = FeatureKind::Road {
+            class: RoadClass::Motorway,
+            traversal: RoadTraversal::uniform(TravelDirection::Forward),
+            access: RoadAccess::uniform(AccessRule::Prohibited),
+            speed_limits: RoadSpeedLimits::uniform(DirectionalSpeedLimits::uniform(
+                SpeedLimitFact::plain(numeric("120", SpeedUnit::KilometresPerHour)),
+            )),
+        };
+        let unsigned_prohibited = FeatureKind::Road {
+            class: RoadClass::Motorway,
+            traversal: RoadTraversal::uniform(TravelDirection::Forward),
+            access: RoadAccess::uniform(AccessRule::Prohibited),
+            speed_limits: RoadSpeedLimits::unspecified(),
+        };
+        // Same class, same direction, same access — different speed. Speed
+        // cannot be a function of any of the three.
+        assert_eq!(
+            signed_prohibited.road_class(),
+            unsigned_prohibited.road_class()
+        );
+        assert_eq!(
+            signed_prohibited.road_traversal(),
+            unsigned_prohibited.road_traversal()
+        );
+        assert_eq!(
+            signed_prohibited.road_access(),
+            unsigned_prohibited.road_access()
+        );
+        assert_ne!(
+            signed_prohibited.road_speed_limits(),
+            unsigned_prohibited.road_speed_limits()
+        );
+
+        // A reverse one-way carries both directions' limits, and they differ:
+        // a speed direction is a property of the source record, not of the
+        // direction the traffic is allowed to run.
+        let reverse_one_way = FeatureKind::Road {
+            class: RoadClass::Residential,
+            traversal: RoadTraversal::uniform(TravelDirection::Reverse),
+            access: RoadAccess::unspecified(),
+            speed_limits: RoadSpeedLimits::uniform(DirectionalSpeedLimits::new(
+                SpeedLimitFact::plain(numeric("70", SpeedUnit::KilometresPerHour)),
+                SpeedLimitFact::plain(numeric("30", SpeedUnit::KilometresPerHour)),
+            )),
+        };
+        let limits = reverse_one_way
+            .road_speed_limits()
+            .expect("a road carries speed limits");
+        assert_eq!(
+            limits.motorcar().forward().limit(),
+            &numeric("70", SpeedUnit::KilometresPerHour)
+        );
+        assert_eq!(
+            limits.motorcar().backward().limit(),
+            &numeric("30", SpeedUnit::KilometresPerHour)
+        );
+        assert_eq!(
+            reverse_one_way
+                .road_traversal()
+                .map(RoadTraversal::motorcar),
+            Some(TravelDirection::Reverse)
+        );
+
+        // And two roads with identical speed facts can disagree about
+        // everything else, so nothing is derived in the other direction
+        // either.
+        assert_eq!(
+            signed_prohibited.road_speed_limits(),
+            FeatureKind::Road {
+                class: RoadClass::Track,
+                traversal: RoadTraversal::bidirectional(),
+                access: RoadAccess::uniform(AccessRule::Designated),
+                speed_limits: RoadSpeedLimits::uniform(DirectionalSpeedLimits::uniform(
+                    SpeedLimitFact::plain(numeric("120", SpeedUnit::KilometresPerHour)),
+                )),
+            }
+            .road_speed_limits()
+        );
+    }
+
+    #[test]
     fn road_semantics_cannot_be_detached_from_the_road_variant() {
-        // Every shape this type can take carries all three parts. The
+        // Every shape this type can take carries all four parts. The
         // exhaustive match is the point: a variant that could hold a class
-        // without a traversal or an access record, or road semantics on
-        // something that is not a road, would stop compiling here rather than
-        // ship.
+        // without a traversal, an access record or a speed record, or road
+        // semantics on something that is not a road, would stop compiling here
+        // rather than ship.
         for kind in [
             FeatureKind::Road {
                 class: RoadClass::Steps,
@@ -496,11 +642,19 @@ mod tests {
                     AccessRule::DismountRequired,
                     AccessRule::Designated,
                 ),
+                speed_limits: RoadSpeedLimits::uniform(DirectionalSpeedLimits::uniform(
+                    SpeedLimitFact::new(
+                        SpeedLimitValue::WalkingPace,
+                        ConditionalSpeedLimit::Present,
+                        VariableSpeedLimit::Fixed,
+                    ),
+                )),
             },
             FeatureKind::Road {
                 class: RoadClass::Other("corn_maze".to_owned()),
                 traversal: RoadTraversal::bidirectional(),
                 access: RoadAccess::unspecified(),
+                speed_limits: RoadSpeedLimits::unspecified(),
             },
         ] {
             match &kind {
@@ -508,15 +662,18 @@ mod tests {
                     class,
                     traversal,
                     access,
+                    speed_limits,
                 } => {
                     assert_eq!(kind.road_class(), Some(class));
                     assert_eq!(kind.road_traversal(), Some(traversal));
                     assert_eq!(kind.road_access(), Some(access));
+                    assert_eq!(kind.road_speed_limits(), Some(speed_limits));
                 }
             }
             assert!(kind.road_class().is_some());
             assert!(kind.road_traversal().is_some());
             assert!(kind.road_access().is_some());
+            assert!(kind.road_speed_limits().is_some());
         }
     }
 

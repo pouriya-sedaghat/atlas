@@ -20,9 +20,54 @@ function feature(overrides: Partial<AtlasFeature['properties']> = {}): AtlasFeat
       kind: 'road',
       roadClass: 'residential',
       traversal: {
-        motorcar: { direction: 'forward', access: 'destination-only' },
-        bicycle: { direction: 'both', access: 'designated' },
-        foot: { direction: 'indeterminate', access: 'unspecified' },
+        motorcar: {
+          direction: 'forward',
+          access: 'destination-only',
+          speedLimits: {
+            forward: {
+              limit: { kind: 'numeric', value: '50', unit: 'km/h' },
+              conditional: false,
+              variable: 'not-tagged',
+            },
+            backward: {
+              limit: { kind: 'numeric', value: '30', unit: 'mph' },
+              conditional: true,
+              variable: 'fixed',
+            },
+          },
+        },
+        bicycle: {
+          direction: 'both',
+          access: 'designated',
+          speedLimits: {
+            forward: {
+              limit: { kind: 'walking-pace' },
+              conditional: false,
+              variable: 'not-tagged',
+            },
+            backward: {
+              limit: { kind: 'no-fixed-limit' },
+              conditional: false,
+              variable: 'variable',
+            },
+          },
+        },
+        foot: {
+          direction: 'indeterminate',
+          access: 'unspecified',
+          speedLimits: {
+            forward: {
+              limit: { kind: 'implicit', code: 'RO:urban' },
+              conditional: false,
+              variable: 'not-tagged',
+            },
+            backward: {
+              limit: { kind: 'unspecified' },
+              conditional: false,
+              variable: 'not-tagged',
+            },
+          },
+        },
       },
       ...overrides,
     },
@@ -75,18 +120,25 @@ describe('InspectorPanel', () => {
     expect(root.textContent).toContain('outside the current viewport query');
   });
 
-  it('shows all six direction and access rows, whichever profile is selected', () => {
-    // Six rows, always: the interesting roads are the ones where the profiles
-    // disagree, or where a road runs one way and is closed the other.
+  it('shows all twelve semantic rows, whichever profile is selected', () => {
+    // Twelve rows, always: the interesting roads are the ones where the
+    // profiles disagree, where a road runs one way and is closed the other,
+    // or where it is signed differently in each geometry direction.
     panel.render({ feature: feature(), inCurrentViewport: true }, 'bicycle');
     const terms = [...root.querySelectorAll('dt')].map((node) => node.textContent);
     for (const expected of [
       'Car direction',
       'Car access',
+      'Car forward speed',
+      'Car backward speed',
       'Bicycle direction',
       'Bicycle access',
+      'Bicycle forward speed',
+      'Bicycle backward speed',
       'Foot direction',
       'Foot access',
+      'Foot forward speed',
+      'Foot backward speed',
     ]) {
       expect(terms).toContain(expected);
     }
@@ -205,40 +257,64 @@ describe('InspectorPanel', () => {
     expect(text).toContain('Indeterminate · not stated');
   });
 
-  it('marks both rows of the selected profile without hiding the others', () => {
-    // Milestone 2B: a profile now owns two rows, a direction and an access,
-    // and the map draws both. Marking only one of them would tell the reader
-    // that half of what they are looking at belongs to some other profile.
+  it('marks all four rows of the selected profile without hiding the others', () => {
+    // Milestone 2C: a profile now owns four rows — a direction, an access and
+    // a speed limit in each geometry direction — and the map draws from all
+    // of them. Marking fewer would tell the reader that some of what they are
+    // looking at belongs to some other profile.
     panel.render({ feature: feature(), inCurrentViewport: true }, 'foot');
     const active = [...root.querySelectorAll('.row-active')];
-    expect(active.map((node) => node.textContent)).toEqual(['Foot direction', 'Foot access']);
+    expect(active.map((node) => node.textContent)).toEqual([
+      'Foot direction',
+      'Foot access',
+      'Foot forward speed',
+      'Foot backward speed',
+    ]);
     for (const node of active) {
       expect(node.getAttribute('aria-current')).toBe('true');
     }
-    // The other four rows are still there, just not marked.
-    expect(root.querySelectorAll('dt').length).toBeGreaterThanOrEqual(6);
+    // The other eight semantic rows are still there, just not marked.
+    expect(root.querySelectorAll('dt').length).toBeGreaterThanOrEqual(12);
+    const terms = [...root.querySelectorAll('dt')].map((node) => node.textContent);
+    for (const other of [
+      'Car direction',
+      'Car access',
+      'Car forward speed',
+      'Car backward speed',
+      'Bicycle direction',
+      'Bicycle access',
+      'Bicycle forward speed',
+      'Bicycle backward speed',
+    ]) {
+      expect(terms).toContain(other);
+    }
   });
 
-  it('defaults to the car profile and marks both of its rows', () => {
+  it('defaults to the car profile and marks all four of its rows', () => {
     panel.render({ feature: feature(), inCurrentViewport: true });
     expect([...root.querySelectorAll('.row-active')].map((node) => node.textContent)).toEqual([
       'Car direction',
       'Car access',
+      'Car forward speed',
+      'Car backward speed',
     ]);
   });
 
   it('moves the marking when the profile changes, keeping every row', () => {
     const selection = { feature: feature(), inCurrentViewport: true };
     panel.render(selection, 'motorcar');
-    expect(root.querySelectorAll('dt')).toHaveLength(13);
+    expect(root.querySelectorAll('dt')).toHaveLength(19);
     panel.render(selection, 'foot');
     expect([...root.querySelectorAll('.row-active')].map((node) => node.textContent)).toEqual([
       'Foot direction',
       'Foot access',
+      'Foot forward speed',
+      'Foot backward speed',
     ]);
-    expect(root.querySelectorAll('dt')).toHaveLength(13);
+    expect(root.querySelectorAll('dt')).toHaveLength(19);
     expect(root.textContent).toContain('Car direction');
     expect(root.textContent).toContain('Bicycle access');
+    expect(root.textContent).toContain('Bicycle forward speed');
   });
 
   it('labels dynamic directions as changing rather than as a one-way', () => {
@@ -276,6 +352,202 @@ describe('InspectorPanel', () => {
       node.getAttribute('data-direction'),
     );
     expect(values).toEqual(['indeterminate', 'indeterminate', 'indeterminate']);
+  });
+
+  it('renders every speed limit kind in words', () => {
+    panel.render({ feature: feature(), inCurrentViewport: true }, 'motorcar');
+    const text = root.textContent ?? '';
+    // The units are the ones the source stated; Studio never converts.
+    expect(text).toContain('50 km/h');
+    expect(text).toContain('30 mph · conditional · explicitly fixed');
+    expect(text).toContain('Walking pace');
+    expect(text).toContain('No fixed limit · variable');
+    expect(text).toContain('Implicit · RO:urban');
+    // `unspecified` must never read as a number or a default.
+    expect(text).toContain('Not stated');
+  });
+
+  it('keeps the two geometry directions apart on every profile', () => {
+    panel.render({ feature: feature(), inCurrentViewport: true }, 'motorcar');
+    const rows = [...root.querySelectorAll('dd[data-speed-direction]')];
+    expect(rows.map((node) => node.getAttribute('data-speed-direction'))).toEqual([
+      'forward',
+      'backward',
+      'forward',
+      'backward',
+      'forward',
+      'backward',
+    ]);
+    expect(rows.map((node) => node.getAttribute('data-speed-kind'))).toEqual([
+      'numeric',
+      'numeric',
+      'walking-pace',
+      'no-fixed-limit',
+      'implicit',
+      'unspecified',
+    ]);
+  });
+
+  it('shows both speed directions on a one-way road', () => {
+    // `forward` and `backward` are relative to the coordinate order of the
+    // geometry, not to the way the traffic runs, so a one-way road has two of
+    // them like everything else.
+    panel.render({ feature: feature(), inCurrentViewport: true }, 'motorcar');
+    const terms = [...root.querySelectorAll('dt')].map((node) => node.textContent);
+    expect(terms).toContain('Car direction');
+    expect(terms).toContain('Car forward speed');
+    expect(terms).toContain('Car backward speed');
+    expect(root.textContent).toContain('One-way · forward');
+  });
+
+  it('shows a modifier beside the ordinary limit, never instead of it', () => {
+    panel.render(
+      {
+        feature: feature({
+          traversal: {
+            motorcar: {
+              direction: 'both',
+              access: 'allowed',
+              speedLimits: {
+                forward: {
+                  limit: { kind: 'numeric', value: '80', unit: 'km/h' },
+                  conditional: true,
+                  variable: 'not-tagged',
+                },
+                backward: {
+                  limit: { kind: 'numeric', value: '100', unit: 'km/h' },
+                  conditional: false,
+                  variable: 'variable',
+                },
+              },
+            },
+            bicycle: { direction: 'both', access: 'allowed' },
+            foot: { direction: 'both', access: 'allowed' },
+          },
+        }),
+        inCurrentViewport: true,
+      },
+      'motorcar',
+    );
+    const text = root.textContent ?? '';
+    expect(text).toContain('80 km/h · conditional');
+    expect(text).toContain('100 km/h · variable');
+  });
+
+  it('says indeterminate when the server sent no speed block', () => {
+    // A Milestone 2B server. Studio must not turn its silence into
+    // `unspecified`, which would be a claim about the source it never made.
+    panel.render(
+      {
+        feature: feature({
+          traversal: {
+            motorcar: { direction: 'forward', access: 'allowed' },
+            bicycle: { direction: 'both', access: 'allowed' },
+            foot: { direction: 'both', access: 'allowed' },
+          },
+        }),
+        inCurrentViewport: true,
+      },
+      'motorcar',
+    );
+    const kinds = [...root.querySelectorAll('dd[data-speed-kind]')].map((node) =>
+      node.getAttribute('data-speed-kind'),
+    );
+    expect(kinds).toEqual(Array<string>(6).fill('indeterminate'));
+    expect(root.textContent).toContain('Indeterminate · not derived');
+    expect(root.textContent).not.toContain('Not stated');
+    // A missing boolean is not `false`.
+    const conditional = [...root.querySelectorAll('dd[data-speed-conditional]')].map((node) =>
+      node.getAttribute('data-speed-conditional'),
+    );
+    expect(conditional).toEqual(Array<string>(6).fill('indeterminate'));
+  });
+
+  it('degrades an unknown future speed kind to indeterminate', () => {
+    panel.render(
+      {
+        feature: feature({
+          traversal: {
+            motorcar: {
+              direction: 'both',
+              access: 'allowed',
+              speedLimits: {
+                forward: {
+                  limit: { kind: 'advisory', value: '40', unit: 'km/h' },
+                  conditional: false,
+                  variable: 'not-tagged',
+                },
+                backward: {
+                  limit: { kind: 'numeric', value: '40', unit: 'furlongs/fortnight' },
+                  conditional: false,
+                  variable: 'not-tagged',
+                },
+              },
+            },
+            bicycle: { direction: 'both', access: 'allowed' },
+            foot: { direction: 'both', access: 'allowed' },
+          },
+        }),
+        inCurrentViewport: true,
+      },
+      'motorcar',
+    );
+    const text = root.textContent ?? '';
+    expect(text).not.toContain('advisory');
+    expect(text).not.toContain('furlongs');
+    expect(text).toContain('Indeterminate · not derived');
+  });
+
+  it('renders a hostile speed value as text and as no limit at all', () => {
+    const hostile = '<img src=x onerror="globalThis.hacked = true">';
+    panel.render(
+      {
+        feature: feature({
+          traversal: {
+            motorcar: {
+              direction: 'both',
+              access: 'allowed',
+              speedLimits: {
+                forward: {
+                  limit: { kind: hostile, value: hostile, unit: hostile, code: hostile },
+                  conditional: hostile as unknown as boolean,
+                  variable: hostile,
+                },
+                backward: {
+                  limit: { kind: 'numeric', value: hostile, unit: 'km/h' },
+                  conditional: false,
+                  variable: 'not-tagged',
+                },
+              },
+            },
+            bicycle: {
+              direction: 'both',
+              access: 'allowed',
+              speedLimits: {
+                forward: { limit: { kind: 'implicit', code: hostile } },
+                backward: { limit: { kind: 'implicit', code: 'XX:<script>' } },
+              },
+            },
+            foot: { direction: 'both', access: 'allowed' },
+          },
+        }),
+        inCurrentViewport: true,
+      },
+      'motorcar',
+    );
+    expect(root.querySelector('img')).toBeNull();
+    expect(root.querySelector('script')).toBeNull();
+    expect(root.innerHTML).not.toContain('<img');
+    expect(root.innerHTML).not.toContain('<script');
+    expect(root.textContent).not.toContain(hostile);
+    expect(root.textContent).not.toContain('onerror');
+    expect(root.textContent).toContain('Indeterminate · not derived');
+    const kinds = [...root.querySelectorAll('dd[data-speed-kind]')].map((node) =>
+      node.getAttribute('data-speed-kind'),
+    );
+    // Only the pedestrian rows, which carried no speed block at all, and
+    // every hostile one alike: nothing hostile survived as a rendered kind.
+    expect(new Set(kinds)).toEqual(new Set(['indeterminate']));
   });
 
   it('renders untrusted names as text, never as markup', () => {

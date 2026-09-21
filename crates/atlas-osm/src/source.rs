@@ -21,6 +21,7 @@ use quick_xml::{Reader, XmlVersion};
 use crate::access::derive_access;
 use crate::direction::derive_traversal;
 use crate::model::{OsmNode, OsmNodeRef, OsmRelation, OsmWay};
+use crate::speed::derive_speed_limits;
 
 /// The attribution every OpenStreetMap-derived dataset must carry.
 pub const OSM_ATTRIBUTION_TEXT: &str = "© OpenStreetMap contributors";
@@ -520,13 +521,14 @@ fn emit_way(
         issues.record(IssueCode::UnknownHighwayClass, entity.clone());
     }
 
-    // Direction and access are derived only for ways that actually become
-    // features, so a road skipped for broken geometry never contributes
+    // Direction, access and speed are derived only for ways that actually
+    // become features, so a road skipped for broken geometry never contributes
     // semantic warnings about a road nobody can see.
     //
-    // They are derived independently and neither is an input to the other:
-    // access does not read the direction tags, direction does not read the
-    // access tags, and access is not given the classification at all.
+    // All three are derived independently and none is an input to another:
+    // access does not read the direction tags, speed does not read either, and
+    // only direction is given the classification at all. Each records its own
+    // warnings against this way's entity id, once per code.
     let derived = derive_traversal(&way.tags, &road_class);
     for code in derived.issues.codes() {
         issues.record(code, entity.clone());
@@ -534,6 +536,11 @@ fn emit_way(
 
     let access = derive_access(&way.tags);
     for code in access.issues.codes() {
+        issues.record(code, entity.clone());
+    }
+
+    let (speed_limits, speed_issues) = derive_speed_limits(&way.tags);
+    for code in speed_issues.codes() {
         issues.record(code, entity.clone());
     }
 
@@ -551,6 +558,7 @@ fn emit_way(
             class: road_class,
             traversal: derived.traversal,
             access: access.access,
+            speed_limits,
         },
         Geometry::from(line),
         way.tags.get("name").map(str::to_owned),
@@ -1318,6 +1326,292 @@ mod tests {
         assert_eq!(access.bicycle(), Allowed);
         assert_eq!(access.foot(), Allowed);
         assert!(outcome.issues.is_empty(), "{:?}", outcome.issues);
+    }
+
+    // -- speed limits at the XML boundary ---------------------------------
+
+    /// The speed limits of the single road in such a document.
+    fn speed_of(tags: &str) -> (atlas_kernel::RoadSpeedLimits, SourceImportOutcome) {
+        let (sink, outcome) = import(&road_with_tags(tags));
+        assert_eq!(sink.features.len(), 1, "the road must still be emitted");
+        let limits = sink.features[0]
+            .kind()
+            .road_speed_limits()
+            .expect("a road")
+            .clone();
+        (limits, outcome)
+    }
+
+    /// The ordinary limit of one mode in one geometry direction.
+    fn limit_of(
+        limits: &atlas_kernel::RoadSpeedLimits,
+        mode: atlas_kernel::TravelMode,
+        direction: atlas_kernel::SpeedDirection,
+    ) -> atlas_kernel::SpeedLimitValue {
+        limits.fact(mode, direction).limit().clone()
+    }
+
+    fn kmh(magnitude: &str) -> atlas_kernel::SpeedLimitValue {
+        atlas_kernel::SpeedLimitValue::Numeric(
+            atlas_kernel::Speed::new(magnitude, atlas_kernel::SpeedUnit::KilometresPerHour)
+                .expect("a valid magnitude"),
+        )
+    }
+
+    #[test]
+    fn a_static_maxspeed_key_with_no_value_is_still_read() {
+        // `<tag k="maxspeed"/>` is well-formed XML and a real thing to find in
+        // a file. Dropping it would turn a broken tag into no tag at all, and
+        // `Unspecified` — the one answer that means "nobody said anything" —
+        // would be recording something the source never did.
+        use atlas_kernel::{SpeedDirection, SpeedLimitValue::Indeterminate, TravelMode};
+        let (limits, outcome) = speed_of(r#"<tag k="maxspeed"/>"#);
+        for mode in TravelMode::ALL {
+            for direction in SpeedDirection::ALL {
+                assert_eq!(limit_of(&limits, mode, direction), Indeterminate);
+            }
+        }
+        assert_eq!(outcome.issues.count_of(IssueCode::UnknownMaxspeedValue), 1);
+        assert_eq!(
+            outcome.issues.samples_of(IssueCode::UnknownMaxspeedValue),
+            &["way/10"]
+        );
+        assert_eq!(outcome.stats.features_emitted, 1);
+        assert_eq!(outcome.stats.features_skipped, 0);
+
+        // And it says exactly what an explicitly empty value says.
+        let (explicit, _) = speed_of(r#"<tag k="maxspeed" v=""/>"#);
+        assert_eq!(limits, explicit);
+    }
+
+    #[test]
+    fn a_specific_maxspeed_key_with_no_value_never_falls_back() {
+        // The empty `maxspeed:motorcar` is an explicit statement about
+        // motorcars that Atlas cannot read. Falling through to the perfectly
+        // readable `maxspeed` below it would answer a question the mapper did
+        // not ask.
+        use atlas_kernel::{SpeedDirection, SpeedLimitValue::Indeterminate, TravelMode};
+        let (limits, outcome) = speed_of(
+            r#"<tag k="maxspeed" v="50"/>
+               <tag k="maxspeed:motorcar"/>"#,
+        );
+        assert_eq!(
+            limit_of(&limits, TravelMode::Motorcar, SpeedDirection::Forward),
+            Indeterminate
+        );
+        assert_eq!(
+            limit_of(&limits, TravelMode::Motorcar, SpeedDirection::Backward),
+            Indeterminate
+        );
+        assert_eq!(
+            limit_of(&limits, TravelMode::Bicycle, SpeedDirection::Forward),
+            kmh("50")
+        );
+        assert_eq!(
+            limit_of(&limits, TravelMode::Foot, SpeedDirection::Backward),
+            kmh("50")
+        );
+        assert_eq!(outcome.issues.count_of(IssueCode::UnknownMaxspeedValue), 1);
+
+        let (explicit, _) = speed_of(
+            r#"<tag k="maxspeed" v="50"/>
+               <tag k="maxspeed:motorcar" v=""/>"#,
+        );
+        assert_eq!(limits, explicit);
+    }
+
+    #[test]
+    fn a_maxspeed_conditional_key_with_no_value_is_still_detected() {
+        // Conditional detection is by key and the expression is never parsed,
+        // so an absent value changes nothing about what Atlas can claim.
+        // Dropping the tag, though, would make the road look unconditioned.
+        use atlas_kernel::{ConditionalSpeedLimit, SpeedDirection, TravelMode};
+        let (limits, outcome) = speed_of(
+            r#"<tag k="maxspeed" v="80"/>
+               <tag k="maxspeed:conditional"/>"#,
+        );
+        for mode in TravelMode::ALL {
+            for direction in SpeedDirection::ALL {
+                let fact = limits.fact(mode, direction);
+                assert_eq!(fact.limit(), &kmh("80"), "the ordinary limit stands");
+                assert_eq!(fact.conditional(), ConditionalSpeedLimit::Present);
+            }
+        }
+        assert_eq!(
+            outcome
+                .issues
+                .count_of(IssueCode::UnsupportedConditionalMaxspeed),
+            1
+        );
+        // An unparsed conditional is not a malformed value.
+        assert_eq!(outcome.issues.count_of(IssueCode::UnknownMaxspeedValue), 0);
+    }
+
+    #[test]
+    fn a_maxspeed_variable_key_with_no_value_is_an_unreadable_statement() {
+        use atlas_kernel::VariableSpeedLimit;
+        let (limits, outcome) = speed_of(
+            r#"<tag k="maxspeed" v="80"/>
+               <tag k="maxspeed:variable"/>"#,
+        );
+        assert_eq!(limits.motorcar().forward().limit(), &kmh("80"));
+        assert_eq!(
+            limits.motorcar().forward().variable(),
+            VariableSpeedLimit::Indeterminate
+        );
+        assert_eq!(
+            outcome
+                .issues
+                .count_of(IssueCode::UnknownVariableMaxspeedValue),
+            1
+        );
+    }
+
+    #[test]
+    fn speed_problems_warn_without_failing_the_import_or_skipping_the_road() {
+        let (sink, outcome) = import(
+            r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="2" lat="35.69" lon="51.39"/>
+                 <way id="10">
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="highway" v="residential"/>
+                   <tag k="maxspeed" v="bogus"/>
+                 </way>
+                 <way id="11">
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="highway" v="residential"/>
+                   <tag k="maxspeed" v="50 furlongs"/>
+                 </way>
+                 <way id="12">
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="highway" v="residential"/>
+                   <tag k="maxspeed" v="80"/>
+                   <tag k="maxspeed:conditional" v="60 @ wet"/>
+                 </way>
+                 <way id="13">
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="highway" v="residential"/>
+                   <tag k="maxspeed:variable" v="perhaps"/>
+                 </way>
+               </osm>"#,
+        );
+        // Every road is still a feature: a speed problem is a warning about a
+        // road, never a reason to drop one.
+        assert_eq!(sink.features.len(), 4);
+        assert_eq!(outcome.stats.features_emitted, 4);
+        assert_eq!(outcome.stats.features_skipped, 0);
+
+        for (code, sample) in [
+            (IssueCode::UnknownMaxspeedValue, "way/10"),
+            (IssueCode::UnsupportedMaxspeedUnit, "way/11"),
+            (IssueCode::UnsupportedConditionalMaxspeed, "way/12"),
+            (IssueCode::UnknownVariableMaxspeedValue, "way/13"),
+        ] {
+            assert_eq!(outcome.issues.count_of(code), 1, "{code}");
+            assert_eq!(outcome.issues.samples_of(code), &[sample], "{code}");
+        }
+    }
+
+    #[test]
+    fn an_undecodable_maxspeed_attribute_is_still_fatal() {
+        // Preserving an absent `v` must not weaken the decode contract for the
+        // speed keys any more than it did for the access keys.
+        for document in [
+            r#"<osm><way id="10"><tag k=maxspeed v="50"/></way></osm>"#,
+            r#"<osm><way id="10"><tag k="maxspeed" v="&nope;"/></way></osm>"#,
+            r#"<osm><way id="10"><tag k="&nope;" v="50"/></way></osm>"#,
+            r#"<osm><way id="10"><tag k="maxspeed" v="50" extra=1/></way></osm>"#,
+        ] {
+            let source = OsmXmlSource::from_xml("test.osm", document);
+            let mut sink = CollectingSink::default();
+            let error = source
+                .import(&mut sink)
+                .expect_err("an undecodable attribute must fail the import");
+            assert!(
+                matches!(error, ImportError::MalformedSource { .. }),
+                "{document} gave {error:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn speed_derivation_changes_nothing_else_about_an_import() {
+        // The same document with and without speed tags. Geometry, counters,
+        // feature selection, direction and access must all be identical:
+        // speed is a fourth record beside them, not an input to any of them.
+        let without = r#"<osm>
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="2" lat="35.685" lon="51.385"/>
+                 <node id="3" lat="35.69" lon="51.39"/>
+                 <way id="10">
+                   <nd ref="1"/><nd ref="2"/><nd ref="3"/>
+                   <tag k="highway" v="residential"/>
+                   <tag k="oneway" v="-1"/>
+                   <tag k="access" v="private"/>
+                 </way>
+                 <way id="11">
+                   <nd ref="1"/><nd ref="2"/>
+                   <tag k="waterway" v="stream"/>
+                 </way>
+               </osm>"#;
+        let with = without.replace(
+            r#"<tag k="access" v="private"/>"#,
+            r#"<tag k="access" v="private"/>
+               <tag k="maxspeed:forward" v="70"/>
+               <tag k="maxspeed:backward" v="30"/>"#,
+        );
+
+        let (plain_sink, plain_outcome) = import(without);
+        let (speedy_sink, speedy_outcome) = import(&with);
+
+        // Every counter but the byte count, which only differs because the
+        // second document is longer by the two tags under test.
+        assert_eq!(
+            ImportStats {
+                bytes_read: None,
+                ..plain_outcome.stats
+            },
+            ImportStats {
+                bytes_read: None,
+                ..speedy_outcome.stats
+            }
+        );
+        assert_eq!(plain_outcome.issues, speedy_outcome.issues);
+        assert_eq!(plain_sink.features.len(), speedy_sink.features.len());
+
+        let plain = &plain_sink.features[0];
+        let speedy = &speedy_sink.features[0];
+        assert_eq!(plain.id(), speedy.id());
+        assert_eq!(plain.geometry(), speedy.geometry());
+        assert_eq!(plain.kind().road_class(), speedy.kind().road_class());
+        assert_eq!(
+            plain.kind().road_traversal(),
+            speedy.kind().road_traversal()
+        );
+        assert_eq!(plain.kind().road_access(), speedy.kind().road_access());
+
+        // Only the speed record differs, and the geometry is in source order.
+        assert_ne!(
+            plain.kind().road_speed_limits(),
+            speedy.kind().road_speed_limits()
+        );
+        assert_eq!(
+            plain.kind().road_speed_limits(),
+            Some(&atlas_kernel::RoadSpeedLimits::unspecified())
+        );
+        let atlas_kernel::Geometry::LineString(line) = speedy.geometry();
+        assert_eq!(
+            line.coordinates()
+                .iter()
+                .map(|coordinate| coordinate.longitude_degrees())
+                .collect::<Vec<_>>(),
+            vec![51.38, 51.385, 51.39],
+            "speed derivation must never reverse or rewrite a geometry"
+        );
+        let limits = speedy.kind().road_speed_limits().expect("a road");
+        assert_eq!(limits.motorcar().forward().limit(), &kmh("70"));
+        assert_eq!(limits.motorcar().backward().limit(), &kmh("30"));
     }
 
     #[test]

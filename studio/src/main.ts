@@ -273,6 +273,11 @@ function select(id: string | null): void {
  * The two map updates are independent calls on purpose. Direction and access
  * are separate facts drawn by separate layers, and neither switch reads the
  * other's properties.
+ *
+ * There is deliberately no third call for speed. No layer draws a speed limit,
+ * because a colour scale would need thresholds and thresholds would imply that
+ * a legal maximum is a travel speed. The speed facts are inspector-only, and
+ * the inspector re-renders from the wire feature it already holds.
  */
 function selectProfile(profile: TravelProfile): void {
   if (state.profile === profile) {
