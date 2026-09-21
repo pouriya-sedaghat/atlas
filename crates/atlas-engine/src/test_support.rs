@@ -2,7 +2,7 @@
 
 use atlas_kernel::{
     FeatureId, FeatureKind, GeoCoordinate, Geometry, LineString, MapFeature, RoadAccess, RoadClass,
-    RoadTraversal,
+    RoadSpeedLimits, RoadTraversal,
 };
 
 use crate::import::{Attribution, ImportStats, IssueLog, SourceImportOutcome, SourceMetadata};
@@ -38,8 +38,12 @@ pub(crate) fn road(id: &str, class: RoadClass, points: &[(f64, f64)]) -> MapFeat
             class,
             traversal: RoadTraversal::bidirectional(),
             // The engine's own tests are about datasets and queries, not road
-            // semantics, so their roads say nothing about access at all.
+            // semantics, so their roads say nothing about access or speed at
+            // all. Both are spelled out rather than defaulted: there is no
+            // `Default` to fall back on, and a fixture states what it claims
+            // about its source like everybody else.
             access: RoadAccess::unspecified(),
+            speed_limits: RoadSpeedLimits::unspecified(),
         },
         Geometry::from(LineString::new(coordinates).expect("valid line")),
         None,

@@ -1,0 +1,540 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Atlas synthetic speed-limit fixture.
+
+  Hand written and deliberately schematic: every road is a short straight
+  segment on its own row, running west to east, so each speed fact can be
+  seen on its own in Atlas Studio without any road overlapping another. The
+  rows run north to south in way-id order, 501 at the top and 524 at the
+  bottom.
+
+  Nothing in this file was downloaded from OpenStreetMap. The coordinates are
+  invented and sit in an empty part of Tehran purely so that the numbers look
+  plausible in the viewer.
+
+  Every way here imports cleanly: there are no skipped features, no invalid
+  coordinates, no unknown highway classes and no relations, so the only
+  warnings are the four speed warnings. That is what makes them easy to read
+  off in Studio.
+
+  A `maxspeed` is a LEGAL MAXIMUM, not an expected travel speed, not a routing
+  cost and not a permission. None of the rows below says how fast anything
+  moves or whether a mode may use the road at all.
+
+  Expected import outcome (asserted in
+  crates/atlas-osm/tests/speed_fixture.rs):
+    nodes seen ............ 72
+    nodes indexed ......... 72
+    ways seen ............. 24
+    road ways selected .... 24
+    features emitted ...... 24
+    features skipped ...... 0
+    relations seen ........ 0
+
+  Expected warnings, in the order the API reports them:
+    UNKNOWN_MAXSPEED_VALUE ............ 4   way/512, way/513, way/515, way/516
+    UNSUPPORTED_MAXSPEED_UNIT ......... 1   way/514
+    UNSUPPORTED_CONDITIONAL_MAXSPEED .. 3   way/517, way/518, way/520
+    UNKNOWN_VARIABLE_MAXSPEED_VALUE ... 1   way/523
+
+  Expected ordinary limit per way, as forward / backward. Where the three
+  modes agree, one row is given; where they differ, all three are listed.
+  Forward and backward are relative to the COORDINATE ORDER of the way, not
+  to the compass and not to a permitted direction of travel.
+
+    501 Untagged Speed Lane ................ unspecified     / unspecified
+    502 Fifty Street ...................... 50 km/h         / 50 km/h
+    503 Thirty Mph Street ................. 30 mph          / 30 mph
+    504 Ten Knots Channel Road ............ 10 knots        / 10 knots
+    505 No Fixed Limit Road ............... no-fixed-limit  / no-fixed-limit
+    506 Walking Pace Lane ................. walking-pace    / walking-pace
+    507 Implicit Urban Street ............. RO:urban        / RO:urban
+    508 Directional Speed Street .......... 60 km/h         / 40 km/h
+    509 Layered Mode Street ..... car      35 km/h         / 35 km/h
+                                  bicycle  25 km/h         / 25 km/h
+                                  foot     walking-pace    / walking-pace
+    510 Mode Before Direction ... car      35 km/h         / 35 km/h
+                                  bicycle  55 km/h         / 45 km/h
+                                  foot     60 km/h         / 50 km/h
+    511 Mixed Specificity ....... car      30 km/h         / 40 km/h
+                                  bicycle  50 km/h         / 20 km/h
+                                  foot     50 km/h         / 50 km/h
+    512 Unreadable Motorcar ..... car      indeterminate   / indeterminate
+                                  bicycle  50 km/h         / 50 km/h
+                                  foot     50 km/h         / 50 km/h
+    513 Unreadable Forward ............... indeterminate   / 50 km/h
+    514 Unsupported Unit Road ............ indeterminate   / indeterminate
+    515 Missing Value Road ............... indeterminate   / indeterminate
+    516 Shadowed Bad Speed ...... car      30 km/h         / 30 km/h
+                                  bicycle  20 km/h         / 20 km/h
+                                  foot     walking-pace    / walking-pace
+    517 Conditional Speed Street ......... 80 km/h         / 80 km/h      (conditional both ways, all modes)
+    518 Partly Shadowed ......... car      90 km/h         / 90 km/h
+                                  bicycle  80 km/h         / 80 km/h      (conditional)
+                                  foot     80 km/h         / 80 km/h      (conditional)
+    519 Fully Shadowed .......... car      90 km/h         / 90 km/h
+                                  bicycle  25 km/h         / 25 km/h
+                                  foot     walking-pace    / walking-pace (no conditional anywhere)
+    520 Car Forward Cond ........ car      80 km/h         / 80 km/h      (conditional forward only)
+                                  bicycle  80 km/h         / 80 km/h
+                                  foot     80 km/h         / 80 km/h
+    521 Variable Speed Street ............ 100 km/h        / 100 km/h     (variable both ways)
+    522 Forward Fixed Variable ........... 100 km/h        / 100 km/h     (fixed forward, variable backward)
+    523 Unreadable Variable .............. 100 km/h        / 100 km/h     (indeterminate forward, variable backward)
+    524 Orthogonality Street ............. 70 km/h         / 30 km/h      (every mode)
+
+  Speed is not access and not direction. Way 524 carries an orthogonal
+  `oneway=-1`, an `oneway:bicycle=no`, an `access=private`, a
+  `bicycle=permissive` and a `foot=yes` so that all four records can be
+  watched together. None of the four derivations reads another's tags, and
+  524's direction and access are exactly what the same tags would produce
+  with no speed tag present:
+    direction ... motorcar reverse, bicycle both, foot both
+    access ...... motorcar private, bicycle permissive, foot allowed
+
+  Every other way has no direction or access tag, so it is two-way for every
+  mode and says nothing about access.
+
+  Nothing here is a routing answer. A later routing profile will decide what
+  a legal maximum means for a given journey, in a given vehicle, under a
+  given country's defaults — none of which Atlas models yet.
+-->
+<osm version="0.6" generator="atlas-synthetic-fixture">
+  <bounds minlat="35.7085" minlon="51.3900" maxlat="35.7200" maxlon="51.3930"/>
+
+  <!-- Three nodes per road, one row per way, in way order. -->
+  <node id="1" lat="35.7200" lon="51.3900"/>
+  <node id="2" lat="35.7200" lon="51.3915"/>
+  <node id="3" lat="35.7200" lon="51.3930"/>
+  <node id="4" lat="35.7195" lon="51.3900"/>
+  <node id="5" lat="35.7195" lon="51.3915"/>
+  <node id="6" lat="35.7195" lon="51.3930"/>
+  <node id="7" lat="35.7190" lon="51.3900"/>
+  <node id="8" lat="35.7190" lon="51.3915"/>
+  <node id="9" lat="35.7190" lon="51.3930"/>
+  <node id="10" lat="35.7185" lon="51.3900"/>
+  <node id="11" lat="35.7185" lon="51.3915"/>
+  <node id="12" lat="35.7185" lon="51.3930"/>
+  <node id="13" lat="35.7180" lon="51.3900"/>
+  <node id="14" lat="35.7180" lon="51.3915"/>
+  <node id="15" lat="35.7180" lon="51.3930"/>
+  <node id="16" lat="35.7175" lon="51.3900"/>
+  <node id="17" lat="35.7175" lon="51.3915"/>
+  <node id="18" lat="35.7175" lon="51.3930"/>
+  <node id="19" lat="35.7170" lon="51.3900"/>
+  <node id="20" lat="35.7170" lon="51.3915"/>
+  <node id="21" lat="35.7170" lon="51.3930"/>
+  <node id="22" lat="35.7165" lon="51.3900"/>
+  <node id="23" lat="35.7165" lon="51.3915"/>
+  <node id="24" lat="35.7165" lon="51.3930"/>
+  <node id="25" lat="35.7160" lon="51.3900"/>
+  <node id="26" lat="35.7160" lon="51.3915"/>
+  <node id="27" lat="35.7160" lon="51.3930"/>
+  <node id="28" lat="35.7155" lon="51.3900"/>
+  <node id="29" lat="35.7155" lon="51.3915"/>
+  <node id="30" lat="35.7155" lon="51.3930"/>
+  <node id="31" lat="35.7150" lon="51.3900"/>
+  <node id="32" lat="35.7150" lon="51.3915"/>
+  <node id="33" lat="35.7150" lon="51.3930"/>
+  <node id="34" lat="35.7145" lon="51.3900"/>
+  <node id="35" lat="35.7145" lon="51.3915"/>
+  <node id="36" lat="35.7145" lon="51.3930"/>
+  <node id="37" lat="35.7140" lon="51.3900"/>
+  <node id="38" lat="35.7140" lon="51.3915"/>
+  <node id="39" lat="35.7140" lon="51.3930"/>
+  <node id="40" lat="35.7135" lon="51.3900"/>
+  <node id="41" lat="35.7135" lon="51.3915"/>
+  <node id="42" lat="35.7135" lon="51.3930"/>
+  <node id="43" lat="35.7130" lon="51.3900"/>
+  <node id="44" lat="35.7130" lon="51.3915"/>
+  <node id="45" lat="35.7130" lon="51.3930"/>
+  <node id="46" lat="35.7125" lon="51.3900"/>
+  <node id="47" lat="35.7125" lon="51.3915"/>
+  <node id="48" lat="35.7125" lon="51.3930"/>
+  <node id="49" lat="35.7120" lon="51.3900"/>
+  <node id="50" lat="35.7120" lon="51.3915"/>
+  <node id="51" lat="35.7120" lon="51.3930"/>
+  <node id="52" lat="35.7115" lon="51.3900"/>
+  <node id="53" lat="35.7115" lon="51.3915"/>
+  <node id="54" lat="35.7115" lon="51.3930"/>
+  <node id="55" lat="35.7110" lon="51.3900"/>
+  <node id="56" lat="35.7110" lon="51.3915"/>
+  <node id="57" lat="35.7110" lon="51.3930"/>
+  <node id="58" lat="35.7105" lon="51.3900"/>
+  <node id="59" lat="35.7105" lon="51.3915"/>
+  <node id="60" lat="35.7105" lon="51.3930"/>
+  <node id="61" lat="35.7100" lon="51.3900"/>
+  <node id="62" lat="35.7100" lon="51.3915"/>
+  <node id="63" lat="35.7100" lon="51.3930"/>
+  <node id="64" lat="35.7095" lon="51.3900"/>
+  <node id="65" lat="35.7095" lon="51.3915"/>
+  <node id="66" lat="35.7095" lon="51.3930"/>
+  <node id="67" lat="35.7090" lon="51.3900"/>
+  <node id="68" lat="35.7090" lon="51.3915"/>
+  <node id="69" lat="35.7090" lon="51.3930"/>
+  <node id="70" lat="35.7085" lon="51.3900"/>
+  <node id="71" lat="35.7085" lon="51.3915"/>
+  <node id="72" lat="35.7085" lon="51.3930"/>
+
+  <!--
+       No speed tags at all. Silence, and `Unspecified` says exactly that: not
+       a country default, not `none`, and not unknown.
+  -->
+  <way id="501">
+    <nd ref="1"/>
+    <nd ref="2"/>
+    <nd ref="3"/>
+    <tag k="name" v="Untagged Speed Lane"/>
+    <tag k="highway" v="residential"/>
+  </way>
+
+  <!--
+       A unitless number means km/h, as the source's units page says.
+  -->
+  <way id="502">
+    <nd ref="4"/>
+    <nd ref="5"/>
+    <nd ref="6"/>
+    <tag k="name" v="Fifty Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="50"/>
+  </way>
+
+  <!--
+       Preserved as `30 mph`. Atlas does not convert; a future routing layer
+       may, once it knows what it wants the number for.
+  -->
+  <way id="503">
+    <nd ref="7"/>
+    <nd ref="8"/>
+    <nd ref="9"/>
+    <tag k="name" v="Thirty Mph Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="30 mph"/>
+  </way>
+
+  <!--
+       Knots is a canonical unit too, and is preserved just as literally.
+  -->
+  <way id="504">
+    <nd ref="10"/>
+    <nd ref="11"/>
+    <nd ref="12"/>
+    <tag k="name" v="Ten Knots Channel Road"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="10 knots"/>
+  </way>
+
+  <!--
+       `none` is knowledge, not the lack of it: somebody recorded that no
+       number applies.
+  -->
+  <way id="505">
+    <nd ref="13"/>
+    <nd ref="14"/>
+    <nd ref="15"/>
+    <tag k="name" v="No Fixed Limit Road"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="none"/>
+  </way>
+
+  <!--
+       `walk` stays a named fact. Walking pace is not 5 km/h in law, and a
+       guessed figure would sit exactly where a legal limit belongs.
+  -->
+  <way id="506">
+    <nd ref="16"/>
+    <nd ref="17"/>
+    <nd ref="18"/>
+    <tag k="name" v="Walking Pace Lane"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="walk"/>
+  </way>
+
+  <!--
+       An implicit jurisdiction rule. The code is preserved and deliberately
+       not resolved to a number: country defaults are out of scope.
+  -->
+  <way id="507">
+    <nd ref="19"/>
+    <nd ref="20"/>
+    <nd ref="21"/>
+    <tag k="name" v="Implicit Urban Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="RO:urban"/>
+  </way>
+
+  <!--
+       Direction specificity, with the general value out-ranked both ways.
+  -->
+  <way id="508">
+    <nd ref="22"/>
+    <nd ref="23"/>
+    <nd ref="24"/>
+    <tag k="name" v="Directional Speed Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="50"/>
+    <tag k="maxspeed:forward" v="60"/>
+    <tag k="maxspeed:backward" v="40"/>
+  </way>
+
+  <!--
+       Mode specificity, one level at a time. Each mode stops at the most
+       specific key that reaches it: a bicycle is a vehicle but not a motor
+       vehicle, and a pedestrian is neither.
+  -->
+  <way id="509">
+    <nd ref="25"/>
+    <nd ref="26"/>
+    <nd ref="27"/>
+    <tag k="name" v="Layered Mode Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="50"/>
+    <tag k="maxspeed:vehicle" v="45"/>
+    <tag k="maxspeed:motor_vehicle" v="40"/>
+    <tag k="maxspeed:motorcar" v="35"/>
+    <tag k="maxspeed:bicycle" v="25"/>
+    <tag k="maxspeed:foot" v="walk"/>
+  </way>
+
+  <!--
+       Mode specificity precedes direction specificity. `maxspeed:motorcar`
+       out-ranks `maxspeed:forward` for a car even though the latter names the
+       direction, and `maxspeed:vehicle` out-ranks it for a bicycle backwards.
+  -->
+  <way id="510">
+    <nd ref="28"/>
+    <nd ref="29"/>
+    <nd ref="30"/>
+    <tag k="name" v="Mode Before Direction Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="50"/>
+    <tag k="maxspeed:forward" v="60"/>
+    <tag k="maxspeed:vehicle" v="45"/>
+    <tag k="maxspeed:vehicle:forward" v="55"/>
+    <tag k="maxspeed:motorcar" v="35"/>
+  </way>
+
+  <!--
+       Mode and direction keys layered on one road; each of the six facts
+       resolves on its own.
+  -->
+  <way id="511">
+    <nd ref="31"/>
+    <nd ref="32"/>
+    <nd ref="33"/>
+    <tag k="name" v="Mixed Specificity Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="50"/>
+    <tag k="maxspeed:motorcar" v="40"/>
+    <tag k="maxspeed:motorcar:forward" v="30"/>
+    <tag k="maxspeed:bicycle:backward" v="20"/>
+  </way>
+
+  <!--
+       An unreadable specific value never falls back. `maybe` is a statement
+       about motorcars, so the general 50 must not answer for them.
+       Earns UNKNOWN_MAXSPEED_VALUE.
+  -->
+  <way id="512">
+    <nd ref="34"/>
+    <nd ref="35"/>
+    <nd ref="36"/>
+    <tag k="name" v="Unreadable Motorcar Speed Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="50"/>
+    <tag k="maxspeed:motorcar" v="maybe"/>
+  </way>
+
+  <!--
+       The same rule on a directional key, which blocks only its own
+       direction. Earns UNKNOWN_MAXSPEED_VALUE.
+  -->
+  <way id="513">
+    <nd ref="37"/>
+    <nd ref="38"/>
+    <nd ref="39"/>
+    <tag k="name" v="Unreadable Forward Speed Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="50"/>
+    <tag k="maxspeed:forward" v="fast"/>
+  </way>
+
+  <!--
+       A sound magnitude in a unit Atlas does not support. A different finding
+       from an unreadable value, and a far more actionable one.
+       Earns UNSUPPORTED_MAXSPEED_UNIT.
+  -->
+  <way id="514">
+    <nd ref="40"/>
+    <nd ref="41"/>
+    <nd ref="42"/>
+    <tag k="name" v="Unsupported Unit Road"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="50 furlongs"/>
+  </way>
+
+  <!--
+       `<tag k="maxspeed"/>` with no `v` at all. It survives the XML boundary
+       as a blank value and reads exactly like `v=""`: a statement Atlas
+       cannot read, not the absence of one.
+       Earns UNKNOWN_MAXSPEED_VALUE.
+  -->
+  <way id="515">
+    <nd ref="43"/>
+    <nd ref="44"/>
+    <nd ref="45"/>
+    <tag k="name" v="Missing Value Road"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed"/>
+  </way>
+
+  <!--
+       A broken general value shadowed by three valid mode keys. Precedence is
+       untouched and the mistake is still reported: a diagnostic that went
+       quiet the moment something shadowed it would hide exactly the mistakes
+       a mapper most needs to find. Earns UNKNOWN_MAXSPEED_VALUE.
+  -->
+  <way id="516">
+    <nd ref="46"/>
+    <nd ref="47"/>
+    <nd ref="48"/>
+    <tag k="name" v="Shadowed Bad Speed Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="bogus"/>
+    <tag k="maxspeed:motorcar" v="30"/>
+    <tag k="maxspeed:bicycle" v="20"/>
+    <tag k="maxspeed:foot" v="walk"/>
+  </way>
+
+  <!--
+       A conditional supplements the ordinary limit; it never erases it. The
+       expression itself is never read. Earns UNSUPPORTED_CONDITIONAL_MAXSPEED
+       once, for the road, however many facts it reaches.
+  -->
+  <way id="517">
+    <nd ref="49"/>
+    <nd ref="50"/>
+    <nd ref="51"/>
+    <tag k="name" v="Conditional Speed Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="80"/>
+    <tag k="maxspeed:conditional" v="60 @ wet"/>
+  </way>
+
+  <!--
+       The car's own key out-ranks the generic conditional, which still
+       reaches the bicycle and the pedestrian. One warning for the road.
+       Earns UNSUPPORTED_CONDITIONAL_MAXSPEED.
+  -->
+  <way id="518">
+    <nd ref="52"/>
+    <nd ref="53"/>
+    <nd ref="54"/>
+    <tag k="name" v="Partly Shadowed Conditional Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="80"/>
+    <tag k="maxspeed:conditional" v="60 @ wet"/>
+    <tag k="maxspeed:motorcar" v="90"/>
+  </way>
+
+  <!--
+       The same conditional, out-ranked for every mode. It shaped nothing, so
+       there is no limitation of Atlas to report: no conditional fact and no
+       warning. This is why the conditional diagnostic is selected-only while
+       the malformed-value diagnostics ignore precedence.
+  -->
+  <way id="519">
+    <nd ref="55"/>
+    <nd ref="56"/>
+    <nd ref="57"/>
+    <tag k="name" v="Fully Shadowed Conditional Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="80"/>
+    <tag k="maxspeed:conditional" v="60 @ wet"/>
+    <tag k="maxspeed:motorcar" v="90"/>
+    <tag k="maxspeed:bicycle" v="25"/>
+    <tag k="maxspeed:foot" v="walk"/>
+  </way>
+
+  <!--
+       A conditional scoped to one mode and one direction reaches exactly one
+       of the six facts. Earns UNSUPPORTED_CONDITIONAL_MAXSPEED.
+  -->
+  <way id="520">
+    <nd ref="58"/>
+    <nd ref="59"/>
+    <nd ref="60"/>
+    <tag k="name" v="Car Forward Conditional Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="80"/>
+    <tag k="maxspeed:motorcar:forward:conditional" v="30 @ (Mo-Fr 07:00-09:00)"/>
+  </way>
+
+  <!--
+       A variability declaration is a modifier too: the ordinary 100 stands.
+  -->
+  <way id="521">
+    <nd ref="61"/>
+    <nd ref="62"/>
+    <nd ref="63"/>
+    <tag k="name" v="Variable Speed Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="100"/>
+    <tag k="maxspeed:variable" v="yes"/>
+  </way>
+
+  <!--
+       The direction-specific key overrides the general one. `no` is an
+       explicit statement that the limit is fixed, which is not the same fact
+       as nobody having tagged it at all.
+  -->
+  <way id="522">
+    <nd ref="64"/>
+    <nd ref="65"/>
+    <nd ref="66"/>
+    <tag k="name" v="Forward Fixed Variable Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="100"/>
+    <tag k="maxspeed:variable" v="yes"/>
+    <tag k="maxspeed:variable:forward" v="no"/>
+  </way>
+
+  <!--
+       An unreadable specific variability value does not fall back either, and
+       a documented reason on its own reads as `variable`.
+       Earns UNKNOWN_VARIABLE_MAXSPEED_VALUE.
+  -->
+  <way id="523">
+    <nd ref="67"/>
+    <nd ref="68"/>
+    <nd ref="69"/>
+    <tag k="name" v="Unreadable Variable Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="maxspeed" v="100"/>
+    <tag k="maxspeed:variable" v="weather"/>
+    <tag k="maxspeed:variable:forward" v="perhaps"/>
+  </way>
+
+  <!--
+       The orthogonality road. A reverse one-way that is private to cars,
+       permissive and two-way for bicycles, open to pedestrians, and signed 70
+       forward and 30 backward for every mode. Class, direction, access and
+       speed are four independent records on one road, and the geometry still
+       runs west to east in the same coordinate order as every other row.
+  -->
+  <way id="524">
+    <nd ref="70"/>
+    <nd ref="71"/>
+    <nd ref="72"/>
+    <tag k="name" v="Orthogonality Street"/>
+    <tag k="highway" v="residential"/>
+    <tag k="oneway" v="-1"/>
+    <tag k="oneway:bicycle" v="no"/>
+    <tag k="access" v="private"/>
+    <tag k="bicycle" v="permissive"/>
+    <tag k="foot" v="yes"/>
+    <tag k="maxspeed:forward" v="70"/>
+    <tag k="maxspeed:backward" v="30"/>
+  </way>
+</osm>

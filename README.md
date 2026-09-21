@@ -4,11 +4,15 @@ Atlas is a reusable geospatial platform. This milestone is an end-to-end
 vertical slice of it: a plain OpenStreetMap XML file is imported into an
 Atlas-owned domain model, published as an immutable in-memory dataset, served as
 GeoJSON over HTTP, and rendered in a browser-based inspector — including, for
-each road, the direction of travel a car, a bicycle and a pedestrian may take.
+each road, the direction of travel a car, a bicycle and a pedestrian may take,
+what the source says about their access to it, and what the source says the
+legal maximum speed is in each direction.
 
 ```
 OSM XML  →  Atlas importer  →  Atlas dataset  →  HTTP GeoJSON  →  MapLibre viewer
-  oneway* tags  →  Atlas travel semantics  →  traversal member  →  direction arrows
+  oneway* tags     →  Atlas travel semantics  →  traversal member  →  direction arrows
+  access* tags     →  Atlas access facts      →  access member     →  access overlay
+  maxspeed* tags   →  Atlas speed facts       →  speedLimits member →  inspector rows
 ```
 
 Everything in that chain runs locally. There is no base-map tile server, no API
@@ -32,9 +36,9 @@ atlas-studio  →  the HTTP API only
 
 | Crate | Responsibility | Must not know about |
 | --- | --- | --- |
-| `atlas-kernel` | Validated value objects (`Longitude`, `Latitude`, `GeoCoordinate`, `BoundingBox`), `LineString` geometry with cached bounds and exact box intersection, `MapFeature` / `FeatureKind` / `RoadClass` / `SourceReference`, and the travel semantics `TravelMode` / `TravelDirection` / `RoadTraversal`. | OSM, HTTP, JSON, databases, async runtimes, renderers |
+| `atlas-kernel` | Validated value objects (`Longitude`, `Latitude`, `GeoCoordinate`, `BoundingBox`), `LineString` geometry with cached bounds and exact box intersection, `MapFeature` / `FeatureKind` / `RoadClass` / `SourceReference`, and the four road records: `TravelMode` / `TravelDirection` / `RoadTraversal`, `AccessRule` / `RoadAccess`, and `Speed` / `SpeedUnit` / `SpeedLimitValue` / `SpeedLimitFact` / `RoadSpeedLimits`. | OSM, HTTP, JSON, databases, async runtimes, renderers |
 | `atlas-engine` | `MapSource` / `FeatureSink` / `ImportReport` contracts, `DatasetBuilder` → `Dataset` → `DatasetSnapshot`, atomic publication via `DatasetRegistry`, the `MapQuery` viewport use case. | OSM, HTTP, JSON |
-| `atlas-osm` | Streaming, two-pass plain `.osm` XML import, and the direction-tag rules that turn `oneway*` into a `RoadTraversal`. `OsmNode`, `OsmWay`, `OsmRelation`, `OsmTags` are private to this crate. | HTTP, the wire format |
+| `atlas-osm` | Streaming, two-pass plain `.osm` XML import, and the tag rules that turn `oneway*` into a `RoadTraversal`, `access*` into a `RoadAccess` and `maxspeed*` into a `RoadSpeedLimits`. `OsmNode`, `OsmWay`, `OsmRelation`, `OsmTags` are private to this crate. | HTTP, the wire format |
 | `atlas-server` | Axum HTTP boundary: versioned response DTOs, query-parameter validation, structured errors, startup import orchestration. | — |
 | `studio/` | TypeScript + MapLibre GL JS inspector. All presentation decisions. | Anything but the HTTP API |
 
@@ -127,34 +131,55 @@ coordinates are numeric `[longitude, latitude]` pairs, with Atlas metadata in a
 top-level `atlas` foreign member rather than inside `properties`.
 
 Every road carries its travel semantics in `properties.traversal`, always, with
-or without any `include` parameter. Each mode gets a `direction` and an
-`access`, which are independent facts:
+or without any `include` parameter. Each mode gets a `direction`, an `access`
+and a `speedLimits` block, which are independent facts:
 
 ```json
 {
   "type": "Feature",
-  "id": "osm:way:407",
+  "id": "osm:way:524",
   "geometry": {
     "type": "LineString",
-    "coordinates": [[51.39, 35.707], [51.3915, 35.707], [51.393, 35.707]]
+    "coordinates": [[51.39, 35.7085], [51.3915, 35.7085], [51.393, 35.7085]]
   },
   "properties": {
     "kind": "road",
     "roadClass": "residential",
-    "name": "Layered Override Street",
+    "name": "Orthogonality Street",
     "traversal": {
-      "motorcar": { "direction": "reverse", "access": "private" },
-      "bicycle": { "direction": "reverse", "access": "permissive" },
-      "foot": { "direction": "both", "access": "allowed" }
+      "motorcar": {
+        "direction": "reverse",
+        "access": "private",
+        "speedLimits": {
+          "forward": {
+            "limit": { "kind": "numeric", "value": "70", "unit": "km/h" },
+            "conditional": false,
+            "variable": "not-tagged"
+          },
+          "backward": {
+            "limit": { "kind": "numeric", "value": "30", "unit": "km/h" },
+            "conditional": false,
+            "variable": "not-tagged"
+          }
+        }
+      },
+      "bicycle": { "direction": "both", "access": "permissive", "speedLimits": {} },
+      "foot": { "direction": "both", "access": "allowed", "speedLimits": {} }
     }
   }
 }
 ```
 
-This is additive: the API is still version 1, and a client written against
-Milestone 1 or 2A that ignores unknown members keeps working unchanged. A road
-whose source carried no access tags reports `unspecified` for every mode, which
-is not the same as `allowed`.
+The `bicycle` and `foot` blocks are abbreviated above for readability; on the
+wire they carry the same two-direction shape as `motorcar`, always.
+
+This is additive: the API is still version 1 and the media type is still
+`application/geo+json`, so a client written against Milestone 1, 2A or 2B that
+ignores unknown members keeps working unchanged. A road whose source carried no
+access tags reports `unspecified` for every mode, which is not the same as
+`allowed`; a road whose source carried no speed tags reports
+`{ "kind": "unspecified" }` in both directions for every mode, which is not the
+same as "unlimited" and not the same as a country default.
 
 Errors are `application/json`, never GeoJSON:
 
@@ -540,6 +565,287 @@ An access problem never fails the import, never skips a road, never mutates
 geometry and never reverses coordinate order. Only malformed XML or attribute
 decoding is still fatal.
 
+## Road speed limits
+
+Atlas derives, per road, what the source says the **legal maximum speed** is —
+for each of three modes, in each of two geometry directions. Six facts per
+road, always.
+
+### A legal maximum is not a travel speed
+
+Four different questions, deliberately kept apart:
+
+| Question | Answered by | Status |
+| --- | --- | --- |
+| Which way along this road does the mode travel? | `traversal.<mode>.direction` | Milestone 2A |
+| What did the source say about the mode using it? | `traversal.<mode>.access` | Milestone 2B |
+| What did the source say the legal maximum is? | `traversal.<mode>.speedLimits` | Milestone 2C |
+| How fast will a traveller actually move, and how long will the route take? | a routing profile | **not implemented** |
+
+`maxspeed=50` says the law forbids exceeding fifty kilometres per hour. It does
+**not** say that anybody travels at fifty, that a router should assume fifty, or
+how long the road takes to traverse. A road signed at 50 may be gridlocked; a
+road with no fixed limit may be crawling.
+
+Atlas therefore records the limit and computes nothing from it. There is no
+expected speed, no travel time, no cost and no colour scale — a colour scale
+needs thresholds, thresholds mean "fast" and "slow", and "fast" is a
+journey-time claim this milestone does not make. See
+[ADR-009](docs/decisions/ADR-009-explicit-directional-speed-limit-facts.md).
+
+Speed is also not access and not direction. **A prohibited road still carries
+its speed limits**, because the sign is on the post whether or not anyone may
+drive past it, and **a one-way road still carries both directions**, because the
+source describes the road rather than the traffic. `forward` and `backward` are
+relative to the **coordinate order of the geometry**, exactly as the direction
+arrows are, which is one more reason Atlas never reverses a geometry.
+
+### Limit kinds
+
+| Kind | Wire shape | Meaning |
+| --- | --- | --- |
+| `unspecified` | `{ "kind": "unspecified" }` | No applicable explicit limit was present. Not "unlimited", not a country default. |
+| `numeric` | `{ "kind": "numeric", "value": "50.5", "unit": "km/h" }` | An exact magnitude in the unit the source stated. |
+| `no-fixed-limit` | `{ "kind": "no-fixed-limit" }` | OSM `none`. Knowledge, not its absence. |
+| `walking-pace` | `{ "kind": "walking-pace" }` | OSM `walk`, kept as a named fact rather than a guessed number. |
+| `implicit` | `{ "kind": "implicit", "code": "AR:urban:primary" }` | A named jurisdiction rule, preserved whole and **not** resolved to a number. |
+| `indeterminate` | `{ "kind": "indeterminate" }` | A limit was stated and Atlas could not read it safely. |
+
+`unspecified` is the one to read carefully. It is **not** a number and **not**
+"unlimited": most roads in OpenStreetMap carry no `maxspeed`, and "nobody has
+said" is a different state of knowledge from "somebody checked". Only the first
+can be improved by surveying, and only the first is where a future
+country-default table would apply.
+
+`value` is a **string**, deliberately. It is exact decimal text — `50`, `50.5`,
+`0` — with no sign, no exponent and no redundant zeroes. A JSON number would be
+a double on most clients and `50.5` would stop being `50.5`; a legal limit is a
+number somebody wrote on a sign, and Atlas repeats it exactly.
+
+### Source values and units
+
+The OSM adapter reads values with surrounding whitespace trimmed and keywords
+and units matched without ASCII case sensitivity, so `maxspeed=" 50 KM/H "` and
+`maxspeed=50 km/h` are the same thing.
+
+| Source value | Reads as |
+| --- | --- |
+| `50` | `numeric` `50` `km/h` — a unitless value means km/h |
+| `50 km/h` | `numeric` `50` `km/h` |
+| `30 mph` | `numeric` `30` `mph` |
+| `10 knots` | `numeric` `10` `knots` |
+| `50 kph`, `50 kmh`, `50 kmph` | `numeric` `50` `km/h` — documented discouraged aliases, canonicalised |
+| `none` | `no-fixed-limit` |
+| `walk` | `walking-pace` |
+| `RO:urban`, `GB:nsl_single`, `GB-WLS:nsl_restricted` | `implicit`, code preserved |
+| `AR:urban:primary`, `DE:zone:30` | `implicit`, every context component preserved |
+| `50 furlongs` | `indeterminate` + `UNSUPPORTED_MAXSPEED_UNIT` |
+| `unknown`, `signals`, `bogus`, blank | `indeterminate` + `UNKNOWN_MAXSPEED_VALUE` |
+
+**Atlas does not convert between units.** `30 mph` stays `30 mph` on the wire
+and in Studio. Converting would replace what the source said with an arithmetic
+result carrying a rounding error, and would erase the only evidence that the
+road was surveyed where signs are in miles. A future routing layer may convert
+when it knows what it wants the number for.
+
+Magnitudes are canonicalised without rounding: `050.500` becomes `50.5` and
+`0.0` becomes `0`. Negative values, exponent notation, comma decimals, several
+decimal points and any other text are refused rather than guessed at. Zero is
+allowed.
+
+#### Implicit codes
+
+An implicit code names the rule that applies rather than the number it
+produces. Atlas validates its shape, normalises case and stops there:
+
+```text
+COUNTRY[-REGION]:segment[:segment...]
+```
+
+The country is two ASCII letters, an optional region is one to three ASCII
+alphanumerics after a hyphen, and the context is **one or more**
+colon-separated components of `[A-Za-z0-9_]+`. The context may narrow more than
+once: `AR:urban:primary` and `DE:zone:30` are as valid as `RO:urban`, and every
+component is kept, with the colon structure between them intact. Flattening
+`DE:zone:30` to `DE:zone` or `DE:zone30` would record a different rule from the
+one the mapper named.
+
+Accepting more components is not accepting missing ones. An empty component
+names nothing, so these stay malformed and earn `UNKNOWN_MAXSPEED_VALUE`:
+
+```text
+RO::urban
+RO:urban:
+RO:urban::extra
+```
+
+Normalisation is case and nothing else — the jurisdiction upper-cases, every
+context component lower-cases, so `ar:URBAN:Primary` and `AR:urban:primary` are
+one code. The number the code implies is still not derived; see
+[Deferred on purpose](#deferred-on-purpose).
+
+Two values are refused on purpose rather than translated. `maxspeed=unknown` is
+**not** a recognised correct value — the source says an unknown limit should be
+represented by omitting `maxspeed` — so it is indeterminate and diagnosed.
+`maxspeed=signals` is deprecated in favour of `maxspeed:variable=*`, and
+turning it into a variability claim the mapper did not make at that key would be
+Atlas guessing, so it too is indeterminate and diagnosed.
+
+### Hierarchy and precedence
+
+Each of the six facts resolves down its own chain of keys, most specific first.
+For a motorcar travelling forwards:
+
+```text
+maxspeed:motorcar:forward
+maxspeed:motorcar
+maxspeed:motor_vehicle:forward
+maxspeed:motor_vehicle
+maxspeed:vehicle:forward
+maxspeed:vehicle
+maxspeed:forward
+maxspeed
+```
+
+A bicycle uses `maxspeed:bicycle:<direction>`, `maxspeed:bicycle`,
+`maxspeed:vehicle:<direction>`, `maxspeed:vehicle`, `maxspeed:<direction>`,
+`maxspeed`. A pedestrian uses `maxspeed:foot:<direction>`, `maxspeed:foot`,
+`maxspeed:<direction>`, `maxspeed`. A bicycle is a vehicle but not a motor
+vehicle; a pedestrian is neither.
+
+Two rules govern the walk, and they mirror direction and access exactly:
+
+**Mode specificity precedes direction specificity.** This is OSM's own conflict
+order, and it surprises people: a mode-specific *non-directional* key beats a
+broader *directional* one. On a road carrying both `maxspeed:motorcar=35` and
+`maxspeed:forward=60`, a car travelling forwards gets **35**.
+
+**An unreadable specific value never falls back.** A way that says
+`maxspeed:motorcar=maybe` meant to say something about motorcars; quietly using
+the broader `maxspeed=50` instead would replace an explicit statement with one
+the mapper made about something else. That mode becomes `indeterminate` in both
+directions, and the other modes are untouched. A `<tag k="maxspeed"/>` with no
+`v` at all arrives as a blank value and blocks fallback exactly as `v=""` does.
+
+#### Precedence examples
+
+```
+maxspeed=50
+maxspeed:forward=60
+maxspeed:vehicle=45
+maxspeed:vehicle:forward=55
+maxspeed:motorcar=35
+```
+
+gives car `35`/`35`, bicycle `55`/`45` and foot `60`/`50`, as forward/backward.
+
+```
+maxspeed=50
+maxspeed:motorcar=maybe
+```
+
+gives car `indeterminate`/`indeterminate` and leaves bicycle and foot at
+`50`/`50`.
+
+### Conditional and variable are modifiers
+
+Neither replaces the ordinary limit. A road signed at 80 with a wet-weather
+conditional still has an ordinary limit of 80, and a road signed at 100 with a
+variable sign still has an ordinary limit of 100. They sit beside the limit on
+the wire:
+
+```json
+{ "limit": { "kind": "numeric", "value": "80", "unit": "km/h" }, "conditional": true, "variable": "not-tagged" }
+```
+
+**Conditional** (`maxspeed[:<mode>][:forward|backward]:conditional`) is detected
+**by key**; the expression is never parsed. Reading `60 @ wet` honestly would
+need a weather model and a clock, and recording a rainy-Tuesday limit as a
+permanent fact would be worse than saying nothing. A conditional is marked
+`true` for a fact only when its mode/direction scope is at least as specific as
+the winning static scope, following the official order: mode specificity,
+direction specificity, then conditional over static at the same scope.
+
+**Variable** (`maxspeed:variable`, `maxspeed:variable:forward`,
+`maxspeed:variable:backward`) has four wire values:
+
+| Wire | Source | Meaning |
+| --- | --- | --- |
+| `not-tagged` | — | Atlas found no applicable variability tag. |
+| `fixed` | `no` | Somebody explicitly said the limit does not vary. |
+| `variable` | `yes`, or a `;`-list of documented reasons | The limit varies. |
+| `indeterminate` | anything else, including `signals` | A statement Atlas could not read. |
+
+The documented reasons are `peak_traffic`, `weather`, `environment`,
+`school_zone`, `obstruction` and `border_control`. The direction-specific key
+overrides the general one, and a present-but-unreadable specific value does not
+fall back. There are no mode-specific variable keys in the source, so the answer
+applies to every modelled mode — a statement about the sign, not a claim that
+every traveller obeys it.
+
+`not-tagged` is a statement about the *source record*, not a routing
+assumption, and it is not the same fact as `fixed`.
+
+### Speed warnings
+
+| Code | Recorded when | Scope |
+| --- | --- | --- |
+| `UNKNOWN_MAXSPEED_VALUE` | Any supported static `maxspeed` key carried a value Atlas cannot read, including a blank one. | every such key on the road, **regardless of precedence** |
+| `UNSUPPORTED_MAXSPEED_UNIT` | A sound magnitude was followed by a unit Atlas does not support. | every such key, **regardless of precedence** |
+| `UNSUPPORTED_CONDITIONAL_MAXSPEED` | A conditional key was **selected by precedence** for at least one of the six facts. | selected keys only |
+| `UNKNOWN_VARIABLE_MAXSPEED_VALUE` | Any of the three variable keys carried a value Atlas cannot read. | all three keys, **regardless of precedence** |
+
+Each is recorded at most once per road, however many tags or facts contributed
+to it, so the counts are counts of **roads** — not of tags, modes or directions.
+They use the same bounded `IssueLog` as every other import warning and are
+appended after the Milestone 1, 2A and 2B codes, so the group order a client
+already sees does not shuffle. All four are evaluated only for ways that
+actually become road features.
+
+#### Precedence decides the value; diagnostics describe the source
+
+Two different questions, answered in separate passes — the same split
+Milestone 2B settled on.
+
+The three *malformed-value* codes are **data-quality findings about the file**.
+A scan reads every supported static key and all three variable keys the road
+carries and asks whether each value is readable. That does not depend on which
+key precedence chose, so a mistake a more specific tag shadows is still
+reported:
+
+```
+maxspeed=bogus
+maxspeed:motorcar=30
+maxspeed:bicycle=20
+maxspeed:foot=walk
+```
+
+derives `30`, `20` and walking pace — precedence is untouched — **and** records
+`UNKNOWN_MAXSPEED_VALUE` once. Staying quiet would hide exactly the mistakes a
+mapper most needs to find.
+
+`UNSUPPORTED_CONDITIONAL_MAXSPEED` is different and stays **selected-only**. A
+conditional tag is not a defect: it is valid, correct data that Atlas has chosen
+not to evaluate, so the warning is a statement about a limitation of *Atlas*,
+and Atlas is only limited by a condition that reaches an answer. A conditional
+out-ranked for all six facts shaped nothing, so it produces neither a modifier
+nor a warning.
+
+In short: a shadowed **malformed** value still warns and never changes a derived
+fact; a shadowed **conditional** does neither.
+
+### Deferred on purpose
+
+`maxspeed:type`, `source:maxspeed`, `zone:maxspeed`, `maxspeed:advisory`,
+`minspeed`, lane-specific speed keys and country or road-class defaults are read
+by nothing in this milestone. Unit tests assert that `maxspeed:type` and
+`source:maxspeed` change no derived limit, so this is a tested boundary rather
+than an accidental omission.
+
+A speed problem never fails the import, never skips a road, never mutates
+geometry and never reverses coordinate order. Only malformed XML or attribute
+decoding is still fatal.
+
 ## Atlas Studio
 
 Studio is a debugging tool, not a product surface. It shows:
@@ -551,8 +857,9 @@ Studio is a debugging tool, not a product surface. It shows:
   query duration and truncation state
 - a travel profile selector, with one-way arrows and an access overlay for the
   selected profile, and a legend for the overlay
-- a feature inspector: id, kind, road class, name, the direction *and* the
-  access for all three profiles, source reference, coordinate count and bounds
+- a feature inspector: id, kind, road class, name, the direction, the access
+  and both geometry directions' speed limits for all three profiles, source
+  reference, coordinate count and bounds
 - OpenStreetMap attribution with a working licence link
 
 Pan and zoom trigger a debounced viewport query; an obsolete request is aborted
@@ -572,8 +879,59 @@ direction to draw, and `reversible`, `alternating` and `indeterminate` have no
 direction Atlas is willing to state, so none of them gets an arrow — the
 inspector names them instead. The inspector always lists all three profiles, not
 just the selected one, because the interesting roads are the ones where the
-profiles disagree; both the direction and the access row of the selected profile
-are highlighted.
+profiles disagree.
+
+A profile now owns **four** rows — direction, access, forward speed and backward
+speed — and all four are highlighted for the selected profile while the other
+eight stay visible and unmarked:
+
+```text
+Car direction          Car access          Car forward speed          Car backward speed
+Bicycle direction      Bicycle access      Bicycle forward speed      Bicycle backward speed
+Foot direction         Foot access         Foot forward speed         Foot backward speed
+```
+
+Both speed directions are shown on every road, including the one-ways: `forward`
+and `backward` are relative to the coordinate order of the geometry, not to the
+way the traffic runs.
+
+### Reading a speed row
+
+Speed is **inspector-only**. There is no speed overlay, no colour scale and no
+change to road colours, widths, z-order, arrows or the access overlay. A colour
+scale would need thresholds, and thresholds would imply that a legal maximum is
+a travel speed.
+
+Rows are plain text, assembled from validated values only:
+
+```text
+50 km/h
+30 mph · conditional
+100 km/h · variable
+80 km/h · explicitly fixed
+No fixed limit
+Walking pace
+Implicit · RO:urban
+Not stated
+Indeterminate · not derived
+```
+
+Modifier text is appended only when it says something: a conditional that is
+present, a limit that varies, a limit somebody explicitly called fixed, or a
+modifier Studio could not read. `not-tagged` on either modifier is the ordinary
+case on almost every road and adds no text.
+
+Units are shown exactly as the server sent them — `mph` and `knots` are never
+silently converted — and `Not stated` never reads as a number or a default.
+
+If an older server omits the speed block, Studio reads it as `indeterminate`,
+not as `unspecified`. A server that never sent the member has not established
+that the source lacked speed tags; `unspecified` is a claim about a source, and
+a client must not make it on a server's behalf. Studio therefore carries a
+three-state conditional internally (`not-tagged`, `present`, `indeterminate`)
+where the wire has only a boolean, so an absent `false` is not rendered as a
+present one. An unrecognised future kind, unit, magnitude or code degrades the
+same way and is never displayed.
 
 ### The access overlay
 
@@ -883,6 +1241,98 @@ should grow a row for it.
 None of these rules says whether a router may use the road. They record what the
 source said.
 
+### The speed fixture
+
+[`fixtures/synthetic/roads-speed.osm`](fixtures/synthetic/roads-speed.osm)
+covers the speed-limit facts. Every road is a short straight segment on its own
+row, running west to east, with the rows in way-id order from north to south, so
+each fact can be seen on its own in Studio without any road overlapping another.
+
+Run it:
+
+```bash
+cargo run -p atlas-server -- --source fixtures/synthetic/roads-speed.osm
+# and, in another terminal, from studio/
+npm run dev
+```
+
+Then open <http://localhost:5173> and click each road. The inspector lists all
+six speed rows for every road; the map deliberately looks the same whichever
+profile is selected, because no layer draws a speed.
+
+Everything in it imports cleanly, so the only warnings are the speed ones. The
+expected outcome is asserted in full in
+`crates/atlas-osm/tests/speed_fixture.rs` and repeated in the fixture header:
+
+| Counter | Value |
+| --- | --- |
+| nodes seen / indexed | 72 / 72 |
+| ways seen | 24 |
+| road ways selected | 24 |
+| features emitted | 24 |
+| features skipped | 0 |
+| relations seen | 0 |
+
+| Warning | Count | Samples |
+| --- | --- | --- |
+| `UNKNOWN_MAXSPEED_VALUE` | 4 | `way/512`, `way/513`, `way/515`, `way/516` |
+| `UNSUPPORTED_MAXSPEED_UNIT` | 1 | `way/514` |
+| `UNSUPPORTED_CONDITIONAL_MAXSPEED` | 3 | `way/517`, `way/518`, `way/520` |
+| `UNKNOWN_VARIABLE_MAXSPEED_VALUE` | 1 | `way/523` |
+
+Ordinary limits, as forward / backward. Where the three modes agree one row is
+given; where they differ, all three are listed.
+
+| Way | Name | Key tags | Motorcar | Bicycle | Foot |
+| --- | --- | --- | --- | --- | --- |
+| 501 | Untagged Speed Lane | — | `unspecified` / `unspecified` | same | same |
+| 502 | Fifty Street | `maxspeed=50` | `50 km/h` / `50 km/h` | same | same |
+| 503 | Thirty Mph Street | `maxspeed=30 mph` | `30 mph` / `30 mph` | same | same |
+| 504 | Ten Knots Channel Road | `maxspeed=10 knots` | `10 knots` / `10 knots` | same | same |
+| 505 | No Fixed Limit Road | `maxspeed=none` | `no-fixed-limit` / `no-fixed-limit` | same | same |
+| 506 | Walking Pace Lane | `maxspeed=walk` | `walking-pace` / `walking-pace` | same | same |
+| 507 | Implicit Urban Street | `maxspeed=RO:urban` | `RO:urban` / `RO:urban` | same | same |
+| 508 | Directional Speed Street | `maxspeed=50` `:forward=60` `:backward=40` | `60` / `40` | same | same |
+| 509 | Layered Mode Street | `maxspeed:{vehicle=45,motor_vehicle=40,motorcar=35,bicycle=25,foot=walk}` | `35` / `35` | `25` / `25` | `walk` / `walk` |
+| 510 | Mode Before Direction Street | `maxspeed=50` `:forward=60` `:vehicle=45` `:vehicle:forward=55` `:motorcar=35` | `35` / `35` | `55` / `45` | `60` / `50` |
+| 511 | Mixed Specificity Street | `maxspeed=50` `:motorcar=40` `:motorcar:forward=30` `:bicycle:backward=20` | `30` / `40` | `50` / `20` | `50` / `50` |
+| 512 | Unreadable Motorcar Speed Street | `maxspeed=50` `:motorcar=maybe` | `indeterminate` / `indeterminate` | `50` / `50` | `50` / `50` |
+| 513 | Unreadable Forward Speed Street | `maxspeed=50` `:forward=fast` | `indeterminate` / `50` | same | same |
+| 514 | Unsupported Unit Road | `maxspeed=50 furlongs` | `indeterminate` / `indeterminate` | same | same |
+| 515 | Missing Value Road | `<tag k="maxspeed"/>` | `indeterminate` / `indeterminate` | same | same |
+| 516 | Shadowed Bad Speed Street | `maxspeed=bogus` `:motorcar=30` `:bicycle=20` `:foot=walk` | `30` / `30` | `20` / `20` | `walk` / `walk` |
+| 517 | Conditional Speed Street | `maxspeed=80` `:conditional="60 @ wet"` | `80` / `80` **conditional** | same | same |
+| 518 | Partly Shadowed Conditional Street | as 517, plus `:motorcar=90` | `90` / `90` | `80` / `80` **conditional** | `80` / `80` **conditional** |
+| 519 | Fully Shadowed Conditional Street | as 517, plus `:motorcar=90` `:bicycle=25` `:foot=walk` | `90` / `90` | `25` / `25` | `walk` / `walk` |
+| 520 | Car Forward Conditional Street | `maxspeed=80` `:motorcar:forward:conditional="30 @ (…)"` | `80` **conditional** / `80` | `80` / `80` | `80` / `80` |
+| 521 | Variable Speed Street | `maxspeed=100` `:variable=yes` | `100` / `100` **variable** | same | same |
+| 522 | Forward Fixed Variable Street | as 521, plus `:variable:forward=no` | `100` **fixed** / `100` **variable** | same | same |
+| 523 | Unreadable Variable Street | `maxspeed=100` `:variable=weather` `:variable:forward=perhaps` | `100` **indeterminate** / `100` **variable** | same | same |
+| 524 | Orthogonality Street | `maxspeed:forward=70` `:backward=30` plus direction and access tags | `70` / `30` | same | same |
+
+Way 519 is the one to look at for the conditional rule: it carries the same
+conditional as 517 and 518 and is out-ranked for every mode, so it produces
+**no** conditional fact and **no** warning. Way 516 is the one to look at for
+the diagnostic rule: its broken general value changes nothing and is still
+reported.
+
+Way 524 carries orthogonal direction and access tags so that all four records
+can be watched together. None of the four derivations reads another's tags, and
+524's direction and access are exactly what the same tags produce with no speed
+tag present:
+
+| Way | Tags | Motorcar | Bicycle | Foot |
+| --- | --- | --- | --- | --- |
+| 524 direction | `oneway=-1` `oneway:bicycle=no` | `reverse` | `both` | `both` |
+| 524 access | `access=private` `bicycle=permissive` `foot=yes` | `private` | `permissive` | `allowed` |
+
+Every other row is two-way for every mode and says nothing about access. All 24
+roads keep the same three longitudes in the same order: a backward speed limit
+is a second number, never a reversed line.
+
+None of these facts says how fast anybody travels or how long a route takes.
+They record what the source said.
+
 ## Limitations
 
 This milestone is deliberately narrow. Not implemented, and not stubbed:
@@ -892,11 +1342,13 @@ This milestone is deliberately narrow. Not implemented, and not stubbed:
   never whether a route may use the road. A motorway can report a bicycle
   direction and a footway a motorcar direction, and both may report
   `unspecified` access; these are source facts, not permissions
-- country-specific default access tables, and access inferred from highway
-  class. Both are jurisdictional legal defaults rather than facts about the
-  way, and storing one would make it indistinguishable from a surveyed fact
-- `maxspeed`, `surface` and every other `highway` semantic — apart from travel
-  direction, the `highway` value is used for display classification only
+- country-specific default access and speed tables, and either inferred from
+  highway class. Both are jurisdictional legal defaults rather than facts about
+  the way, and storing one would make it indistinguishable from a surveyed fact
+- travel-time estimation, expected or assumed travel speeds, route costs and
+  live traffic. Atlas records a **legal maximum**, and computes nothing from it
+- `surface` and every other `highway` semantic — apart from travel direction,
+  the `highway` value is used for display classification only
 - `.osm.pbf`, compressed input, network downloads, file upload
 - persistent storage; the dataset is rebuilt from the source file on every start
 - spatial indexing; queries are a linear scan, with diagnostics to prove when
@@ -925,6 +1377,39 @@ Access, specifically, is bounded as follows:
 - Access says nothing about direction and direction says nothing about access.
   A road can be one-way and prohibited, and Atlas records both without letting
   either qualify the other.
+
+Speed, specifically, is bounded as follows:
+
+- A `maxspeed` is a **legal maximum**, never a travel speed, a routing
+  assumption or a journey time. Nothing in Atlas derives a speed from a road
+  class, a country, a surface or a time of day.
+- Conditional speed expressions are **detected, never parsed**. An applicable
+  one sets `conditional` and leaves the ordinary limit alone. Opening hours,
+  weather, dates, weights and every other condition are unevaluated.
+- Implicit codes such as `RO:urban`, `AR:urban:primary` and `DE:zone:30` are
+  preserved whole — every context component, in the order and structure the
+  source gave — and **not resolved** to a number. Doing so would need a table
+  of every jurisdiction's defaults, kept current, and a record of which edition
+  of the law each extract was surveyed under.
+- Units are never converted. `30 mph` stays `30 mph` end to end.
+- `maxspeed:type`, `source:maxspeed`, `zone:maxspeed`, `maxspeed:advisory`,
+  `minspeed` and every lane-specific speed key are not read.
+- `maxspeed:hgv`, `maxspeed:psv`, `maxspeed:bus` and the rest of the long tail
+  of mode keys are not read: only `maxspeed`, `maxspeed:vehicle`,
+  `maxspeed:motor_vehicle`, `maxspeed:motorcar`, `maxspeed:bicycle`,
+  `maxspeed:foot`, their `forward`/`backward` and `:conditional` siblings, and
+  the three `maxspeed:variable` keys.
+- `maxspeed=unknown` and the deprecated `maxspeed=signals` are recorded as
+  indeterminate and diagnosed rather than translated into something the mapper
+  did not say.
+- `SpeedUnit::Knots` is recorded faithfully and consumed by nothing yet.
+- Speed says nothing about access or direction, and neither says anything about
+  speed. A prohibited road still carries a limit and a one-way road still
+  carries both directions, and Atlas records all of it without letting any one
+  fact qualify another.
+- Studio shows speed in the inspector only. There is no speed overlay and no
+  colour scale, because a colour scale would need thresholds and thresholds
+  would imply a travel speed.
 
 Direction, specifically, is bounded as follows:
 

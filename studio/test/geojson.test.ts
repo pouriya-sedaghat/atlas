@@ -4,6 +4,20 @@ import type { AtlasFeature, AtlasFeatureCollection } from '../src/api/types.js';
 import { EMPTY_COLLECTION, indexFeatures, toMapCollection } from '../src/map/geojson.js';
 import { FEATURE_KEY } from '../src/map/roadPrimitives.js';
 
+/** A road signed 70 along the line and 30 against it, in both directions. */
+const SEVENTY_THIRTY = {
+  forward: {
+    limit: { kind: 'numeric', value: '70', unit: 'km/h' },
+    conditional: false,
+    variable: 'not-tagged',
+  },
+  backward: {
+    limit: { kind: 'numeric', value: '30', unit: 'km/h' },
+    conditional: true,
+    variable: 'variable',
+  },
+};
+
 function feature(overrides: Partial<AtlasFeature> = {}): AtlasFeature {
   return {
     type: 'Feature',
@@ -21,9 +35,9 @@ function feature(overrides: Partial<AtlasFeature> = {}): AtlasFeature {
       roadClass: 'residential',
       name: 'Reverse One-Way',
       traversal: {
-        motorcar: { direction: 'reverse', access: 'private' },
-        bicycle: { direction: 'reverse', access: 'permissive' },
-        foot: { direction: 'both', access: 'allowed' },
+        motorcar: { direction: 'reverse', access: 'private', speedLimits: SEVENTY_THIRTY },
+        bicycle: { direction: 'reverse', access: 'permissive', speedLimits: SEVENTY_THIRTY },
+        foot: { direction: 'both', access: 'allowed', speedLimits: SEVENTY_THIRTY },
       },
     },
     ...overrides,
@@ -62,6 +76,42 @@ describe('toMapCollection', () => {
     expect(mapped?.properties).not.toHaveProperty('traversal');
     expect(mapped?.properties).toMatchObject({ kind: 'road', roadClass: 'residential' });
     expect(mapped?.properties?.[FEATURE_KEY]).toBe('osm:way:303');
+  });
+
+  it('does not flatten speed into the render collection at all', () => {
+    // Milestone 2C adds no map layer that reads a speed, so there is nothing
+    // for a MapLibre expression to look at. Flattening it anyway would ship
+    // twelve unused string properties per feature and invite a colour scale
+    // that implied a legal maximum is a travel speed.
+    const [mapped] = toMapCollection(collection([feature()])).features;
+    const keys = Object.keys(mapped?.properties ?? {});
+    expect(keys.filter((key) => key.toLowerCase().includes('speed'))).toEqual([]);
+    expect(mapped?.properties).not.toHaveProperty('speedLimits');
+    expect(JSON.stringify(mapped?.properties)).not.toContain('km/h');
+  });
+
+  it('leaves the existing flattened properties untouched when speed is present', () => {
+    // The regression this guards: adding a member to the wire must not move,
+    // rename or drop anything the map already draws from.
+    const withSpeed = toMapCollection(collection([feature()])).features[0];
+    const withoutSpeed = toMapCollection(
+      collection([
+        feature({
+          properties: {
+            kind: 'road',
+            roadClass: 'residential',
+            name: 'Reverse One-Way',
+            traversal: {
+              motorcar: { direction: 'reverse', access: 'private' },
+              bicycle: { direction: 'reverse', access: 'permissive' },
+              foot: { direction: 'both', access: 'allowed' },
+            },
+          },
+        }),
+      ]),
+    ).features[0];
+    expect(withSpeed?.properties).toEqual(withoutSpeed?.properties);
+    expect(withSpeed?.geometry).toEqual(withoutSpeed?.geometry);
   });
 
   it('flattens the access block onto one property per profile', () => {
@@ -137,7 +187,8 @@ describe('toMapCollection', () => {
   });
 
   it('never reverses or otherwise alters the geometry', () => {
-    // A reverse one-way is a rotated arrow, never a reversed line.
+    // A reverse one-way is a rotated arrow, never a reversed line — and a
+    // backward speed limit is a second number, never a reversed line either.
     const source = feature();
     const [mapped] = toMapCollection(collection([source])).features;
     expect(mapped?.geometry.coordinates).toEqual([
@@ -156,11 +207,21 @@ describe('toMapCollection', () => {
 
 describe('indexFeatures', () => {
   it('keeps the full wire feature, traversal block and all', () => {
+    // The inspector reads this, not the flattened render collection, which is
+    // how it can show a fact the map deliberately draws nothing for.
     const index = indexFeatures(collection([feature()]));
     expect(index.get('osm:way:303')?.properties.traversal).toEqual({
-      motorcar: { direction: 'reverse', access: 'private' },
-      bicycle: { direction: 'reverse', access: 'permissive' },
-      foot: { direction: 'both', access: 'allowed' },
+      motorcar: { direction: 'reverse', access: 'private', speedLimits: SEVENTY_THIRTY },
+      bicycle: { direction: 'reverse', access: 'permissive', speedLimits: SEVENTY_THIRTY },
+      foot: { direction: 'both', access: 'allowed', speedLimits: SEVENTY_THIRTY },
     });
+  });
+
+  it('keeps both speed directions for the inspector to read', () => {
+    const index = indexFeatures(collection([feature()]));
+    const limits = index.get('osm:way:303')?.properties.traversal?.motorcar?.speedLimits;
+    expect(limits?.forward?.limit).toEqual({ kind: 'numeric', value: '70', unit: 'km/h' });
+    expect(limits?.backward?.limit).toEqual({ kind: 'numeric', value: '30', unit: 'km/h' });
+    expect(limits?.backward?.conditional).toBe(true);
   });
 });

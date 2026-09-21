@@ -183,6 +183,14 @@ pub enum IssueCode {
     InvalidAccessScope,
     /// An access rule that depends on a condition Atlas does not evaluate.
     UnsupportedConditionalAccess,
+    /// A maximum-speed value was present but is not one Atlas understands.
+    UnknownMaxspeedValue,
+    /// A maximum-speed magnitude was readable but its unit is not supported.
+    UnsupportedMaxspeedUnit,
+    /// A maximum speed that depends on a condition Atlas does not evaluate.
+    UnsupportedConditionalMaxspeed,
+    /// A speed-variability value was present but is not one Atlas understands.
+    UnknownVariableMaxspeedValue,
 }
 
 impl IssueCode {
@@ -201,6 +209,10 @@ impl IssueCode {
             IssueCode::UnknownAccessValue => "UNKNOWN_ACCESS_VALUE",
             IssueCode::InvalidAccessScope => "INVALID_ACCESS_SCOPE",
             IssueCode::UnsupportedConditionalAccess => "UNSUPPORTED_CONDITIONAL_ACCESS",
+            IssueCode::UnknownMaxspeedValue => "UNKNOWN_MAXSPEED_VALUE",
+            IssueCode::UnsupportedMaxspeedUnit => "UNSUPPORTED_MAXSPEED_UNIT",
+            IssueCode::UnsupportedConditionalMaxspeed => "UNSUPPORTED_CONDITIONAL_MAXSPEED",
+            IssueCode::UnknownVariableMaxspeedValue => "UNKNOWN_VARIABLE_MAXSPEED_VALUE",
         }
     }
 }
@@ -458,6 +470,89 @@ mod tests {
         assert_eq!(
             IssueCode::UnsupportedConditionalAccess.as_str(),
             "UNSUPPORTED_CONDITIONAL_ACCESS"
+        );
+        assert_eq!(
+            IssueCode::UnknownMaxspeedValue.as_str(),
+            "UNKNOWN_MAXSPEED_VALUE"
+        );
+        assert_eq!(
+            IssueCode::UnsupportedMaxspeedUnit.as_str(),
+            "UNSUPPORTED_MAXSPEED_UNIT"
+        );
+        assert_eq!(
+            IssueCode::UnsupportedConditionalMaxspeed.as_str(),
+            "UNSUPPORTED_CONDITIONAL_MAXSPEED"
+        );
+        assert_eq!(
+            IssueCode::UnknownVariableMaxspeedValue.as_str(),
+            "UNKNOWN_VARIABLE_MAXSPEED_VALUE"
+        );
+    }
+
+    #[test]
+    fn every_issue_code_has_a_distinct_screaming_snake_case_wire_form() {
+        // Every code declared, in declaration order. A new variant added
+        // without a line here fails to compile at the exhaustive match rather
+        // than shipping with no wire form anybody checked.
+        let all = [
+            IssueCode::InvalidCoordinate,
+            IssueCode::MissingNodeReference,
+            IssueCode::TooFewCoordinates,
+            IssueCode::UnknownHighwayClass,
+            IssueCode::MalformedEntity,
+            IssueCode::UnsupportedRelation,
+            IssueCode::UnknownOnewayValue,
+            IssueCode::AmbiguousOnewayScope,
+            IssueCode::UnsupportedConditionalOneway,
+            IssueCode::UnknownAccessValue,
+            IssueCode::InvalidAccessScope,
+            IssueCode::UnsupportedConditionalAccess,
+            IssueCode::UnknownMaxspeedValue,
+            IssueCode::UnsupportedMaxspeedUnit,
+            IssueCode::UnsupportedConditionalMaxspeed,
+            IssueCode::UnknownVariableMaxspeedValue,
+        ];
+        let mut seen = BTreeMap::new();
+        for code in all {
+            let wire = code.as_str();
+            assert!(
+                wire.bytes()
+                    .all(|byte| byte.is_ascii_uppercase() || byte == b'_'),
+                "{wire} is not SCREAMING_SNAKE_CASE"
+            );
+            assert_eq!(code.to_string(), wire);
+            assert!(seen.insert(wire, code).is_none(), "{wire} appears twice");
+        }
+        assert_eq!(seen.len(), 16);
+        // Declaration order is group order, and it is sorted.
+        let mut sorted = all;
+        sorted.sort();
+        assert_eq!(sorted, all, "codes must stay in declaration order");
+    }
+
+    #[test]
+    fn speed_codes_sort_after_every_earlier_code() {
+        // The four speed codes were appended after the access codes, so a
+        // client that already groups by code sees its existing warnings in
+        // exactly the order it saw them before, with the new groups last.
+        let mut log = IssueLog::new();
+        log.record(IssueCode::UnknownVariableMaxspeedValue, "way/523");
+        log.record(IssueCode::UnsupportedConditionalAccess, "way/418");
+        log.record(IssueCode::UnsupportedConditionalMaxspeed, "way/517");
+        log.record(IssueCode::UnknownMaxspeedValue, "way/512");
+        log.record(IssueCode::InvalidCoordinate, "node/1");
+        log.record(IssueCode::UnsupportedMaxspeedUnit, "way/514");
+        let codes: Vec<_> = log.groups().map(IssueGroup::code).collect();
+        assert_eq!(
+            codes,
+            vec![
+                IssueCode::InvalidCoordinate,
+                IssueCode::UnsupportedConditionalAccess,
+                IssueCode::UnknownMaxspeedValue,
+                IssueCode::UnsupportedMaxspeedUnit,
+                IssueCode::UnsupportedConditionalMaxspeed,
+                IssueCode::UnknownVariableMaxspeedValue,
+            ]
         );
     }
 

@@ -14,5 +14,6 @@ mod access;
 mod direction;
 mod model;
 mod source;
+mod speed;
 
 pub use source::{OSM_ATTRIBUTION_TEXT, OSM_LICENSE_URL, OsmXmlSource};

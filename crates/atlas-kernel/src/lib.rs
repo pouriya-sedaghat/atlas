@@ -15,6 +15,7 @@ mod bounding_box;
 mod coordinate;
 mod feature;
 mod geometry;
+mod speed;
 mod traversal;
 
 pub use access::{AccessRule, RoadAccess};
@@ -22,4 +23,8 @@ pub use bounding_box::{BoundingBox, BoundingBoxError};
 pub use coordinate::{CoordinateError, GeoCoordinate, Latitude, Longitude};
 pub use feature::{FeatureError, FeatureId, FeatureKind, MapFeature, RoadClass, SourceReference};
 pub use geometry::{Geometry, GeometryError, LineString};
+pub use speed::{
+    ConditionalSpeedLimit, DirectionalSpeedLimits, ImplicitSpeedCode, RoadSpeedLimits, Speed,
+    SpeedDirection, SpeedError, SpeedLimitFact, SpeedLimitValue, SpeedUnit, VariableSpeedLimit,
+};
 pub use traversal::{RoadTraversal, TravelDirection, TravelMode};

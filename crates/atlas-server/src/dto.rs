@@ -11,7 +11,9 @@ use atlas_engine::{
     QueryDiagnostics, SourceMetadata,
 };
 use atlas_kernel::{
-    AccessRule, BoundingBox, Geometry, MapFeature, RoadAccess, RoadTraversal, TravelDirection,
+    AccessRule, BoundingBox, ConditionalSpeedLimit, DirectionalSpeedLimits, Geometry, MapFeature,
+    RoadAccess, RoadSpeedLimits, RoadTraversal, SpeedLimitFact, SpeedLimitValue, TravelDirection,
+    TravelMode,
 };
 use serde::Serialize;
 
@@ -84,21 +86,146 @@ pub struct SourceReferenceV1 {
     pub entity_id: String,
 }
 
-/// What one mode's travel on a road looks like: which way, and on what terms.
+/// The ordinary, static legal maximum for one mode in one direction.
+///
+/// A tagged union rather than a nullable number, because the interesting
+/// answers are not numbers: a road with no fixed limit, a road signed at
+/// walking pace and a road whose limit is a named jurisdiction rule are three
+/// different facts, and none of them is "unknown".
+///
+/// The magnitude is a **string**, deliberately. It is exact decimal text, not
+/// a float: `50.5` is `50.5` on every client in every language, and two
+/// imports of one file serialise byte for byte the same. A client that needs
+/// arithmetic parses it knowingly.
+///
+/// The unit is the one the source stated. Atlas does not convert, so `30 mph`
+/// arrives as `30` and `mph`.
+#[derive(Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+pub enum SpeedLimitV1 {
+    /// No applicable explicit limit was present. Not "unlimited", and not a
+    /// country default: the source said nothing.
+    Unspecified,
+    /// An exact magnitude in the unit the source stated it in.
+    Numeric {
+        /// Canonical decimal digits, with no sign, no exponent and no
+        /// redundant zeroes: `50`, `50.5`, `0`.
+        value: String,
+        /// `km/h`, `mph` or `knots`, exactly as sourced and never converted.
+        unit: &'static str,
+    },
+    /// The source says no fixed limit applies. Knowledge, not its absence.
+    NoFixedLimit,
+    /// The source says the limit is walking pace, which Atlas does not turn
+    /// into a guessed number.
+    WalkingPace,
+    /// The limit is whatever a named jurisdiction rule says it is.
+    Implicit {
+        /// The normalised code, for example `RO:urban`. Atlas preserves it
+        /// and deliberately does not resolve it to a number.
+        code: String,
+    },
+    /// A limit was stated and Atlas could not read it safely.
+    Indeterminate,
+}
+
+impl SpeedLimitV1 {
+    fn from_domain(limit: &SpeedLimitValue) -> Self {
+        match limit {
+            SpeedLimitValue::Unspecified => SpeedLimitV1::Unspecified,
+            SpeedLimitValue::Numeric(speed) => SpeedLimitV1::Numeric {
+                value: speed.magnitude().to_owned(),
+                unit: speed.unit().as_str(),
+            },
+            SpeedLimitValue::NoFixedLimit => SpeedLimitV1::NoFixedLimit,
+            SpeedLimitValue::WalkingPace => SpeedLimitV1::WalkingPace,
+            SpeedLimitValue::Implicit(code) => SpeedLimitV1::Implicit {
+                code: code.as_str().to_owned(),
+            },
+            SpeedLimitValue::Indeterminate => SpeedLimitV1::Indeterminate,
+        }
+    }
+}
+
+/// Everything the source says about one mode's limit in one direction.
+///
+/// Three independent members. The two modifiers say what else the source
+/// attached to the ordinary limit; neither replaces it. A road signed at 80
+/// with a wet-weather conditional publishes `80` **and** `"conditional": true`,
+/// and a client that reads only one of the two is reading half the road.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpeedLimitFactV1 {
+    /// The ordinary, static limit.
+    pub limit: SpeedLimitV1,
+    /// Whether a conditional limit supplements the ordinary one.
+    ///
+    /// `true` means Atlas found a conditional statement at a scope that
+    /// applies here and deliberately did not evaluate it. It never means the
+    /// ordinary limit does not apply.
+    pub conditional: bool,
+    /// `not-tagged`, `fixed`, `variable` or `indeterminate`.
+    ///
+    /// `not-tagged` is a statement about the source record, not a promise that
+    /// the limit never changes; `fixed` is somebody saying that it does not.
+    pub variable: &'static str,
+}
+
+impl SpeedLimitFactV1 {
+    fn from_domain(fact: &SpeedLimitFact) -> Self {
+        Self {
+            limit: SpeedLimitV1::from_domain(fact.limit()),
+            conditional: matches!(fact.conditional(), ConditionalSpeedLimit::Present),
+            variable: fact.variable().as_str(),
+        }
+    }
+}
+
+/// One mode's speed facts, one per geometry direction.
+///
+/// Both directions are always published, for every mode, on every road. A
+/// one-way road still has two of them: `forward` and `backward` are relative
+/// to the **coordinate order of the geometry**, not to a permitted direction
+/// of travel, so they mean the same thing on a road nobody may drive at all.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DirectionalSpeedLimitsV1 {
+    /// The fact along the coordinate order of the line.
+    pub forward: SpeedLimitFactV1,
+    /// The fact against the coordinate order of the line.
+    pub backward: SpeedLimitFactV1,
+}
+
+impl DirectionalSpeedLimitsV1 {
+    fn from_domain(limits: &DirectionalSpeedLimits) -> Self {
+        Self {
+            forward: SpeedLimitFactV1::from_domain(limits.forward()),
+            backward: SpeedLimitFactV1::from_domain(limits.backward()),
+        }
+    }
+}
+
+/// What one mode's travel on a road looks like: which way, on what terms, and
+/// at what stated legal maximum.
 ///
 /// The object shape is what made this additive. Direction was the first thing
 /// Atlas knew per mode and was never going to be the only one, so a client
-/// that read `traversal.foot.direction` in Milestone 2A keeps working now that
-/// `access` sits beside it, and will keep working when speed joins them.
+/// that read `traversal.foot.direction` in Milestone 2A kept working when
+/// `access` arrived beside it in 2B, and keeps working now that `speedLimits`
+/// has joined them. The API version is unchanged.
 ///
-/// The two members are independent facts and neither implies the other. A road
-/// may be `forward` and `prohibited` at once — the direction says which way it
-/// runs, the access says what the source said about using it — and a client
-/// must not read one as a qualifier on the other.
+/// The three members are independent facts and none implies another. A road
+/// may be `forward`, `prohibited` and signed at 50 all at once — the direction
+/// says which way it runs, the access says what the source said about using
+/// it, the speed says what the source said the legal maximum is — and a client
+/// must not read any one as a qualifier on another. In particular a prohibited
+/// road still publishes its speed limits, because the sign is on the post
+/// whether or not anyone may drive past it.
 ///
-/// Neither member is a routing decision. `access` records what the source
-/// said; whether that permits a particular journey is a routing-profile
-/// question Atlas does not answer.
+/// No member is a routing decision. `access` records what the source said;
+/// `speedLimits` records a **legal maximum**, not a travel speed and not a
+/// routing cost. Whether either permits, or how long, a particular journey
+/// takes is a routing-profile question Atlas does not answer.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModeTraversalV1 {
@@ -114,13 +241,21 @@ pub struct ModeTraversalV1 {
     /// `unspecified` means the source said nothing applicable, which is not
     /// the same as `allowed`.
     pub access: &'static str,
+    /// The source-derived legal maximum speed, one entry per geometry
+    /// direction. Always present, never gated behind an `include` parameter.
+    pub speed_limits: DirectionalSpeedLimitsV1,
 }
 
 impl ModeTraversalV1 {
-    fn from_domain(direction: TravelDirection, access: AccessRule) -> Self {
+    fn from_domain(
+        direction: TravelDirection,
+        access: AccessRule,
+        speed_limits: &DirectionalSpeedLimits,
+    ) -> Self {
         Self {
             direction: direction.as_str(),
             access: access.as_str(),
+            speed_limits: DirectionalSpeedLimitsV1::from_domain(speed_limits),
         }
     }
 }
@@ -129,25 +264,38 @@ impl ModeTraversalV1 {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RoadTraversalV1 {
-    /// Direction and access for a private motor car.
+    /// Direction, access and speed limits for a private motor car.
     pub motorcar: ModeTraversalV1,
-    /// Direction and access for a bicycle.
+    /// Direction, access and speed limits for a bicycle.
     pub bicycle: ModeTraversalV1,
-    /// Direction and access for a pedestrian.
+    /// Direction, access and speed limits for a pedestrian.
     pub foot: ModeTraversalV1,
 }
 
 impl RoadTraversalV1 {
-    /// Maps the two road records onto one per-mode block.
+    /// Maps the three road records onto one per-mode block.
     ///
-    /// They arrive as separate domain values and are only zipped together
-    /// here, at the wire boundary, because that is the shape a client reads
-    /// most naturally. Nothing in the domain treats them as one thing.
-    fn from_domain(traversal: &RoadTraversal, access: &RoadAccess) -> Self {
+    /// They arrive as separate domain values — the kernel keeps direction,
+    /// access and speed strictly apart — and are only zipped together here, at
+    /// the wire boundary, because that is the shape a client reads most
+    /// naturally and the extension point this object was documented as having.
+    /// Nothing in the domain treats them as one thing.
+    fn from_domain(
+        traversal: &RoadTraversal,
+        access: &RoadAccess,
+        speed_limits: &RoadSpeedLimits,
+    ) -> Self {
+        let mode = |mode: TravelMode| {
+            ModeTraversalV1::from_domain(
+                traversal.direction(mode),
+                access.rule(mode),
+                speed_limits.limits(mode),
+            )
+        };
         Self {
-            motorcar: ModeTraversalV1::from_domain(traversal.motorcar(), access.motorcar()),
-            bicycle: ModeTraversalV1::from_domain(traversal.bicycle(), access.bicycle()),
-            foot: ModeTraversalV1::from_domain(traversal.foot(), access.foot()),
+            motorcar: mode(TravelMode::Motorcar),
+            bicycle: mode(TravelMode::Bicycle),
+            foot: mode(TravelMode::Foot),
         }
     }
 }
@@ -164,11 +312,11 @@ pub struct FeaturePropertiesV1 {
     /// The road classification, for roads.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub road_class: Option<String>,
-    /// The per-mode direction and access semantics, for roads.
+    /// The per-mode direction, access and speed-limit semantics, for roads.
     ///
-    /// Always present on a road, with every mode filled in, and never gated
-    /// behind an `include` parameter: it is what the feature *is*, not extra
-    /// diagnostics about it.
+    /// Always present on a road, with every mode and both geometry directions
+    /// filled in, and never gated behind an `include` parameter: it is what
+    /// the feature *is*, not extra diagnostics about it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub traversal: Option<RoadTraversalV1>,
     /// The feature name, verbatim from the source.
@@ -208,7 +356,10 @@ impl FeatureV1 {
                     .kind()
                     .road_traversal()
                     .zip(feature.kind().road_access())
-                    .map(|(traversal, access)| RoadTraversalV1::from_domain(traversal, access)),
+                    .zip(feature.kind().road_speed_limits())
+                    .map(|((traversal, access), speed_limits)| {
+                        RoadTraversalV1::from_domain(traversal, access, speed_limits)
+                    }),
                 name: feature.name().map(str::to_owned),
                 source: include_source
                     .then(|| feature.source())
