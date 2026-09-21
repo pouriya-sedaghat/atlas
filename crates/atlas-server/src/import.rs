@@ -24,11 +24,13 @@ pub fn import_osm_file(path: &Path) -> Result<Dataset, ImportFailure> {
     })?;
 
     builder.finish(outcome).map_err(|error| {
+        // The error's detail can name internal identifiers and parser state,
+        // so the whole error is logged and only its stable public category and
+        // message reach a client. A topology that could not be derived fails
+        // the build here, which means nothing is published and whatever was
+        // published before is untouched.
         tracing::error!(path = %path.display(), %error, "dataset could not be built");
-        ImportFailure::new(
-            "empty-dataset",
-            "The configured map source contained no importable road features.",
-        )
+        ImportFailure::new(error.public_category(), error.public_message())
     })
 }
 

@@ -16,6 +16,7 @@ mod coordinate;
 mod feature;
 mod geometry;
 mod speed;
+mod topology;
 mod traversal;
 
 pub use access::{AccessRule, RoadAccess};
@@ -27,4 +28,5 @@ pub use speed::{
     ConditionalSpeedLimit, DirectionalSpeedLimits, ImplicitSpeedCode, RoadSpeedLimits, Speed,
     SpeedDirection, SpeedError, SpeedLimitFact, SpeedLimitValue, SpeedUnit, VariableSpeedLimit,
 };
+pub use topology::{RoadNode, RoadNodeId, RoadSegment, RoadSegmentId, TopologyError};
 pub use traversal::{RoadTraversal, TravelDirection, TravelMode};

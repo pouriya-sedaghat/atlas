@@ -8,8 +8,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use atlas_engine::{
-    Attribution, FeatureSink, ImportError, ImportStats, IssueCode, IssueLog, MapSource,
-    SourceImportOutcome, SourceMetadata,
+    Attribution, FeatureSink, ImportError, ImportStats, ImportedRoad, IssueCode, IssueLog,
+    MapSource, RoadPath, RoadPathPoint, SourceImportOutcome, SourceMetadata,
 };
 use atlas_kernel::{
     FeatureId, FeatureKind, GeoCoordinate, Geometry, LineString, MapFeature, RoadClass,
@@ -32,6 +32,13 @@ pub const OSM_LICENSE_URL: &str = "https://www.openstreetmap.org/copyright";
 const SOURCE_FORMAT: &str = "osm-xml";
 const SOURCE_SYSTEM: &str = "openstreetmap";
 const UNKNOWN_ENTITY: &str = "unknown";
+
+/// The prefix Atlas gives a road path point derived from an OSM node.
+///
+/// The engine treats the whole string as opaque and never parses it; the
+/// scheme is this crate's private business, chosen so that re-importing one
+/// file produces one set of identities.
+const NODE_POINT_PREFIX: &str = "osm:node:";
 
 #[derive(Debug, Clone)]
 enum OsmXmlInput {
@@ -501,8 +508,8 @@ fn emit_way(
         return Ok(());
     }
 
-    let coordinates = match resolve_coordinates(&way, nodes) {
-        Ok(coordinates) => coordinates,
+    let resolved = match resolve_way(&way, nodes) {
+        Ok(resolved) => resolved,
         Err(problem) => {
             issues.record(problem.issue_code(), entity);
             stats.features_skipped += 1;
@@ -510,7 +517,18 @@ fn emit_way(
         }
     };
 
-    let Ok(line) = LineString::new(coordinates) else {
+    let Ok(line) = LineString::new(resolved.coordinates) else {
+        issues.record(IssueCode::TooFewCoordinates, entity);
+        stats.features_skipped += 1;
+        return Ok(());
+    };
+
+    // A path needs two points for the same reason a line does. The two checks
+    // are separate because the two sequences are: a way whose display geometry
+    // collapsed to one coordinate has already been rejected above, and this
+    // catches the path-side case on its own terms rather than assuming the two
+    // always fail together.
+    let Ok(path) = RoadPath::new(resolved.points) else {
         issues.record(IssueCode::TooFewCoordinates, entity);
         stats.features_skipped += 1;
         return Ok(());
@@ -564,23 +582,51 @@ fn emit_way(
         way.tags.get("name").map(str::to_owned),
         Some(reference),
     );
-    sink.accept(feature)?;
+
+    // The feature and its path leave this adapter together. A road that
+    // reached the sink without its path would be a road the dataset draws and
+    // the topology has never heard of.
+    let Ok(road) = ImportedRoad::new(feature, path) else {
+        issues.record(IssueCode::MalformedEntity, entity);
+        stats.features_skipped += 1;
+        return Ok(());
+    };
+    sink.accept(road)?;
     stats.features_emitted += 1;
     Ok(())
 }
 
-/// Resolves node references, collapsing adjacent duplicates.
+/// What resolving a way's `<nd>` list produced.
+///
+/// Two sequences, from one walk, for two different jobs.
+///
+/// `coordinates` is the **display geometry**: adjacent duplicate coordinates
+/// are collapsed, because two copies of one position draw nothing extra. That
+/// behaviour predates topology and is deliberately left exactly as it was.
+///
+/// `points` is the **topology path**: every `<nd>` in document order, with its
+/// identity, and nothing collapsed. Two different nodes at one position are
+/// two distinct topology positions, and merging them would invent a
+/// connection the source never described — or delete a zero-length one it did.
+struct ResolvedWay {
+    coordinates: Vec<GeoCoordinate>,
+    points: Vec<RoadPathPoint>,
+}
+
+/// Resolves node references into a display geometry and a topology path.
 ///
 /// Gives up as soon as a reference cannot be turned into a coordinate, whether
 /// because the reference itself was unreadable or because it named a node the
 /// file never defined. Either way the remaining nodes are never joined across
 /// the gap: a road with a hole silently stitched shut would be worse than no
-/// road at all.
-fn resolve_coordinates(
+/// road at all. A way that gives up here produces no feature *and* no path, so
+/// its points never reach an occurrence count.
+fn resolve_way(
     way: &OsmWay,
     nodes: &HashMap<i64, GeoCoordinate>,
-) -> Result<Vec<GeoCoordinate>, WayGeometryProblem> {
+) -> Result<ResolvedWay, WayGeometryProblem> {
     let mut coordinates: Vec<GeoCoordinate> = Vec::with_capacity(way.node_refs.len());
+    let mut points: Vec<RoadPathPoint> = Vec::with_capacity(way.node_refs.len());
     for node_ref in &way.node_refs {
         let OsmNodeRef::Id(id) = node_ref else {
             return Err(WayGeometryProblem::MalformedReference);
@@ -589,21 +635,41 @@ fn resolve_coordinates(
         if coordinates.last() != Some(coordinate) {
             coordinates.push(*coordinate);
         }
+        // The identity is never collapsed away. `node_point_id` cannot
+        // produce a blank string, so the point always builds.
+        points.push(
+            RoadPathPoint::new(node_point_id(*id), *coordinate)
+                .map_err(|_| WayGeometryProblem::MalformedReference)?,
+        );
     }
-    Ok(coordinates)
+    Ok(ResolvedWay {
+        coordinates,
+        points,
+    })
 }
 
-/// A sink that keeps every feature, used by the crate's own tests.
+/// The deterministic, opaque Atlas point identity for one OSM node.
+fn node_point_id(id: i64) -> String {
+    format!("{NODE_POINT_PREFIX}{id}")
+}
+
+/// A sink that keeps every road, used by the crate's own tests.
+///
+/// It keeps the paths as well as the features, so that a test can assert what
+/// the adapter emitted rather than what a dataset build later made of it.
 #[cfg(test)]
 #[derive(Debug, Default)]
 pub(crate) struct CollectingSink {
     pub(crate) features: Vec<MapFeature>,
+    pub(crate) paths: Vec<RoadPath>,
 }
 
 #[cfg(test)]
 impl FeatureSink for CollectingSink {
-    fn accept(&mut self, feature: MapFeature) -> Result<(), atlas_engine::SinkError> {
+    fn accept(&mut self, road: ImportedRoad) -> Result<(), atlas_engine::SinkError> {
+        let (feature, path) = road.into_parts();
         self.features.push(feature);
+        self.paths.push(path);
         Ok(())
     }
 }
@@ -632,6 +698,85 @@ mod tests {
             .filter_map(|feature| feature.kind().road_class())
             .map(|class| class.as_str().to_owned())
             .collect()
+    }
+
+    #[test]
+    fn every_emitted_road_pairs_a_feature_with_a_path_that_describes_it() {
+        // The adapter builds both sequences in one walk, so they cannot drift
+        // apart — but the envelope checks correspondence anyway, and this
+        // pins that the adapter actually satisfies it rather than relying on
+        // the check never firing.
+        let (sink, outcome) = import(
+            r#"<osm version="0.6">
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="2" lat="35.69" lon="51.39"/>
+                 <node id="3" lat="35.70" lon="51.40"/>
+                 <way id="10">
+                   <nd ref="1"/>
+                   <nd ref="2"/>
+                   <nd ref="3"/>
+                   <tag k="highway" v="residential"/>
+                 </way>
+               </osm>"#,
+        );
+        assert_eq!(outcome.stats.features_emitted, 1);
+        assert_eq!(outcome.stats.features_skipped, 0);
+        assert_eq!(sink.features.len(), 1);
+        assert_eq!(sink.paths.len(), 1);
+
+        // Rebuilding the envelope from what the sink received must succeed:
+        // the adapter handed over a feature and a path that describe one road.
+        assert!(
+            ImportedRoad::new(sink.features[0].clone(), sink.paths[0].clone()).is_ok(),
+            "the adapter must emit a feature and a path that correspond"
+        );
+        let ids: Vec<&str> = sink.paths[0]
+            .points()
+            .iter()
+            .map(|point| point.id())
+            .collect();
+        assert_eq!(ids, vec!["osm:node:1", "osm:node:2", "osm:node:3"]);
+    }
+
+    #[test]
+    fn a_collapsed_display_duplicate_still_corresponds_to_its_path() {
+        // Two nodes at one position, adjacent in the way. The display geometry
+        // collapses them to one coordinate and the path keeps both identities,
+        // which is the documented divergence — and the envelope accepts it,
+        // because the two describe the same ordered positions.
+        let (sink, outcome) = import(
+            r#"<osm version="0.6">
+                 <node id="1" lat="35.68" lon="51.38"/>
+                 <node id="2" lat="35.68" lon="51.38"/>
+                 <node id="3" lat="35.70" lon="51.40"/>
+                 <way id="10">
+                   <nd ref="1"/>
+                   <nd ref="2"/>
+                   <nd ref="3"/>
+                   <tag k="highway" v="footway"/>
+                 </way>
+               </osm>"#,
+        );
+        assert_eq!(outcome.stats.features_emitted, 1);
+        assert_eq!(outcome.stats.features_skipped, 0);
+        // Nothing was reported as malformed: the divergence is expected, not a
+        // defect, and the envelope did not reject it.
+        assert_eq!(outcome.issues.count_of(IssueCode::MalformedEntity), 0);
+
+        // Two display coordinates, three retained identities.
+        assert_eq!(sink.features[0].geometry().coordinate_count(), 2);
+        assert_eq!(sink.paths[0].len(), 3);
+        let ids: Vec<&str> = sink.paths[0]
+            .points()
+            .iter()
+            .map(|point| point.id())
+            .collect();
+        assert_eq!(ids, vec!["osm:node:1", "osm:node:2", "osm:node:3"]);
+
+        assert!(
+            ImportedRoad::new(sink.features[0].clone(), sink.paths[0].clone()).is_ok(),
+            "a collapsed adjacent duplicate is exactly the freedom the check allows"
+        );
     }
 
     #[test]

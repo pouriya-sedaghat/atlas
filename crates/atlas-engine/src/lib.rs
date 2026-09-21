@@ -15,6 +15,8 @@ mod query;
 mod registry;
 #[cfg(test)]
 mod test_support;
+mod topology;
+mod topology_query;
 
 pub use dataset::{
     Dataset, DatasetBuildError, DatasetBuilder, DatasetId, DatasetSnapshot, DatasetStatus,
@@ -28,3 +30,9 @@ pub use query::{
     MapQuery, MapQueryResult, QueryDiagnostics, QueryError,
 };
 pub use registry::{DatasetRegistry, ImportFailure};
+pub use topology::{ImportedRoad, ImportedRoadError, RoadPath, RoadPathPoint, RoadTopology};
+pub use topology_query::{
+    DEFAULT_TOPOLOGY_SEGMENT_LIMIT, MAX_TOPOLOGY_SEGMENT_LIMIT, RoadTopologyQuery,
+    TopologyNodeResult, TopologyQuery, TopologyQueryDiagnostics, TopologyQueryError,
+    TopologyQueryResult,
+};

@@ -32,6 +32,10 @@ fn speed_fixture_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/synthetic/roads-speed.osm")
 }
 
+fn topology_fixture_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/synthetic/roads-topology.osm")
+}
+
 fn state_for(path: PathBuf) -> SharedState {
     let registry = Arc::new(DatasetRegistry::new());
     let dataset = import::import_osm_file(&path).expect("the fixture must import");
@@ -56,6 +60,11 @@ fn access_state() -> SharedState {
 /// A dataset built from the fixture that exercises the speed-limit facts.
 fn speed_state() -> SharedState {
     state_for(speed_fixture_path())
+}
+
+/// A dataset built from the fixture that exercises the topology rules.
+fn topology_state() -> SharedState {
+    state_for(topology_fixture_path())
 }
 
 /// A dataset built from an in-memory document, for cases no fixture covers.
@@ -1785,4 +1794,530 @@ async fn a_client_that_ignores_speed_still_sees_the_earlier_contract() {
     assert!(feature["properties"]["traversal"]["motorcar"]["access"].is_string());
     assert_eq!(body["type"], "FeatureCollection");
     assert_eq!(body["atlas"]["apiVersion"], "1");
+}
+
+// -- topology -------------------------------------------------------------
+
+/// A box around the whole topology fixture.
+const TOPOLOGY_VIEWPORT: &str = "bbox=51.29,35.59,51.40,35.61";
+
+/// A sliver over the stem of the T junction, east of node 4 and west of the
+/// two arms, so exactly one segment intersects it.
+const T_JUNCTION_VIEWPORT: &str = "bbox=51.3105,35.5995,51.3115,35.6005";
+
+fn topology_url(query: &str) -> String {
+    format!("/api/v1/map/topology?{query}")
+}
+
+fn string_array(value: &Value, key: &str) -> Vec<String> {
+    value
+        .as_array()
+        .unwrap_or_else(|| panic!("{key} is an array"))
+        .iter()
+        .map(|entry| {
+            entry[key]
+                .as_str()
+                .unwrap_or_else(|| panic!("{key} is a string"))
+                .to_owned()
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn topology_is_served_as_plain_json_not_geojson() {
+    let response = get(topology_state(), &topology_url(TOPOLOGY_VIEWPORT)).await;
+    assert_eq!(response.status, StatusCode::OK);
+    assert!(
+        response.content_type.starts_with("application/json"),
+        "topology is a graph, not a GeoJSON FeatureCollection: {}",
+        response.content_type
+    );
+    assert!(!response.content_type.contains("geo+json"));
+    // And it really is not a FeatureCollection.
+    assert!(response.body["type"].is_null());
+    assert!(response.body["features"].is_null());
+}
+
+#[tokio::test]
+async fn the_topology_shape_is_exactly_as_documented() {
+    // The T junction alone: three segments meeting at one node of degree 3.
+    let response = get(topology_state(), &topology_url(T_JUNCTION_VIEWPORT)).await;
+    assert_eq!(response.status, StatusCode::OK);
+    let body = &response.body;
+
+    assert_eq!(body["apiVersion"], "1");
+    assert!(body["datasetId"].is_string());
+    assert_eq!(body["bbox"][0], 51.3105);
+    assert_eq!(body["bbox"][1], 35.5995);
+    assert_eq!(body["bbox"][2], 51.3115);
+    assert_eq!(body["bbox"][3], 35.6005);
+
+    // Only way 602's segment is inside this box; the other two arms run east
+    // of it. Both of its endpoints come back, and node 5's degree is the
+    // degree it has in the whole dataset, not in this viewport.
+    assert_eq!(
+        string_array(&body["segments"], "id"),
+        vec!["osm:way:602:segment:0"]
+    );
+    let segment = &body["segments"][0];
+    assert_eq!(segment["id"], "osm:way:602:segment:0");
+    assert_eq!(segment["roadFeatureId"], "osm:way:602");
+    assert_eq!(segment["startNodeId"], "osm:node:4");
+    assert_eq!(segment["endNodeId"], "osm:node:5");
+    assert_eq!(segment["geometry"]["type"], "LineString");
+    assert_eq!(segment["geometry"]["coordinates"][0][0], 51.3100);
+    assert_eq!(segment["geometry"]["coordinates"][0][1], 35.6000);
+    assert_eq!(segment["geometry"]["coordinates"][1][0], 51.3120);
+    assert_eq!(segment["geometry"]["coordinates"][1][1], 35.6000);
+
+    // A segment object has exactly these five members and no more. The
+    // comparison is against the sorted member names because a parsed
+    // `serde_json::Value` sorts its keys; what is being pinned here is the
+    // membership, and the absence of anything else.
+    let members: Vec<&String> = segment
+        .as_object()
+        .expect("a segment is an object")
+        .keys()
+        .collect();
+    assert_eq!(
+        members,
+        vec![
+            "endNodeId",
+            "geometry",
+            "id",
+            "roadFeatureId",
+            "startNodeId"
+        ]
+    );
+
+    assert_eq!(
+        string_array(&body["nodes"], "id"),
+        vec!["osm:node:4", "osm:node:5"]
+    );
+    let junction = body["nodes"]
+        .as_array()
+        .expect("nodes is an array")
+        .iter()
+        .find(|node| node["id"] == "osm:node:5")
+        .expect("node 5 is returned");
+    assert_eq!(junction["coordinate"][0], 51.3120);
+    assert_eq!(junction["coordinate"][1], 35.6000);
+    assert_eq!(junction["degree"], 3);
+    let node_members: Vec<&String> = junction
+        .as_object()
+        .expect("a node is an object")
+        .keys()
+        .collect();
+    assert_eq!(node_members, vec!["coordinate", "degree", "id"]);
+
+    assert_eq!(body["meta"]["segmentsReturned"], 1);
+    assert_eq!(body["meta"]["nodesReturned"], 2);
+    assert_eq!(body["meta"]["limit"], 1000);
+    assert_eq!(body["meta"]["truncated"], false);
+    assert!(body["meta"]["diagnostics"].is_null());
+}
+
+#[tokio::test]
+async fn the_whole_topology_fixture_serialises_its_documented_totals() {
+    let response = get(topology_state(), &topology_url(TOPOLOGY_VIEWPORT)).await;
+    assert_eq!(response.status, StatusCode::OK);
+    assert_eq!(response.body["meta"]["segmentsReturned"], 22);
+    assert_eq!(response.body["meta"]["nodesReturned"], 31);
+    assert_eq!(response.body["meta"]["truncated"], false);
+    assert_eq!(
+        string_array(&response.body["segments"], "id"),
+        vec![
+            "osm:way:601:segment:0",
+            "osm:way:602:segment:0",
+            "osm:way:603:segment:0",
+            "osm:way:604:segment:0",
+            "osm:way:605:segment:0",
+            "osm:way:605:segment:1",
+            "osm:way:606:segment:0",
+            "osm:way:606:segment:1",
+            "osm:way:607:segment:0",
+            "osm:way:608:segment:0",
+            "osm:way:609:segment:0",
+            "osm:way:609:segment:1",
+            "osm:way:609:segment:2",
+            "osm:way:610:segment:0",
+            "osm:way:611:segment:0",
+            "osm:way:612:segment:0",
+            "osm:way:612:segment:1",
+            "osm:way:612:segment:2",
+            "osm:way:613:segment:0",
+            "osm:way:615:segment:0",
+            "osm:way:616:segment:0",
+            "osm:way:617:segment:0",
+        ]
+    );
+}
+
+#[tokio::test]
+async fn topology_degrees_on_the_wire_match_the_fixture_table() {
+    let response = get(topology_state(), &topology_url(TOPOLOGY_VIEWPORT)).await;
+    let nodes = response.body["nodes"]
+        .as_array()
+        .expect("nodes is an array");
+    let degree = |id: &str| {
+        nodes
+            .iter()
+            .find(|node| node["id"] == id)
+            .unwrap_or_else(|| panic!("{id} is returned"))["degree"]
+            .as_u64()
+            .expect("degree is a number")
+    };
+    // T junction, shared-node cross, roundabout and the self-loop.
+    assert_eq!(degree("osm:node:5"), 3);
+    assert_eq!(degree("osm:node:9"), 4);
+    assert_eq!(degree("osm:node:17"), 2);
+    assert_eq!(degree("osm:node:18"), 3);
+    assert_eq!(degree("osm:node:19"), 3);
+    assert_eq!(degree("osm:node:23"), 4);
+    // The geometric-only crossing and the shared-coordinate pair join nothing.
+    for endpoint in ["13", "14", "15", "16", "34", "36", "37", "38"] {
+        assert_eq!(degree(&format!("osm:node:{endpoint}")), 1);
+    }
+    // And the shape points never appear at all.
+    for absent in ["2", "24", "27", "29", "30", "32", "35"] {
+        let id = format!("osm:node:{absent}");
+        assert!(
+            !nodes.iter().any(|node| node["id"] == id),
+            "{id} is a shape point and must not be a topology node"
+        );
+    }
+}
+
+#[tokio::test]
+async fn topology_diagnostics_are_omitted_unless_requested() {
+    let without = get(topology_state(), &topology_url(TOPOLOGY_VIEWPORT)).await;
+    assert!(without.body["meta"]["diagnostics"].is_null());
+
+    let with = get(
+        topology_state(),
+        &topology_url(&format!("{TOPOLOGY_VIEWPORT}&include=diagnostics")),
+    )
+    .await;
+    let diagnostics = &with.body["meta"]["diagnostics"];
+    assert_eq!(diagnostics["segmentsExamined"], 22);
+    assert_eq!(diagnostics["candidatesFound"], 22);
+    assert_eq!(diagnostics["segmentsReturned"], 22);
+    assert_eq!(diagnostics["nodesReturned"], 31);
+    assert!(diagnostics["elapsedMs"].is_number());
+    let members: Vec<&String> = diagnostics
+        .as_object()
+        .expect("diagnostics is an object")
+        .keys()
+        .collect();
+    assert_eq!(
+        members,
+        vec![
+            "candidatesFound",
+            "elapsedMs",
+            "nodesReturned",
+            "segmentsExamined",
+            "segmentsReturned"
+        ]
+    );
+}
+
+#[tokio::test]
+async fn a_truncated_topology_response_still_resolves_every_segment_it_returns() {
+    let response = get(
+        topology_state(),
+        &topology_url(&format!("{TOPOLOGY_VIEWPORT}&limit=5&include=diagnostics")),
+    )
+    .await;
+    assert_eq!(response.status, StatusCode::OK);
+    assert_eq!(response.body["meta"]["segmentsReturned"], 5);
+    assert_eq!(response.body["meta"]["limit"], 5);
+    assert_eq!(response.body["meta"]["truncated"], true);
+    // The scan reports the true match count, not the returned count.
+    assert_eq!(response.body["meta"]["diagnostics"]["candidatesFound"], 22);
+
+    let node_ids = string_array(&response.body["nodes"], "id");
+    for segment in response.body["segments"]
+        .as_array()
+        .expect("segments is an array")
+    {
+        for end in ["startNodeId", "endNodeId"] {
+            let id = segment[end].as_str().expect("an id is a string");
+            assert!(
+                node_ids.iter().any(|node| node == id),
+                "segment {} names {id}, which the response must carry",
+                segment["id"]
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn topology_endpoints_outside_the_viewport_are_still_returned() {
+    // A sliver over the middle of way 601 that contains neither of its ends.
+    let response = get(
+        topology_state(),
+        &topology_url("bbox=51.3009,35.6009,51.3011,35.6011"),
+    )
+    .await;
+    assert_eq!(response.status, StatusCode::OK);
+    assert_eq!(
+        string_array(&response.body["segments"], "id"),
+        vec!["osm:way:601:segment:0"]
+    );
+    assert_eq!(
+        string_array(&response.body["nodes"], "id"),
+        vec!["osm:node:1", "osm:node:3"]
+    );
+    for node in response.body["nodes"]
+        .as_array()
+        .expect("nodes is an array")
+    {
+        let longitude = node["coordinate"][0].as_f64().expect("a number");
+        assert!(
+            !(51.3009..=51.3011).contains(&longitude),
+            "this endpoint sits outside the requested box and is returned anyway"
+        );
+    }
+}
+
+#[tokio::test]
+async fn a_reverse_one_way_segment_keeps_its_source_coordinate_order() {
+    let response = get(
+        topology_state(),
+        &topology_url("bbox=51.379,35.599,51.385,35.603"),
+    )
+    .await;
+    let segment = &response.body["segments"][0];
+    assert_eq!(segment["id"], "osm:way:615:segment:0");
+    assert_eq!(segment["startNodeId"], "osm:node:31");
+    assert_eq!(segment["endNodeId"], "osm:node:33");
+    assert_eq!(segment["geometry"]["coordinates"][0][0], 51.3800);
+    assert_eq!(segment["geometry"]["coordinates"][2][0], 51.3840);
+
+    // The road still publishes its reverse direction on the feature endpoint.
+    let features = get(
+        topology_state(),
+        "/api/v1/map/features?bbox=51.379,35.599,51.385,35.603",
+    )
+    .await;
+    let road = features.body["features"]
+        .as_array()
+        .expect("features is an array")
+        .iter()
+        .find(|feature| feature["id"] == "osm:way:615")
+        .expect("way 615 is in the viewport");
+    assert_eq!(
+        road["properties"]["traversal"]["motorcar"]["direction"],
+        "reverse"
+    );
+    // And its geometry is in the same source order as the segment.
+    assert_eq!(road["geometry"]["coordinates"][0][0], 51.3800);
+}
+
+#[tokio::test]
+async fn a_topology_segment_carries_no_road_semantics_and_no_raw_tags() {
+    let response = get(topology_state(), &topology_url(TOPOLOGY_VIEWPORT)).await;
+    let serialised = response.body.to_string();
+
+    for leaked in [
+        "traversal",
+        "roadClass",
+        "access",
+        "speedLimits",
+        "direction",
+        "oneway",
+        "maxspeed",
+        "highway",
+        "junction",
+        "barrier",
+        "residential",
+        "name",
+        "source",
+        "entityType",
+        "openstreetmap",
+    ] {
+        assert!(
+            !serialised.contains(leaked),
+            "`{leaked}` must not appear in a topology response"
+        );
+    }
+
+    // What it does carry is the join back to the road.
+    for segment in response.body["segments"]
+        .as_array()
+        .expect("segments is an array")
+    {
+        assert!(
+            segment["roadFeatureId"]
+                .as_str()
+                .expect("a road feature id")
+                .starts_with("osm:way:")
+        );
+    }
+}
+
+#[tokio::test]
+async fn topology_rejects_a_missing_or_invalid_bbox() {
+    let missing = get(topology_state(), "/api/v1/map/topology").await;
+    assert_eq!(missing.status, StatusCode::BAD_REQUEST);
+    assert_eq!(error_code(&missing.body), "INVALID_QUERY");
+    assert_eq!(missing.body["error"]["details"]["parameter"], "bbox");
+
+    for (query, code) in [
+        ("bbox=0,0,1", "INVALID_QUERY"),
+        ("bbox=0,0,1,abc", "INVALID_QUERY"),
+        ("bbox=51.4,35.68,51.38,35.70", "INVALID_BOUNDING_BOX"),
+        ("bbox=-181,0,10,10", "INVALID_BOUNDING_BOX"),
+    ] {
+        let response = get(topology_state(), &topology_url(query)).await;
+        assert_eq!(response.status, StatusCode::BAD_REQUEST, "{query}");
+        assert_eq!(error_code(&response.body), code, "{query}");
+    }
+}
+
+#[tokio::test]
+async fn topology_rejects_bad_limits_unknown_parameters_and_unknown_includes() {
+    for query in [
+        format!("{TOPOLOGY_VIEWPORT}&limit=0"),
+        format!("{TOPOLOGY_VIEWPORT}&limit=abc"),
+        format!("{TOPOLOGY_VIEWPORT}&limit=5001"),
+        format!("{TOPOLOGY_VIEWPORT}&zoom=12"),
+        format!("{TOPOLOGY_VIEWPORT}&kind=road"),
+        format!("{TOPOLOGY_VIEWPORT}&include=everything"),
+        format!("{TOPOLOGY_VIEWPORT}&include=source"),
+    ] {
+        let response = get(topology_state(), &topology_url(&query)).await;
+        assert_eq!(response.status, StatusCode::BAD_REQUEST, "{query}");
+        assert_eq!(error_code(&response.body), "INVALID_QUERY", "{query}");
+    }
+
+    // The documented maximum itself is accepted.
+    let response = get(
+        topology_state(),
+        &topology_url(&format!("{TOPOLOGY_VIEWPORT}&limit=5000")),
+    )
+    .await;
+    assert_eq!(response.status, StatusCode::OK);
+    assert_eq!(response.body["meta"]["limit"], 5000);
+}
+
+#[tokio::test]
+async fn topology_honours_a_dataset_pin() {
+    let state = topology_state();
+    let active = get(state.clone(), "/api/v1/datasets/current").await.body["datasetId"]
+        .as_str()
+        .expect("a dataset id")
+        .to_owned();
+
+    let matching = get(
+        state.clone(),
+        &topology_url(&format!("{TOPOLOGY_VIEWPORT}&dataset={active}")),
+    )
+    .await;
+    assert_eq!(matching.status, StatusCode::OK);
+    assert_eq!(matching.body["datasetId"], active);
+
+    let stale = get(
+        state,
+        &topology_url(&format!("{TOPOLOGY_VIEWPORT}&dataset=ds-gone")),
+    )
+    .await;
+    assert_eq!(stale.status, StatusCode::NOT_FOUND);
+    assert_eq!(error_code(&stale.body), "DATASET_NOT_FOUND");
+    assert_eq!(stale.body["error"]["details"]["requested"], "ds-gone");
+    assert_eq!(stale.body["error"]["details"]["active"], active);
+}
+
+#[tokio::test]
+async fn topology_refuses_to_answer_before_a_dataset_is_published() {
+    let loading = get(loading_state(), &topology_url(TOPOLOGY_VIEWPORT)).await;
+    assert_eq!(loading.status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(error_code(&loading.body), "DATASET_NOT_READY");
+    assert_eq!(loading.body["error"]["details"]["datasetStatus"], "loading");
+
+    let failed = get(failed_state(), &topology_url(TOPOLOGY_VIEWPORT)).await;
+    assert_eq!(failed.status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(error_code(&failed.body), "DATASET_NOT_READY");
+    assert_eq!(failed.body["error"]["details"]["datasetStatus"], "failed");
+}
+
+#[tokio::test]
+async fn an_empty_viewport_answers_with_an_empty_graph_not_an_error() {
+    let response = get(
+        topology_state(),
+        &topology_url("bbox=10.0,10.0,10.1,10.1&include=diagnostics"),
+    )
+    .await;
+    assert_eq!(response.status, StatusCode::OK);
+    assert_eq!(response.body["segments"].as_array().map(Vec::len), Some(0));
+    assert_eq!(response.body["nodes"].as_array().map(Vec::len), Some(0));
+    assert_eq!(response.body["meta"]["truncated"], false);
+    assert_eq!(response.body["meta"]["diagnostics"]["segmentsExamined"], 22);
+    assert_eq!(response.body["meta"]["diagnostics"]["candidatesFound"], 0);
+}
+
+#[tokio::test]
+async fn current_dataset_reports_the_final_topology_counts() {
+    let response = get(topology_state(), "/api/v1/datasets/current").await;
+    let statistics = &response.body["statistics"];
+
+    // Final dataset counts, not source-element counters: 38 nodes were
+    // indexed and 31 of them became topology nodes; 16 features were emitted
+    // and they split into 22 segments.
+    assert_eq!(statistics["nodesIndexed"], 38);
+    assert_eq!(statistics["topologyNodes"], 31);
+    assert_eq!(statistics["featuresEmitted"], 16);
+    assert_eq!(statistics["featureCount"], 16);
+    assert_eq!(statistics["topologySegments"], 22);
+    assert_ne!(statistics["topologyNodes"], statistics["nodesIndexed"]);
+    assert_ne!(statistics["topologySegments"], statistics["featureCount"]);
+}
+
+#[tokio::test]
+async fn the_topology_fixture_reports_exactly_two_warnings() {
+    let response = get(topology_state(), "/api/v1/datasets/current").await;
+    let warnings = response.body["warnings"]
+        .as_array()
+        .expect("warnings is an array");
+    let codes: Vec<&str> = warnings
+        .iter()
+        .map(|warning| warning["code"].as_str().expect("a code"))
+        .collect();
+    assert_eq!(
+        codes,
+        vec!["MISSING_NODE_REFERENCE", "UNSUPPORTED_RELATION"]
+    );
+    assert_eq!(warnings[0]["count"], 1);
+    assert_eq!(warnings[0]["samples"][0], "way/614");
+    assert_eq!(warnings[1]["count"], 1);
+    assert_eq!(warnings[1]["samples"][0], "relation/700");
+}
+
+#[tokio::test]
+async fn the_older_fixtures_gain_topology_counts_without_changing_anything_else() {
+    // The Milestone 1 fixture's counters are exactly what they were; the two
+    // topology counts are new members beside them, and the API version and
+    // media type are unchanged.
+    let response = get(ready_state(), "/api/v1/datasets/current").await;
+    let statistics = &response.body["statistics"];
+    assert_eq!(response.body["apiVersion"], "1");
+    assert_eq!(statistics["nodesSeen"], 8);
+    assert_eq!(statistics["nodesIndexed"], 7);
+    assert_eq!(statistics["waysSeen"], 8);
+    assert_eq!(statistics["roadWaysSelected"], 7);
+    assert_eq!(statistics["featuresEmitted"], 4);
+    assert_eq!(statistics["featuresSkipped"], 3);
+    assert_eq!(statistics["relationsSeen"], 2);
+    assert_eq!(statistics["featureCount"], 4);
+    // Four roads sharing three nodes between them — 3 joins 101 to 106, 5
+    // joins 102 to 105, and 6 joins 105 to 106 — so four segments over five
+    // nodes rather than eight.
+    assert_eq!(statistics["topologySegments"], 4);
+    assert_eq!(statistics["topologyNodes"], 5);
+
+    let features = get(ready_state(), &format!("/api/v1/map/features?{VIEWPORT}")).await;
+    assert_eq!(features.status, StatusCode::OK);
+    assert!(features.content_type.starts_with("application/geo+json"));
+    assert_eq!(features.body["atlas"]["apiVersion"], "1");
+    assert_eq!(features.body["type"], "FeatureCollection");
 }

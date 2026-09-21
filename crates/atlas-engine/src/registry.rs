@@ -164,12 +164,12 @@ mod tests {
     use super::*;
     use crate::dataset::DatasetBuilder;
     use crate::import::FeatureSink;
-    use crate::test_support::{metadata, outcome, residential};
+    use crate::test_support::{imported, metadata, outcome};
 
     fn dataset(id: &str, feature_id: &str) -> Dataset {
         let mut builder = DatasetBuilder::new(DatasetId::new(id), metadata());
         builder
-            .accept(residential(feature_id, &[(0.0, 0.0), (1.0, 1.0)]))
+            .accept(imported(feature_id, &[(0.0, 0.0), (1.0, 1.0)]))
             .expect("sink accepts");
         builder.finish(outcome()).expect("dataset builds")
     }
@@ -187,7 +187,7 @@ mod tests {
         let registry = DatasetRegistry::new();
         let mut builder = DatasetBuilder::new(DatasetId::new("ds-1"), metadata());
         builder
-            .accept(residential("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)]))
+            .accept(imported("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)]))
             .expect("sink accepts");
         // The builder holds a feature, but nothing was published yet.
         assert!(registry.snapshot().is_none());
@@ -252,6 +252,63 @@ mod tests {
         assert_eq!(
             registry.snapshot().expect("snapshot").id(),
             &DatasetId::new("ds-2")
+        );
+    }
+
+    #[test]
+    fn a_failed_topology_build_leaves_the_published_dataset_alone() {
+        // The second import's roads are fine and its topology is impossible:
+        // one point identity claiming two positions. `finish` refuses, the
+        // failure is recorded, and the dataset that was already serving
+        // traffic keeps serving it — exactly as it survives a malformed file.
+        use crate::test_support::imported_with_path;
+
+        let registry = DatasetRegistry::new();
+        registry.publish(dataset("ds-1", "osm:way:1"));
+
+        registry.mark_loading();
+        let mut second = DatasetBuilder::new(DatasetId::new("ds-2"), metadata());
+        second
+            .accept(imported_with_path(
+                "osm:way:2",
+                &[("n:1", 0.0, 0.0), ("n:2", 1.0, 1.0)],
+            ))
+            .expect("sink accepts");
+        second
+            .accept(imported_with_path(
+                "osm:way:3",
+                &[("n:2", 9.0, 9.0), ("n:3", 2.0, 2.0)],
+            ))
+            .expect("sink accepts");
+        let error = second
+            .finish(outcome())
+            .expect_err("the topology cannot be derived");
+        registry.mark_failed(ImportFailure::new(
+            error.public_category(),
+            error.public_message(),
+        ));
+
+        assert_eq!(registry.status(), DatasetStatus::Ready);
+        assert!(registry.is_ready());
+        let snapshot = registry.snapshot().expect("snapshot");
+        assert_eq!(snapshot.id(), &DatasetId::new("ds-1"));
+        assert_eq!(snapshot.features().len(), 1);
+        // Its topology is intact too, not just its features.
+        assert_eq!(snapshot.topology().segment_count(), 1);
+        assert_eq!(
+            registry
+                .last_failure()
+                .expect("failure recorded")
+                .category(),
+            "topology-build-failed"
+        );
+        // And the recorded failure carries none of the internal detail.
+        assert!(
+            !registry
+                .last_failure()
+                .expect("failure recorded")
+                .message()
+                .contains("n:2")
         );
     }
 

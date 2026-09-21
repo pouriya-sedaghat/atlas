@@ -4,9 +4,10 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::time::Duration;
 
-use atlas_kernel::{BoundingBox, MapFeature};
+use atlas_kernel::BoundingBox;
 
 use crate::dataset::DatasetId;
+use crate::topology::ImportedRoad;
 
 /// Why a feature could not be accepted by a sink.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -14,6 +15,16 @@ pub enum SinkError {
     /// The sink is already full.
     #[error("the feature sink reached its capacity of {capacity} features")]
     CapacityExceeded {
+        /// The capacity that was hit.
+        capacity: usize,
+    },
+    /// The sink has retained as many road-path points as it may.
+    ///
+    /// A separate bound from the feature count on purpose: topology memory
+    /// grows with path points, not with roads, and one way can carry many
+    /// thousands of them.
+    #[error("the feature sink reached its capacity of {capacity} road-path points")]
+    TopologyCapacityExceeded {
         /// The capacity that was hit.
         capacity: usize,
     },
@@ -65,13 +76,19 @@ impl ImportError {
     }
 }
 
-/// Where an importer streams the features it produces.
+/// Where an importer streams the roads it produces.
 ///
 /// Sinks exist so that an importer never has to materialise one giant
-/// `Vec<MapFeature>`: it emits features one at a time as it parses them.
+/// `Vec<ImportedRoad>`: it emits roads one at a time as it parses them.
+///
+/// The unit of handover is an [`ImportedRoad`] — a feature *and* its path —
+/// rather than a bare feature. There is deliberately no feature-only method
+/// beside this one: an adapter that could hand over a road without its path
+/// would produce a dataset whose topology silently omits roads its feature
+/// collection contains, and nothing in the types would say so.
 pub trait FeatureSink {
-    /// Accepts one feature.
-    fn accept(&mut self, feature: MapFeature) -> Result<(), SinkError>;
+    /// Accepts one road: its feature and its source-neutral path, together.
+    fn accept(&mut self, road: ImportedRoad) -> Result<(), SinkError>;
 }
 
 /// A source of map features, such as a file in some external format.
@@ -84,7 +101,7 @@ pub trait MapSource {
     /// Metadata describing the source, including its attribution requirements.
     fn source_metadata(&self) -> SourceMetadata;
 
-    /// Streams every feature the source contains into `sink`.
+    /// Streams every road the source contains into `sink`.
     fn import(&self, sink: &mut dyn FeatureSink) -> Result<SourceImportOutcome, ImportError>;
 }
 
@@ -642,6 +659,19 @@ mod tests {
         assert_eq!(log.len(), 0);
         assert_eq!(log.count_of(IssueCode::MalformedEntity), 0);
         assert!(log.samples_of(IssueCode::MalformedEntity).is_empty());
+    }
+
+    #[test]
+    fn both_sink_capacities_are_reported_separately() {
+        // Two bounds, two messages. A feature-count ceiling and a path-point
+        // ceiling are different resources, and an operator reading a log needs
+        // to know which one was hit.
+        let features = SinkError::CapacityExceeded { capacity: 12 };
+        let points = SinkError::TopologyCapacityExceeded { capacity: 12 };
+        assert_ne!(features, points);
+        assert!(features.to_string().contains("12 features"));
+        assert!(points.to_string().contains("12 road-path points"));
+        assert_eq!(ImportError::from(points).public_category(), "sink-rejected");
     }
 
     #[test]

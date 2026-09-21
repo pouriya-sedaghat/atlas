@@ -119,6 +119,16 @@ section.panel > h2 {
   color: var(--muted);
 }
 
+/* The topology panel is the only one with a second level: a status block, a
+   legend and an inspector under one heading. */
+section.panel > h3 {
+  margin: 12px 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
 .rows {
   display: grid;
   grid-template-columns: minmax(84px, auto) 1fr;
@@ -254,6 +264,15 @@ section.panel > h2 {
   border-radius: 2px;
   /* The map draws these over a dark background; so does the legend. */
   background: var(--bg);
+}
+
+/* A topology legend swatch is a plain coloured dot, matching the circle the
+   node layer draws, rather than the access legend's line-and-dash SVG. */
+#topology-legend .legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--bg);
 }
 
 .legend-label {

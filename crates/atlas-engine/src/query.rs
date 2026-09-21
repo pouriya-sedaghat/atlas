@@ -255,14 +255,22 @@ mod tests {
     use crate::dataset::{DatasetBuilder, DatasetId};
     use crate::import::FeatureSink;
     use crate::registry::DatasetRegistry;
-    use crate::test_support::{metadata, outcome, residential, road};
+    use crate::test_support::{imported, imported_road, metadata, outcome, residential};
+    use crate::topology::ImportedRoad;
     use atlas_kernel::RoadClass;
 
-    fn snapshot(features: Vec<MapFeature>) -> DatasetSnapshot {
+    /// A published snapshot of the given roads.
+    ///
+    /// Every road enters the builder inside an `ImportedRoad`, because that is
+    /// the only way a road can enter it: a feature and its path arrive
+    /// together or not at all. These tests are about viewport *feature*
+    /// queries, so the paths carry generated identities and the topology they
+    /// produce is never looked at.
+    fn snapshot(roads: Vec<ImportedRoad>) -> DatasetSnapshot {
         let registry = DatasetRegistry::new();
         let mut builder = DatasetBuilder::new(DatasetId::new("ds-test"), metadata());
-        for feature in features {
-            builder.accept(feature).expect("sink accepts");
+        for road in roads {
+            builder.accept(road).expect("sink accepts");
         }
         registry.publish(builder.finish(outcome()).expect("dataset builds"));
         registry.snapshot().expect("snapshot")
@@ -318,10 +326,10 @@ mod tests {
     #[test]
     fn only_features_intersecting_the_viewport_are_returned() {
         let snapshot = snapshot(vec![
-            residential("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)]),
-            residential("osm:way:2", &[(50.0, 50.0), (51.0, 51.0)]),
+            imported("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)]),
+            imported("osm:way:2", &[(50.0, 50.0), (51.0, 51.0)]),
             // Crosses the viewport with both endpoints outside it.
-            residential("osm:way:3", &[(-5.0, 0.5), (5.0, 0.5)]),
+            imported("osm:way:3", &[(-5.0, 0.5), (5.0, 0.5)]),
         ]);
         let result = snapshot.query_features(&query(bbox(0.0, 0.0, 1.0, 1.0), 10));
         assert_eq!(returned_ids(&result), vec!["osm:way:1", "osm:way:3"]);
@@ -331,8 +339,8 @@ mod tests {
     #[test]
     fn diagnostics_describe_the_scan() {
         let snapshot = snapshot(vec![
-            residential("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)]),
-            residential("osm:way:2", &[(50.0, 50.0), (51.0, 51.0)]),
+            imported("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)]),
+            imported("osm:way:2", &[(50.0, 50.0), (51.0, 51.0)]),
         ]);
         let result = snapshot.query_features(&query(bbox(0.0, 0.0, 1.0, 1.0), 10));
         let diagnostics = result.diagnostics();
@@ -344,12 +352,12 @@ mod tests {
     #[test]
     fn kind_filtering_selects_matching_features() {
         let snapshot = snapshot(vec![
-            road(
+            imported_road(
                 "osm:way:1",
                 RoadClass::Residential,
                 &[(0.0, 0.0), (1.0, 1.0)],
             ),
-            road("osm:way:2", RoadClass::Service, &[(0.0, 0.0), (1.0, 1.0)]),
+            imported_road("osm:way:2", RoadClass::Service, &[(0.0, 0.0), (1.0, 1.0)]),
         ]);
         let road_only = MapFeatureQuery::new(
             bbox(0.0, 0.0, 1.0, 1.0),
@@ -364,9 +372,9 @@ mod tests {
     #[test]
     fn limit_truncates_and_reports_the_true_candidate_count() {
         let snapshot = snapshot(vec![
-            residential("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)]),
-            residential("osm:way:2", &[(0.0, 0.0), (1.0, 1.0)]),
-            residential("osm:way:3", &[(0.0, 0.0), (1.0, 1.0)]),
+            imported("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)]),
+            imported("osm:way:2", &[(0.0, 0.0), (1.0, 1.0)]),
+            imported("osm:way:3", &[(0.0, 0.0), (1.0, 1.0)]),
         ]);
         let result = snapshot.query_features(&query(bbox(0.0, 0.0, 1.0, 1.0), 2));
         assert_eq!(returned_ids(&result), vec!["osm:way:1", "osm:way:2"]);
@@ -379,8 +387,8 @@ mod tests {
     #[test]
     fn a_full_but_not_overflowing_result_is_not_truncated() {
         let snapshot = snapshot(vec![
-            residential("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)]),
-            residential("osm:way:2", &[(0.0, 0.0), (1.0, 1.0)]),
+            imported("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)]),
+            imported("osm:way:2", &[(0.0, 0.0), (1.0, 1.0)]),
         ]);
         let result = snapshot.query_features(&query(bbox(0.0, 0.0, 1.0, 1.0), 2));
         assert!(!result.truncated());
@@ -389,14 +397,14 @@ mod tests {
     #[test]
     fn output_order_is_deterministic_regardless_of_insertion_order() {
         let forwards = snapshot(vec![
-            residential("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)]),
-            residential("osm:way:2", &[(0.0, 0.0), (1.0, 1.0)]),
-            residential("osm:way:3", &[(0.0, 0.0), (1.0, 1.0)]),
+            imported("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)]),
+            imported("osm:way:2", &[(0.0, 0.0), (1.0, 1.0)]),
+            imported("osm:way:3", &[(0.0, 0.0), (1.0, 1.0)]),
         ]);
         let backwards = snapshot(vec![
-            residential("osm:way:3", &[(0.0, 0.0), (1.0, 1.0)]),
-            residential("osm:way:2", &[(0.0, 0.0), (1.0, 1.0)]),
-            residential("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)]),
+            imported("osm:way:3", &[(0.0, 0.0), (1.0, 1.0)]),
+            imported("osm:way:2", &[(0.0, 0.0), (1.0, 1.0)]),
+            imported("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)]),
         ]);
         let viewport = bbox(0.0, 0.0, 1.0, 1.0);
         assert_eq!(
@@ -407,7 +415,7 @@ mod tests {
 
     #[test]
     fn results_carry_the_dataset_they_came_from() {
-        let snapshot = snapshot(vec![residential("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)])]);
+        let snapshot = snapshot(vec![imported("osm:way:1", &[(0.0, 0.0), (1.0, 1.0)])]);
         let result = snapshot.query_features(&query(bbox(0.0, 0.0, 1.0, 1.0), 10));
         assert_eq!(result.dataset_id(), &DatasetId::new("ds-test"));
     }

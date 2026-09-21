@@ -6,6 +6,7 @@ import type {
   Bbox,
   CurrentDataset,
   HealthPayload,
+  TopologyCollection,
 } from './types.js';
 
 /** What Studio asks the feature endpoint for. */
@@ -14,6 +15,20 @@ export interface FeatureQueryRequest {
   kind?: string;
   limit?: number;
   include?: readonly ('source' | 'diagnostics')[];
+  dataset?: string;
+}
+
+/**
+ * What Studio asks the topology endpoint for.
+ *
+ * Deliberately not a `FeatureQueryRequest` with an extra flag. The topology
+ * endpoint takes no `kind` and offers no `source` include, and a shared
+ * request type would let Studio send parameters the server will reject.
+ */
+export interface TopologyQueryRequest {
+  bbox: Bbox;
+  limit?: number;
+  include?: readonly 'diagnostics'[];
   dataset?: string;
 }
 
@@ -47,6 +62,30 @@ export function buildFeaturesUrl(
   if (request.kind !== undefined) {
     params.set('kind', request.kind);
   }
+  if (request.limit !== undefined) {
+    params.set('limit', String(request.limit));
+  }
+  if (request.include !== undefined && request.include.length > 0) {
+    params.set('include', request.include.join(','));
+  }
+  if (request.dataset !== undefined) {
+    params.set('dataset', request.dataset);
+  }
+  return `${base}?${params.toString()}`;
+}
+
+/**
+ * Builds the topology query URL.
+ *
+ * Kept separate from `fetch` for the same reason `buildFeaturesUrl` is: the
+ * query-building rules are testable without a server or a browser.
+ */
+export function buildTopologyUrl(
+  request: TopologyQueryRequest,
+  base = '/api/v1/map/topology',
+): string {
+  const params = new URLSearchParams();
+  params.set('bbox', request.bbox.map((value) => formatDegrees(value)).join(','));
   if (request.limit !== undefined) {
     params.set('limit', String(request.limit));
   }
@@ -100,4 +139,11 @@ export async function fetchFeatures(
   signal: AbortSignal,
 ): Promise<AtlasFeatureCollection> {
   return readJson<AtlasFeatureCollection>(await fetch(buildFeaturesUrl(request), { signal }));
+}
+
+export async function fetchTopology(
+  request: TopologyQueryRequest,
+  signal: AbortSignal,
+): Promise<TopologyCollection> {
+  return readJson<TopologyCollection>(await fetch(buildTopologyUrl(request), { signal }));
 }

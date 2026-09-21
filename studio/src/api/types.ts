@@ -148,6 +148,27 @@ export interface ImportStatistics {
   relationsSeen: number;
   bytesRead?: number;
   featureCount: number;
+  /**
+   * How many nodes the finished dataset topology holds, from Milestone 2D on.
+   *
+   * A **final dataset count**, not a source-element counter: it is not
+   * `nodesIndexed`, because most indexed nodes are shape coordinates and never
+   * become topology nodes.
+   *
+   * Optional so that a Studio build still describes an older server's response
+   * accurately. Absent means the server never heard of topology, which is not
+   * the same as a topology with no nodes.
+   */
+  topologyNodes?: number;
+  /**
+   * How many segments the finished dataset topology holds, from Milestone 2D
+   * on.
+   *
+   * Also a final count, and also not `featuresEmitted`: a road splits into as
+   * many segments as it has split points minus one. Optional for the same
+   * reason as `topologyNodes`.
+   */
+  topologySegments?: number;
 }
 
 export interface CurrentDataset {
@@ -160,6 +181,75 @@ export interface CurrentDataset {
   statistics?: ImportStatistics;
   warnings: DatasetWarning[];
   failure?: { category: string; message: string };
+}
+
+/**
+ * One node of the road topology, as it arrives on the wire.
+ *
+ * Every member is optional and loosely typed on purpose: this is untrusted
+ * wire data, and narrowing it is the parser's job, not the type
+ * declaration's. A member Studio cannot read becomes indeterminate UI text,
+ * never an invented number.
+ */
+export interface TopologyNodeWire {
+  id?: string;
+  coordinate?: [number, number];
+  /** Degree in the **whole dataset**, not in the returned viewport. */
+  degree?: number;
+}
+
+/**
+ * One structural segment of the road topology, as it arrives on the wire.
+ *
+ * There is no direction, access, speed or class here, and there never will
+ * be: a segment says that two points are joined, not that anyone may travel
+ * between them. `roadFeatureId` is the join to the road that owns those
+ * facts.
+ *
+ * `startNodeId` and `endNodeId` name the first and last point of the
+ * geometry in the source's own coordinate order — not an origin and a
+ * destination.
+ */
+export interface TopologySegmentWire {
+  id?: string;
+  roadFeatureId?: string;
+  startNodeId?: string;
+  endNodeId?: string;
+  geometry?: {
+    type?: string;
+    coordinates?: [number, number][];
+  };
+}
+
+export interface TopologyDiagnostics {
+  segmentsExamined: number;
+  candidatesFound: number;
+  segmentsReturned: number;
+  nodesReturned: number;
+  elapsedMs: number;
+}
+
+export interface TopologyMeta {
+  segmentsReturned?: number;
+  nodesReturned?: number;
+  limit?: number;
+  truncated?: boolean;
+  diagnostics?: TopologyDiagnostics;
+}
+
+/**
+ * The `GET /api/v1/map/topology` payload.
+ *
+ * A graph, not a `FeatureCollection`: it has `nodes` and `segments` rather
+ * than `features`, and it is served as `application/json`.
+ */
+export interface TopologyCollection {
+  apiVersion?: string;
+  datasetId?: string;
+  bbox?: Bbox;
+  nodes?: TopologyNodeWire[];
+  segments?: TopologySegmentWire[];
+  meta?: TopologyMeta;
 }
 
 export interface HealthPayload {
