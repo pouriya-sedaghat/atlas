@@ -6,21 +6,33 @@
  * never render an older answer over a newer one. That is all this class does,
  * and it does it without touching the DOM or MapLibre so it can be tested
  * directly.
+ *
+ * It is generic over the request and result types so that the feature query
+ * and the topology query get the *same* lifecycle — one debounce, one
+ * generation counter, one abort — rather than two implementations that drift.
+ * The defaults are the feature query's types, so the ordinary case reads
+ * exactly as it did before topology existed. Each query keeps its own
+ * controller instance: the two have separate generations and separate
+ * in-flight requests, so a topology answer can never be discarded because a
+ * road query moved on, or the other way round.
  */
 
 import type { FeatureQueryRequest } from '../api/client.js';
 import type { AtlasFeatureCollection } from '../api/types.js';
 
-export type QueryRunner = (
-  request: FeatureQueryRequest,
+export type QueryRunner<TRequest = FeatureQueryRequest, TResult = AtlasFeatureCollection> = (
+  request: TRequest,
   signal: AbortSignal,
-) => Promise<AtlasFeatureCollection>;
+) => Promise<TResult>;
 
-export interface ViewportQueryControllerOptions {
-  run: QueryRunner;
-  onLoading?: (request: FeatureQueryRequest) => void;
-  onResult: (collection: AtlasFeatureCollection, request: FeatureQueryRequest) => void;
-  onError?: (error: unknown, request: FeatureQueryRequest) => void;
+export interface ViewportQueryControllerOptions<
+  TRequest = FeatureQueryRequest,
+  TResult = AtlasFeatureCollection,
+> {
+  run: QueryRunner<TRequest, TResult>;
+  onLoading?: (request: TRequest) => void;
+  onResult: (collection: TResult, request: TRequest) => void;
+  onError?: (error: unknown, request: TRequest) => void;
   debounceMs?: number;
 }
 
@@ -28,12 +40,15 @@ function isAbort(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError';
 }
 
-export class ViewportQueryController {
-  private readonly options: ViewportQueryControllerOptions;
+export class ViewportQueryController<
+  TRequest = FeatureQueryRequest,
+  TResult = AtlasFeatureCollection,
+> {
+  private readonly options: ViewportQueryControllerOptions<TRequest, TResult>;
   private readonly debounceMs: number;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private inFlight: AbortController | null = null;
-  private queued: { request: FeatureQueryRequest; generation: number } | null = null;
+  private queued: { request: TRequest; generation: number } | null = null;
   /**
    * Bumped the moment a new viewport is asked for, not when its query is
    * finally sent. Anything carrying an older generation is answering a view
@@ -42,13 +57,13 @@ export class ViewportQueryController {
   private generation = 0;
   private disposed = false;
 
-  constructor(options: ViewportQueryControllerOptions) {
+  constructor(options: ViewportQueryControllerOptions<TRequest, TResult>) {
     this.options = options;
     this.debounceMs = options.debounceMs ?? 250;
   }
 
   /** Schedules a query, replacing any query that has not gone out yet. */
-  request(request: FeatureQueryRequest): void {
+  request(request: TRequest): void {
     if (this.disposed) {
       return;
     }
@@ -80,6 +95,28 @@ export class ViewportQueryController {
     clearTimeout(this.timer);
     this.timer = null;
     void this.dispatch();
+  }
+
+  /**
+   * Cancels everything in flight and queued, and stays usable.
+   *
+   * Unlike `dispose`, the controller accepts requests again afterwards. This
+   * is what an overlay being switched off needs: stop paying for the answer
+   * nobody is waiting for any more, without making the controller unusable if
+   * the overlay is switched back on.
+   *
+   * The generation is bumped, so an answer that is already on its way back
+   * cannot be delivered after the cancel.
+   */
+  cancel(): void {
+    this.generation += 1;
+    if (this.timer !== null) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    this.inFlight?.abort();
+    this.inFlight = null;
+    this.queued = null;
   }
 
   /** Cancels everything; the controller accepts no further requests. */

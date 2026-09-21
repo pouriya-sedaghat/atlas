@@ -6,8 +6,9 @@
 use std::collections::HashMap;
 
 use atlas_engine::{
-    DEFAULT_FEATURE_LIMIT, FeatureFilter, FeatureKindFilter, MAX_FEATURE_LIMIT, MapFeatureQuery,
-    QueryError,
+    DEFAULT_FEATURE_LIMIT, DEFAULT_TOPOLOGY_SEGMENT_LIMIT, FeatureFilter, FeatureKindFilter,
+    MAX_FEATURE_LIMIT, MAX_TOPOLOGY_SEGMENT_LIMIT, MapFeatureQuery, QueryError, RoadTopologyQuery,
+    TopologyQueryError,
 };
 use atlas_kernel::{BoundingBox, BoundingBoxError};
 
@@ -16,6 +17,13 @@ use crate::error::{ApiError, RequestContext};
 const SUPPORTED_PARAMETERS: [&str; 5] = ["bbox", "kind", "limit", "include", "dataset"];
 const SUPPORTED_KINDS: [&str; 1] = ["road"];
 const SUPPORTED_INCLUDES: [&str; 2] = ["diagnostics", "source"];
+
+/// The topology endpoint takes no `kind`: topology is only ever about roads.
+const SUPPORTED_TOPOLOGY_PARAMETERS: [&str; 4] = ["bbox", "limit", "include", "dataset"];
+
+/// And it offers no `source`: a segment carries no source reference to
+/// include, because it carries no road facts at all.
+const SUPPORTED_TOPOLOGY_INCLUDES: [&str; 1] = ["diagnostics"];
 
 /// Which optional blocks the client asked to have included.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -37,12 +45,23 @@ pub struct FeatureRequest {
     pub dataset: Option<String>,
 }
 
+/// A fully validated topology request.
+#[derive(Debug, Clone)]
+pub struct TopologyRequest {
+    /// The validated domain query.
+    pub query: RoadTopologyQuery,
+    /// Whether the client asked for the diagnostics block.
+    pub diagnostics: bool,
+    /// A specific dataset the client insists on, when it pinned one.
+    pub dataset: Option<String>,
+}
+
 /// Parses and validates the raw query string parameters.
 pub fn parse_feature_request(
     raw: &HashMap<String, String>,
     context: &RequestContext,
 ) -> Result<FeatureRequest, ApiError> {
-    reject_unknown_parameters(raw, context)?;
+    reject_unknown(raw, &SUPPORTED_PARAMETERS, context)?;
 
     let bbox = parse_bbox(raw.get("bbox").map(String::as_str), context)?;
     let filter = parse_kind_filter(raw.get("kind").map(String::as_str), context)?;
@@ -67,14 +86,49 @@ pub fn parse_feature_request(
     })
 }
 
-fn reject_unknown_parameters(
+/// Parses and validates the raw topology query string parameters.
+///
+/// Deliberately its own function rather than a flag on the feature parser.
+/// The two endpoints accept different parameters and different includes, and a
+/// shared parser with two modes would make it easy for one endpoint to quietly
+/// start accepting the other's vocabulary.
+pub fn parse_topology_request(
     raw: &HashMap<String, String>,
+    context: &RequestContext,
+) -> Result<TopologyRequest, ApiError> {
+    reject_unknown(raw, &SUPPORTED_TOPOLOGY_PARAMETERS, context)?;
+
+    let bbox = parse_bbox(raw.get("bbox").map(String::as_str), context)?;
+    let limit = parse_topology_limit(raw.get("limit").map(String::as_str), context)?;
+    let diagnostics = parse_topology_include(raw.get("include").map(String::as_str), context)?;
+
+    let query = RoadTopologyQuery::new(bbox, limit).map_err(|error| match error {
+        TopologyQueryError::LimitTooSmall => context
+            .invalid_query("limit must be at least 1")
+            .with_detail("parameter", "limit"),
+        TopologyQueryError::LimitTooLarge { requested, maximum } => context
+            .invalid_query(format!("limit must not exceed {maximum}"))
+            .with_detail("parameter", "limit")
+            .with_detail("requested", requested as u64)
+            .with_detail("maximum", maximum as u64),
+    })?;
+
+    Ok(TopologyRequest {
+        query,
+        diagnostics,
+        dataset: raw.get("dataset").map(String::to_owned),
+    })
+}
+
+fn reject_unknown(
+    raw: &HashMap<String, String>,
+    supported: &[&str],
     context: &RequestContext,
 ) -> Result<(), ApiError> {
     let mut unknown: Vec<&str> = raw
         .keys()
         .map(String::as_str)
-        .filter(|name| !SUPPORTED_PARAMETERS.contains(name))
+        .filter(|name| !supported.contains(name))
         .collect();
     if unknown.is_empty() {
         return Ok(());
@@ -83,7 +137,7 @@ fn reject_unknown_parameters(
     Err(context
         .invalid_query(format!("unsupported query parameter `{}`", unknown[0]))
         .with_detail("unsupported", unknown.join(","))
-        .with_detail("supported", SUPPORTED_PARAMETERS.join(",")))
+        .with_detail("supported", supported.join(",")))
 }
 
 fn parse_bbox(raw: Option<&str>, context: &RequestContext) -> Result<BoundingBox, ApiError> {
@@ -176,6 +230,42 @@ fn parse_limit(raw: Option<&str>, context: &RequestContext) -> Result<usize, Api
             ))
             .with_detail("parameter", "limit")
     })
+}
+
+fn parse_topology_limit(raw: Option<&str>, context: &RequestContext) -> Result<usize, ApiError> {
+    let Some(raw) = raw else {
+        return Ok(DEFAULT_TOPOLOGY_SEGMENT_LIMIT);
+    };
+    raw.trim().parse::<usize>().map_err(|_| {
+        context
+            .invalid_query(format!(
+                "limit must be a whole number between 1 and {MAX_TOPOLOGY_SEGMENT_LIMIT}"
+            ))
+            .with_detail("parameter", "limit")
+    })
+}
+
+fn parse_topology_include(raw: Option<&str>, context: &RequestContext) -> Result<bool, ApiError> {
+    let Some(raw) = raw else {
+        return Ok(false);
+    };
+    let mut diagnostics = false;
+    for value in raw
+        .split(',')
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        match value {
+            "diagnostics" => diagnostics = true,
+            other => {
+                return Err(context
+                    .invalid_query(format!("unsupported include `{other}`"))
+                    .with_detail("parameter", "include")
+                    .with_detail("supported", SUPPORTED_TOPOLOGY_INCLUDES.join(",")));
+            }
+        }
+    }
+    Ok(diagnostics)
 }
 
 fn parse_include(raw: Option<&str>, context: &RequestContext) -> Result<IncludeSet, ApiError> {
@@ -350,5 +440,136 @@ mod tests {
     fn a_pinned_dataset_is_carried_through() {
         let request = parse(&[("bbox", "0,0,1,1"), ("dataset", "ds-1")]).expect("request is valid");
         assert_eq!(request.dataset.as_deref(), Some("ds-1"));
+    }
+
+    mod topology {
+        use super::*;
+
+        fn parse(pairs: &[(&str, &str)]) -> Result<TopologyRequest, ApiError> {
+            parse_topology_request(&params(pairs), &context())
+        }
+
+        #[test]
+        fn parses_a_complete_request() {
+            let request = parse(&[
+                ("bbox", "51.380,35.680,51.400,35.700"),
+                ("limit", "250"),
+                ("include", "diagnostics"),
+                ("dataset", "ds-1"),
+            ])
+            .expect("request is valid");
+            assert_eq!(request.query.bbox().west(), 51.380);
+            assert_eq!(request.query.bbox().north(), 35.700);
+            assert_eq!(request.query.limit(), 250);
+            assert!(request.diagnostics);
+            assert_eq!(request.dataset.as_deref(), Some("ds-1"));
+        }
+
+        #[test]
+        fn defaults_are_applied_when_optional_parameters_are_missing() {
+            let request = parse(&[("bbox", "0,0,1,1")]).expect("request is valid");
+            assert_eq!(request.query.limit(), DEFAULT_TOPOLOGY_SEGMENT_LIMIT);
+            assert!(!request.diagnostics);
+            assert_eq!(request.dataset, None);
+        }
+
+        #[test]
+        fn bbox_is_required_and_validated_exactly_as_for_features() {
+            assert_eq!(
+                parse(&[]).expect_err("bbox is mandatory").code(),
+                ApiErrorCode::InvalidQuery
+            );
+            assert_eq!(
+                parse(&[("bbox", "0,0,1")])
+                    .expect_err("three values is not a bbox")
+                    .code(),
+                ApiErrorCode::InvalidQuery
+            );
+            for value in ["0,0,1,abc", "0,0,1,NaN", "0,0,1,inf"] {
+                assert_eq!(
+                    parse(&[("bbox", value)])
+                        .expect_err("non-numeric bbox must fail")
+                        .code(),
+                    ApiErrorCode::InvalidQuery
+                );
+            }
+            assert_eq!(
+                parse(&[("bbox", "51.4,35.68,51.38,35.70")])
+                    .expect_err("west beyond east")
+                    .code(),
+                ApiErrorCode::InvalidBoundingBox
+            );
+            assert_eq!(
+                parse(&[("bbox", "-181,0,10,10")])
+                    .expect_err("longitude out of range")
+                    .code(),
+                ApiErrorCode::InvalidBoundingBox
+            );
+        }
+
+        #[test]
+        fn limit_must_be_a_number_within_the_topology_range() {
+            for value in ["abc", "-1", "0"] {
+                assert_eq!(
+                    parse(&[("bbox", "0,0,1,1"), ("limit", value)])
+                        .expect_err("bad limit")
+                        .code(),
+                    ApiErrorCode::InvalidQuery
+                );
+            }
+            assert_eq!(
+                parse(&[
+                    ("bbox", "0,0,1,1"),
+                    ("limit", &(MAX_TOPOLOGY_SEGMENT_LIMIT + 1).to_string()),
+                ])
+                .expect_err("limit above the server maximum")
+                .code(),
+                ApiErrorCode::InvalidQuery
+            );
+            let request = parse(&[
+                ("bbox", "0,0,1,1"),
+                ("limit", &MAX_TOPOLOGY_SEGMENT_LIMIT.to_string()),
+            ])
+            .expect("the maximum itself is allowed");
+            assert_eq!(request.query.limit(), MAX_TOPOLOGY_SEGMENT_LIMIT);
+        }
+
+        #[test]
+        fn unknown_parameters_are_rejected() {
+            for parameter in ["zoom", "degree", "profile"] {
+                assert_eq!(
+                    parse(&[("bbox", "0,0,1,1"), (parameter, "1")])
+                        .expect_err("unknown parameter")
+                        .code(),
+                    ApiErrorCode::InvalidQuery
+                );
+            }
+        }
+
+        #[test]
+        fn the_feature_endpoints_kind_parameter_is_not_a_topology_parameter() {
+            // Topology is only ever about roads, so there is nothing to filter
+            // and `kind` is simply not part of this endpoint's vocabulary.
+            let error = parse(&[("bbox", "0,0,1,1"), ("kind", "road")])
+                .expect_err("kind is not a topology parameter");
+            assert_eq!(error.code(), ApiErrorCode::InvalidQuery);
+        }
+
+        #[test]
+        fn source_is_not_a_topology_include() {
+            // A segment carries no source reference, because it carries no
+            // road facts at all. Asking for one is an error rather than a
+            // silently ignored parameter.
+            let error = parse(&[("bbox", "0,0,1,1"), ("include", "source")])
+                .expect_err("source is not a topology include");
+            assert_eq!(error.code(), ApiErrorCode::InvalidQuery);
+        }
+
+        #[test]
+        fn unknown_includes_are_rejected() {
+            let error = parse(&[("bbox", "0,0,1,1"), ("include", "everything")])
+                .expect_err("unknown include");
+            assert_eq!(error.code(), ApiErrorCode::InvalidQuery);
+        }
     }
 }

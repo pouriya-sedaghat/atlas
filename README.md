@@ -24,23 +24,67 @@ Four Rust crates and one TypeScript application, with dependencies pointing
 strictly inward:
 
 ```
-atlas-kernel          the domain: coordinates, bounding boxes, geometry, features
+atlas-kernel          the domain: coordinates, bounding boxes, geometry,
+                      features, and topology value objects
       ↑
-atlas-engine          the use cases: import contracts, datasets, viewport queries
+atlas-engine          the use cases: import contracts, datasets, the road
+                      topology aggregate, viewport and topology queries
       ↑
-atlas-osm             an input adapter: streaming OSM XML → Atlas features
+atlas-osm             an input adapter: streaming OSM XML → Atlas roads
 
 atlas-server  →  atlas-kernel, atlas-engine, atlas-osm
 atlas-studio  →  the HTTP API only
 ```
 
+The kernel owns topology *value objects* — a node is a validated identity and a
+position, a segment is a validated structural edge — and the engine owns the
+*aggregate*: which nodes and segments a dataset has and which segments meet at
+which node. Connectivity is a relationship across features, so it belongs to
+the `Dataset`, never to `FeatureKind::Road`.
+
 | Crate | Responsibility | Must not know about |
 | --- | --- | --- |
-| `atlas-kernel` | Validated value objects (`Longitude`, `Latitude`, `GeoCoordinate`, `BoundingBox`), `LineString` geometry with cached bounds and exact box intersection, `MapFeature` / `FeatureKind` / `RoadClass` / `SourceReference`, and the four road records: `TravelMode` / `TravelDirection` / `RoadTraversal`, `AccessRule` / `RoadAccess`, and `Speed` / `SpeedUnit` / `SpeedLimitValue` / `SpeedLimitFact` / `RoadSpeedLimits`. | OSM, HTTP, JSON, databases, async runtimes, renderers |
-| `atlas-engine` | `MapSource` / `FeatureSink` / `ImportReport` contracts, `DatasetBuilder` → `Dataset` → `DatasetSnapshot`, atomic publication via `DatasetRegistry`, the `MapQuery` viewport use case. | OSM, HTTP, JSON |
-| `atlas-osm` | Streaming, two-pass plain `.osm` XML import, and the tag rules that turn `oneway*` into a `RoadTraversal`, `access*` into a `RoadAccess` and `maxspeed*` into a `RoadSpeedLimits`. `OsmNode`, `OsmWay`, `OsmRelation`, `OsmTags` are private to this crate. | HTTP, the wire format |
+| `atlas-kernel` | Validated value objects (`Longitude`, `Latitude`, `GeoCoordinate`, `BoundingBox`), `LineString` geometry with cached bounds and exact box intersection, `MapFeature` / `FeatureKind` / `RoadClass` / `SourceReference`, the four road records: `TravelMode` / `TravelDirection` / `RoadTraversal`, `AccessRule` / `RoadAccess`, and `Speed` / `SpeedUnit` / `SpeedLimitValue` / `SpeedLimitFact` / `RoadSpeedLimits`, and the topology values `RoadNodeId` / `RoadSegmentId` / `RoadNode` / `RoadSegment`. | OSM, HTTP, JSON, databases, async runtimes, renderers |
+| `atlas-engine` | `MapSource` / `FeatureSink` / `ImportReport` contracts, the `ImportedRoad` / `RoadPath` import envelope, `DatasetBuilder` → `Dataset` → `DatasetSnapshot`, the `RoadTopology` aggregate and its adjacency index, atomic publication via `DatasetRegistry`, and the `MapQuery` and `TopologyQuery` viewport use cases. | OSM, HTTP, JSON |
+| `atlas-osm` | Streaming, two-pass plain `.osm` XML import, the tag rules that turn `oneway*` into a `RoadTraversal`, `access*` into a `RoadAccess` and `maxspeed*` into a `RoadSpeedLimits`, and the deterministic opaque point identities (`osm:node:<id>`) each road path carries. `OsmNode`, `OsmWay`, `OsmRelation`, `OsmTags` are private to this crate. | HTTP, the wire format |
 | `atlas-server` | Axum HTTP boundary: versioned response DTOs, query-parameter validation, structured errors, startup import orchestration. | — |
 | `studio/` | TypeScript + MapLibre GL JS inspector. All presentation decisions. | Anything but the HTTP API |
+
+### Data flow
+
+One road travels this path, from an OSM element to a pixel:
+
+```text
+OSM way + node identity
+    -> ImportedRoad { MapFeature, RoadPath }        one indivisible handover
+    -> DatasetBuilder                               accumulates both
+    -> immutable MapFeature collection
+       + immutable RoadTopology                     derived once, at finish
+    -> atomic DatasetSnapshot                       published in one step
+    -> /api/v1/map/features   (GeoJSON)
+       /api/v1/map/topology   (JSON graph, additive)
+    -> Atlas Studio: roads always, topology opt-in
+```
+
+The handover is an `ImportedRoad` — a feature *and* its source-neutral path —
+rather than a bare feature, and there is deliberately no feature-only sink
+method beside it: an adapter that could hand over a road without its path would
+produce a dataset whose topology silently omits roads its feature collection
+contains.
+
+The envelope also checks that the two **correspond**: the path must describe
+the same ordered geometry as the feature. Co-presence alone would let an
+adapter pair a road drawn in one place with a path running through another, and
+the dataset would publish segments whose coordinates fall outside the bounds of
+the road they name. The comparison collapses adjacent duplicate coordinates on
+both sides — so the documented way 106 divergence is accepted — and rejects a
+reversed, unrelated or incomplete line. Path identities are never mutated by
+the check.
+
+The topology is derived at `finish` and nowhere earlier, because deciding
+whether a point is a junction needs the occurrence count across *all* accepted
+roads, which no single-way pass can have. The import-time paths are discarded
+as soon as it is derived.
 
 Design decisions are recorded in [`docs/decisions/`](docs/decisions/).
 
@@ -111,6 +155,7 @@ answers `/health/live`. `/health/ready` reports not-ready and
 | `GET /health/ready` | A dataset is published and queryable. `503` otherwise. |
 | `GET /api/v1/datasets/current` | Dataset id, status, bounds, source, attribution, import statistics and grouped warnings. Always `200`; `status` carries the truth. |
 | `GET /api/v1/map/features` | Viewport query, returned as GeoJSON. |
+| `GET /api/v1/map/topology` | Viewport road-topology query, returned as a JSON graph. |
 
 ### Feature query parameters
 
@@ -180,6 +225,92 @@ access tags reports `unspecified` for every mode, which is not the same as
 `allowed`; a road whose source carried no speed tags reports
 `{ "kind": "unspecified" }` in both directions for every mode, which is not the
 same as "unlimited" and not the same as a country default.
+
+### Road topology
+
+```bash
+curl "http://127.0.0.1:8080/api/v1/map/topology?bbox=51.380,35.680,51.400,35.700&limit=1000&include=diagnostics"
+```
+
+| Parameter | Required | Meaning |
+| --- | --- | --- |
+| `bbox` | yes | `west,south,east,north` in degrees |
+| `limit` | no | default 1000, server maximum 5000 (segments) |
+| `include` | no | `diagnostics` |
+| `dataset` | no | pin a dataset id; a mismatch returns `DATASET_NOT_FOUND` |
+
+There is no `kind` — topology is only ever about roads — and no `source`
+include, because a segment carries no source reference. Both are rejected
+rather than ignored.
+
+Responses are `application/json`, **not** `application/geo+json`. This is a
+graph, not a `FeatureCollection`: it has `nodes` and `segments`, and the only
+GeoJSON in it is each segment's own `LineString` geometry.
+
+```json
+{
+  "apiVersion": "1",
+  "datasetId": "ds-1758445200000",
+  "bbox": [51.38, 35.68, 51.4, 35.7],
+  "nodes": [
+    { "id": "osm:node:42", "coordinate": [51.39, 35.69], "degree": 3 }
+  ],
+  "segments": [
+    {
+      "id": "osm:way:10:segment:0",
+      "roadFeatureId": "osm:way:10",
+      "startNodeId": "osm:node:41",
+      "endNodeId": "osm:node:42",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[51.38, 35.68], [51.39, 35.69]]
+      }
+    }
+  ],
+  "meta": {
+    "segmentsReturned": 1,
+    "nodesReturned": 2,
+    "limit": 1000,
+    "truncated": false,
+    "diagnostics": {
+      "segmentsExamined": 1,
+      "candidatesFound": 1,
+      "segmentsReturned": 1,
+      "nodesReturned": 2,
+      "elapsedMs": 0.01
+    }
+  }
+}
+```
+
+`diagnostics` is absent unless requested.
+
+**A segment is a structural connection, not evidence that a mode may traverse
+it.** There is deliberately no `direction`, `access`, `speedLimits`,
+`roadClass`, `name`, `source` or raw tag on a segment, and there never will be:
+those are facts about the *road*, and `roadFeatureId` is the join to them. Ask
+`/api/v1/map/features` for that feature when you want them.
+
+`startNodeId` and `endNodeId` name the first and last point of the geometry in
+the source's own coordinate order. They are not an origin and a destination,
+and a segment is never reversed to match the direction traffic runs — a reverse
+one-way arrives exactly as it was drawn.
+
+`degree` is the node's degree in the **whole dataset**, not in the returned
+viewport, and a self-loop contributes two. It describes the shape of a
+junction, never how important, fast or usable the roads meeting there are.
+
+Every node named by a returned segment is in `nodes`, including nodes whose
+coordinate lies outside the requested box, so a response always resolves on its
+own. `candidates_found` counts every matching segment even past the limit, and
+`truncated` is true only when there were more.
+
+Identifiers are opaque. `osm:way:10:segment:0` is deterministic and stable, and
+clients must compare it for equality rather than parse it.
+
+This endpoint is purely additive. `/api/v1/map/features` produces exactly the
+JSON it produced before, the API version is still `1`, and a client that has
+never heard of topology cannot tell that it exists.
 
 Errors are `application/json`, never GeoJSON:
 
@@ -846,6 +977,126 @@ A speed problem never fails the import, never skips a road, never mutates
 geometry and never reverses coordinate order. Only malformed XML or attribute
 decoding is still fatal.
 
+## Road topology
+
+Atlas derives, across all imported roads, **which road paths are structurally
+connected and into which stable segments they split**.
+
+This is topology, not a routing graph. A segment says that two source points
+are joined by one part of one road geometry. It does **not** say that any mode
+may travel it, in which direction, on what terms, at what legal maximum, at
+what cost or in how long. **A topology segment is not evidence that a mode may
+traverse it.** Those are the four road facts above, which live on the road
+feature and are reached through the segment's `roadFeatureId`.
+
+Topology belongs to the `Dataset`, not to `FeatureKind::Road`. Whether a point
+is a junction depends on how many *other* roads use it, which no single road
+can know; the four road facts are true of one road in isolation, and
+connectivity is a relationship across features.
+
+### Identity is the only connectivity key
+
+Two road paths are connected where they share a **source point identity**, and
+nowhere else:
+
+| Situation | Connected? |
+| --- | --- |
+| Two ways naming the same node | yes |
+| One way naming the same node twice | yes, and it splits there |
+| Two nodes at exactly the same coordinate | **no** — two identities, two positions |
+| Two lines crossing on the page with no shared node | **no** — that is an overpass |
+| A non-road way passing through a road's node | **no** — it contributes no path |
+| A road skipped for broken geometry | **no** — it contributes no path |
+
+Nothing else is consulted. `oneway*`, `access*`, `maxspeed*`, road class,
+`barrier`, `layer`, `level`, `bridge`, `tunnel` and relation membership decide
+nothing about connectivity: they are either road facts, already modelled
+elsewhere, or routing policy, not modelled at all. Coordinates are used only to
+*validate* a derived segment against its nodes, never to decide a join.
+
+### Split points
+
+A source point becomes a public `RoadNode` when at least one rule applies:
+
+1. it is the first point of an accepted road path;
+2. it is the last point of an accepted road path;
+3. its source identity occurs more than once across accepted road paths;
+4. its source identity repeats inside one accepted path.
+
+Everything else stays a geometry shape point: still drawn, never a node.
+
+Each path is then split at **every occurrence** of a public node, and each
+consecutive pair of split occurrences becomes one segment, keeping every
+intermediate shape coordinate in source order.
+
+### Loops, self-loops and degree
+
+- A **closed way** whose only split point is its repeated endpoint becomes one
+  self-loop segment. A roundabout with approaches splits at the approach nodes
+  instead.
+- A **repeated internal point** splits at every occurrence, so the part between
+  two visits becomes a segment that starts and ends at the same node. That is
+  legitimate structural topology, not a case to reject.
+- **Degree counts incident segment ends**, so a self-loop contributes two and
+  the degree sum is always exactly twice the segment count.
+- **Parallel segments stay distinct**: two roads joining one pair of nodes are
+  two segments.
+- Degree is a **shape, not a rank**. A junction of five alleys outranks a
+  motorway running through, and nothing in Atlas or Studio treats that as
+  importance.
+
+### Segments are undirected
+
+`start` and `end` name the first and last point **in geometry order**, never an
+origin and a destination. No road and no segment is ever reversed to match the
+direction traffic runs: a reverse one-way is stored exactly as drawn, and its
+direction is read from the road.
+
+Segment identifiers are deterministic from the owning road and an ordinal —
+`osm:way:10:segment:0` — and are **opaque**: compare them, never parse them.
+
+### Paths keep more than the display geometry
+
+The importer collapses adjacent duplicate coordinates when it builds a
+feature's `LineString`, because two copies of one position draw nothing extra.
+The road path does not: two source identities at one position are two topology
+positions, and collapsing one would either merge two distinct nodes or delete a
+zero-length structural connection the source described. In `roads-basic.osm`,
+way 106 renders with two coordinates and its segment carries three.
+
+Paths exist only during an import and are discarded as soon as the topology is
+derived.
+
+### Atomic publication and bounds
+
+Features and topology are produced by one `DatasetBuilder::finish` and
+published in one `Dataset`. There is no moment in which a client can see a
+feature whose segments do not exist yet, which is why the import handoff is an
+`ImportedRoad` — a feature *and* its path, checked against one another — and
+why there is deliberately no feature-only sink method beside it.
+
+Bad source data stays a bounded warning on a skipped road, exactly as before.
+An **impossible** state — one identity claiming two coordinates, a duplicate
+public identifier, a segment pointing at a node nobody built — is a dataset
+build failure: nothing is published, the previously published dataset keeps
+serving, and the internal detail goes to the logs while the client sees a
+`topology-build-failed` category.
+
+Topology memory is bounded separately from feature count by
+`DatasetBuilder::DEFAULT_TOPOLOGY_POINT_CAPACITY`, because path points are
+retained for the whole import while feature geometry is not.
+
+### Relations stay uninterpreted
+
+Relations are still counted and reported as `UNSUPPORTED_RELATION`. A turn
+restriction constrains a manoeuvre *through* a junction — a statement about
+permitted travel, which this milestone does not model, and one that cannot even
+be expressed before the junction exists. The synthetic fixture pins the
+boundary with a restriction-shaped relation that is counted and ignored.
+
+See [ADR-010](docs/decisions/ADR-010-source-derived-road-topology.md) for the
+full reasoning and the rejected alternatives.
+
 ## Atlas Studio
 
 Studio is a debugging tool, not a product surface. It shows:
@@ -860,6 +1111,8 @@ Studio is a debugging tool, not a product surface. It shows:
 - a feature inspector: id, kind, road class, name, the direction, the access
   and both geometry directions' speed limits for all three profiles, source
   reference, coordinate count and bounds
+- an opt-in **Road topology** overlay, with its own toggle, its own legend and
+  its own inspector
 - OpenStreetMap attribution with a working licence link
 
 Pan and zoom trigger a debounced viewport query; an obsolete request is aborted
@@ -932,6 +1185,69 @@ three-state conditional internally (`not-tagged`, `present`, `indeterminate`)
 where the wire has only a boolean, so an absent `false` is not rendered as a
 present one. An unrecognised future kind, unit, magnitude or code degrades the
 same way and is never displayed.
+
+### The road topology overlay
+
+A separate **Road topology** toggle, deliberately not the existing
+`include=source,diagnostics` checkbox: topology is a different question with
+its own request, its own cost and its own overlay, and overloading one control
+would mean a reader could not ask for one without paying for the other.
+
+It is **off by default in every build**, including a dev build. While off,
+Studio makes **zero** topology requests and installs no topology source and no
+topology layer.
+
+Enabling it queries the current viewport and pins the current dataset id.
+Afterwards:
+
+- pan and zoom issue debounced, cancellable topology queries on their own
+  controller, with the same lifecycle rules as feature queries — one debounce,
+  one generation counter, one abort — but a separate generation, so neither
+  query can discard the other's answer;
+- **switching travel profile issues no topology request**, because a profile is
+  a question about who may travel and topology is a question about what is
+  joined to what;
+- replacing the dataset clears the stale graph *before* querying the
+  replacement, so one import's segments are never drawn over another's roads;
+- a failed topology query is reported in the panel and never removes or
+  corrupts the road map;
+- disabling the overlay removes its own layers and sources and **refetches no
+  road features**.
+
+Hover, road selection, the access overlay, the direction arrows and the speed
+inspector are untouched by any of it.
+
+The overlay uses its own MapLibre sources and its own leaf layer module, which
+is a separate composition root from the road stack — neither imports the other,
+so the overlay cannot reintroduce a circular import and topology is never
+flattened into road properties. Three layers are drawn: an invisible wide hit
+target, thin neutral-cyan segment lines, and node circles on top.
+
+Nodes are styled by degree, by **size as well as hue**, so the distinction
+survives a greyscale screenshot and a colour-blind reader:
+
+| Category | Degree | Appearance |
+| --- | --- | --- |
+| Endpoint | 1 | small green |
+| Through | 2 | small cyan |
+| Junction | 3 or more | large amber |
+| Not stated | — | medium purple |
+
+"Not stated" is deliberately unlike "endpoint" in both hue and size: a node
+whose degree the server did not send must not be mistaken for one whose degree
+is one.
+
+Clicking a topology node shows its id, coordinate and complete-graph degree;
+clicking a segment shows its id, owning `roadFeatureId`, start and end node ids
+and geometry point count. Nodes win over segments at a junction, because the
+circle sits on top of every line converging on it. Every wire string is written
+with `textContent`; nothing in Studio assigns untrusted text to `innerHTML`.
+
+A member Studio cannot read becomes indeterminate text, never invented data. A
+coordinate that is not two finite in-range numbers is not repaired or clamped;
+a geometry with one unreadable coordinate is abandoned entirely rather than
+having the gap closed around it, exactly as the importer refuses to stitch a
+way across an unresolvable reference.
 
 ### The access overlay
 
@@ -1333,11 +1649,76 @@ is a second number, never a reversed line.
 None of these facts says how fast anybody travels or how long a route takes.
 They record what the source said.
 
+
+### The topology fixture
+
+[`fixtures/synthetic/roads-topology.osm`](fixtures/synthetic/roads-topology.osm)
+covers the topology rules. It is laid out as ten disconnected groups, each in
+its own longitude band, so no group can touch another by accident and each case
+can be read off the file.
+
+Run it:
+
+```bash
+cargo run -p atlas-server -- --source fixtures/synthetic/roads-topology.osm
+# and, in another terminal, from studio/
+npm run dev
+```
+
+Then open <http://localhost:5173> and switch on **Road topology**.
+
+| Case | Road ways | Node sequence | Expected topology |
+| --- | --- | --- | --- |
+| Simple road | 601 | `1-2-3` | nodes 1 and 3; one segment; node 2 is shape only |
+| T junction | 602, 603, 604 | `4-5`, `5-6`, `5-7` | node 5 degree 3; three segments |
+| Shared-node cross | 605, 606 | `8-9-10`, `11-9-12` | node 9 degree 4; four segments |
+| Geometric-only cross | 607, 608 | `13-14`, `15-16` | the lines cross on the page and stay two disconnected segments |
+| Roundabout plus approaches | 609, 610, 611 | `17-18-19-17`, `20-18`, `19-21` | the ring splits into three segments; nodes 18 and 19 degree 3; five segments in total |
+| Repeated internal node | 612 | `22-23-24-23-25` | three segments; the middle one is a self-loop; node 23 degree 4; node 24 shape only |
+| Non-road sharing a point | road 613, non-road 900 | `26-27-28`, `27-29` | the road stays one segment; node 27 is shape only |
+| Missing reference | 614 | `30-999` | the road is skipped; no path, node or segment; the existing warning |
+| Reverse one-way | 615 | `31-32-33`, `oneway=-1` | one segment in source order; topology is not reversed |
+| Same coordinate, two ids | 616, 617 | `34-35-36`, `37-38`, nodes 35 and 37 coincide | two disconnected segments; the ids are not merged |
+
+Relation 700 is restriction-shaped: it is counted and reported as unsupported,
+and never interpreted.
+
+The expected outcome is asserted in full in
+`crates/atlas-osm/tests/topology_fixture.rs` and repeated in the fixture
+header:
+
+| Counter | Value |
+| --- | --- |
+| nodes seen / indexed | 38 / 38 |
+| ways seen | 18 |
+| road ways selected | 17 |
+| features emitted | 16 |
+| features skipped | 1 |
+| relations seen | 1 |
+| topology nodes | 31 |
+| topology segments | 22 |
+
+| Warning | Count | Samples |
+| --- | --- | --- |
+| `MISSING_NODE_REFERENCE` | 1 | `way/614` |
+| `UNSUPPORTED_RELATION` | 1 | `relation/700` |
+
+The two topology counters are **final dataset counts**, not source-element
+counters: 38 nodes were indexed and 31 of them turned out to be junctions or
+ends, and 16 features split into 22 segments. Both are published additively on
+`/api/v1/datasets/current` as `topologyNodes` and `topologySegments`, and every
+existing counter keeps its exact meaning.
+
+Deriving valid topology needed **no new import issue code**, and broadened no
+existing one.
 ## Limitations
 
 This milestone is deliberately narrow. Not implemented, and not stubbed:
 
-- routing, shortest paths, road graphs, turn restrictions, route costs
+- routing, shortest paths, routing graphs, turn restrictions, route costs.
+  Atlas now derives **structural topology** — which road paths are connected
+  and how they split — and that is not a routing graph: a segment is not
+  evidence that any mode may traverse it
 - routing policy of any kind: Atlas records what the source said about access,
   never whether a route may use the road. A motorway can report a bicycle
   direction and a footway a motorcar direction, and both may report
@@ -1351,8 +1732,8 @@ This milestone is deliberately narrow. Not implemented, and not stubbed:
   the `highway` value is used for display classification only
 - `.osm.pbf`, compressed input, network downloads, file upload
 - persistent storage; the dataset is rebuilt from the source file on every start
-- spatial indexing; queries are a linear scan, with diagnostics to prove when
-  that stops being acceptable
+- spatial indexing; feature and topology queries are both a linear scan, with
+  diagnostics to prove when that stops being acceptable
 - vector tiles, authentication, geocoding, live traffic, external map tiles
 
 Access, specifically, is bounded as follows:
@@ -1437,6 +1818,35 @@ Other known bounds:
 - Feature ids (`osm:way:101`) are deterministic across re-imports and are
   opaque: clients must not parse them.
 - A dataset is capped at 5,000,000 features, and a single query at 5,000.
+
+Topology, specifically, is bounded as follows:
+
+- A segment is a **structural connection**, never a permitted traversal. It
+  carries no direction, access, speed, class, name, source reference or raw
+  tag, and `roadFeatureId` is the join to the road that carries them.
+- Segments are **undirected**. `start` and `end` are the first and last point
+  of the geometry in source order, not an origin and a destination, and no
+  geometry is ever reversed to match travel direction.
+- Connectivity is decided by **source point identity alone**. Equal coordinates
+  with different identities do not connect, geometric crossings do not connect,
+  and no tag — `oneway*`, `access*`, `maxspeed*`, class, `barrier`, `layer`,
+  `level`, `bridge`, `tunnel` — is consulted.
+- **Turn restrictions are not interpreted.** Relations are counted and reported
+  as `UNSUPPORTED_RELATION`, as before. A restriction constrains a manoeuvre
+  through a junction, which is routing policy and cannot be expressed before
+  the junction exists.
+- **Degree is a shape, not a rank.** It counts incident segment ends in the
+  whole dataset, a self-loop contributes two, and nothing treats a higher
+  degree as a more important road.
+- Topology is derived from **accepted roads only**. A non-road way and a road
+  skipped for broken geometry contribute no path and therefore cannot promote
+  a point to a node.
+- A road's feature geometry and its path must **describe the same ordered
+  geometry**, compared with adjacent duplicate coordinates collapsed on both
+  sides. A reversed, unrelated or incomplete path is rejected at the import
+  envelope rather than published as a topology that disagrees with its roads.
+- No mode-specific graph, no edge pruning, no connected-component analysis, no
+  node clustering and no geometry simplification.
 
 ## Attribution
 

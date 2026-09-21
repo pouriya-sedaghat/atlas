@@ -8,12 +8,13 @@ use std::time::Duration;
 
 use atlas_engine::{
     Attribution, Dataset, ImportFailure, ImportReport, IssueGroup, MapQueryResult,
-    QueryDiagnostics, SourceMetadata,
+    QueryDiagnostics, SourceMetadata, TopologyNodeResult, TopologyQueryDiagnostics,
+    TopologyQueryResult,
 };
 use atlas_kernel::{
-    AccessRule, BoundingBox, ConditionalSpeedLimit, DirectionalSpeedLimits, Geometry, MapFeature,
-    RoadAccess, RoadSpeedLimits, RoadTraversal, SpeedLimitFact, SpeedLimitValue, TravelDirection,
-    TravelMode,
+    AccessRule, BoundingBox, ConditionalSpeedLimit, DirectionalSpeedLimits, Geometry, LineString,
+    MapFeature, RoadAccess, RoadSegment, RoadSpeedLimits, RoadTraversal, SpeedLimitFact,
+    SpeedLimitValue, TravelDirection, TravelMode,
 };
 use serde::Serialize;
 
@@ -22,6 +23,14 @@ pub const API_VERSION: &str = "1";
 
 /// The media type Atlas serves feature collections with.
 pub const GEOJSON_CONTENT_TYPE: &str = "application/geo+json";
+
+/// The media type Atlas serves the topology graph with.
+///
+/// Plain JSON, not GeoJSON. A topology response is a graph — nodes with
+/// degrees and segments with endpoints — and a `FeatureCollection` would be a
+/// lie about its shape, even though the segment geometries inside it happen to
+/// be GeoJSON `LineString` objects.
+pub const JSON_CONTENT_TYPE: &str = "application/json";
 
 fn bbox_array(bbox: &BoundingBox) -> [f64; 4] {
     [bbox.west(), bbox.south(), bbox.east(), bbox.north()]
@@ -58,18 +67,22 @@ pub enum GeometryV1 {
 impl GeometryV1 {
     fn from_domain(geometry: &Geometry) -> Self {
         match geometry {
-            Geometry::LineString(line) => GeometryV1::LineString {
-                coordinates: line
-                    .coordinates()
-                    .iter()
-                    .map(|coordinate| {
-                        [
-                            coordinate.longitude_degrees(),
-                            coordinate.latitude_degrees(),
-                        ]
-                    })
-                    .collect(),
-            },
+            Geometry::LineString(line) => GeometryV1::from_line(line),
+        }
+    }
+
+    fn from_line(line: &LineString) -> Self {
+        GeometryV1::LineString {
+            coordinates: line
+                .coordinates()
+                .iter()
+                .map(|coordinate| {
+                    [
+                        coordinate.longitude_degrees(),
+                        coordinate.latitude_degrees(),
+                    ]
+                })
+                .collect(),
         }
     }
 }
@@ -460,6 +473,191 @@ impl FeatureCollectionV1 {
     }
 }
 
+/// One node of the road topology, on the wire.
+///
+/// Three members, and deliberately no fourth. There is no name, no class, no
+/// access, no speed and no traffic rule here: a node is a place where road
+/// paths meet, and everything else about the roads that meet there is read
+/// from those roads.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TopologyNodeV1 {
+    /// The opaque node id. Compare it for equality; never parse it.
+    pub id: String,
+    /// `[longitude, latitude]`, the same order as every other Atlas position.
+    pub coordinate: [f64; 2],
+    /// How many segment ends meet here **in the whole dataset**.
+    ///
+    /// Not in the returned viewport. A junction reports the degree it has in
+    /// the road network even when the response carries only one of the
+    /// segments that meet there, because the alternative would be a number
+    /// that changes as the user pans.
+    ///
+    /// A self-loop contributes two, because both of its ends land here.
+    pub degree: usize,
+}
+
+impl TopologyNodeV1 {
+    fn from_domain(result: &TopologyNodeResult) -> Self {
+        let node = result.node();
+        Self {
+            id: node.id().as_str().to_owned(),
+            coordinate: [
+                node.coordinate().longitude_degrees(),
+                node.coordinate().latitude_degrees(),
+            ],
+            degree: result.degree(),
+        }
+    }
+}
+
+/// One structural segment of the road topology, on the wire.
+///
+/// **A segment is a structural connection, not a permitted traversal.** It
+/// says that one part of one road geometry joins two points. It does not say
+/// that any mode may travel it, which way, on what terms or at what speed.
+///
+/// That is why there is no `direction`, `access`, `speedLimits`, `roadClass`,
+/// `name`, `source` or raw tag here, and why there never will be: those are
+/// facts about the *road*, and `roadFeatureId` is the join to them. A client
+/// that wants them asks `/api/v1/map/features` for that feature. Copying them
+/// onto a segment would create a second home for a fact that has one.
+///
+/// `startNodeId` and `endNodeId` name the first and last point of the
+/// geometry, in the source's own coordinate order. They are not an origin and
+/// a destination, and the segment is not reversed to match the direction
+/// traffic runs: a reverse one-way arrives in exactly the order it was drawn.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TopologySegmentV1 {
+    /// The opaque segment id. Compare it for equality; never parse it.
+    ///
+    /// It is derived deterministically from the owning road and an ordinal, so
+    /// re-importing one file produces the same ids — but the text is not a
+    /// contract to read. `roadFeatureId` is how you find the road.
+    pub id: String,
+    /// The feature id of the road this segment is part of.
+    pub road_feature_id: String,
+    /// The node at the first coordinate of the geometry.
+    pub start_node_id: String,
+    /// The node at the last coordinate of the geometry.
+    pub end_node_id: String,
+    /// The segment geometry, including every intermediate shape coordinate.
+    pub geometry: GeometryV1,
+}
+
+impl TopologySegmentV1 {
+    fn from_domain(segment: &RoadSegment) -> Self {
+        Self {
+            id: segment.id().as_str().to_owned(),
+            road_feature_id: segment.road().as_str().to_owned(),
+            start_node_id: segment.start().as_str().to_owned(),
+            end_node_id: segment.end().as_str().to_owned(),
+            geometry: GeometryV1::from_line(segment.geometry()),
+        }
+    }
+}
+
+/// What the topology scan measured, included only when asked for.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TopologyDiagnosticsV1 {
+    /// How many segments the scan looked at.
+    pub segments_examined: u64,
+    /// How many segments intersected the viewport.
+    pub candidates_found: u64,
+    /// How many segments were returned.
+    pub segments_returned: u64,
+    /// How many distinct endpoint nodes were returned.
+    pub nodes_returned: u64,
+    /// How long the scan took, in milliseconds.
+    pub elapsed_ms: f64,
+}
+
+impl TopologyDiagnosticsV1 {
+    fn from_domain(diagnostics: &TopologyQueryDiagnostics) -> Self {
+        Self {
+            segments_examined: diagnostics.segments_examined,
+            candidates_found: diagnostics.candidates_found,
+            segments_returned: diagnostics.segments_returned,
+            nodes_returned: diagnostics.nodes_returned,
+            elapsed_ms: elapsed_millis(diagnostics.elapsed),
+        }
+    }
+}
+
+/// The metadata block of a topology response.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TopologyMetaV1 {
+    /// How many segments are in this response.
+    pub segments_returned: usize,
+    /// How many nodes are in this response.
+    pub nodes_returned: usize,
+    /// The segment limit that was applied.
+    pub limit: usize,
+    /// Whether more segments matched than were returned.
+    pub truncated: bool,
+    /// Scan diagnostics, when `include=diagnostics` was requested.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub diagnostics: Option<TopologyDiagnosticsV1>,
+}
+
+/// The `GET /api/v1/map/topology` payload.
+///
+/// A graph, not a `FeatureCollection`. Every node named by a returned segment
+/// is in `nodes`, including the ones whose coordinate falls outside the
+/// requested box, so the response is always resolvable on its own.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TopologyCollectionV1 {
+    /// The API version, currently `1`.
+    pub api_version: &'static str,
+    /// The dataset the topology came from.
+    pub dataset_id: String,
+    /// The viewport that was queried, as `[west, south, east, north]`.
+    pub bbox: [f64; 4],
+    /// The deduplicated endpoints of the returned segments, in id order.
+    pub nodes: Vec<TopologyNodeV1>,
+    /// The matching segments, in id order.
+    pub segments: Vec<TopologySegmentV1>,
+    /// Response metadata.
+    pub meta: TopologyMetaV1,
+}
+
+impl TopologyCollectionV1 {
+    /// Maps a topology query result onto the wire format.
+    pub fn from_result(
+        result: &TopologyQueryResult,
+        viewport: &BoundingBox,
+        include_diagnostics: bool,
+    ) -> Self {
+        Self {
+            api_version: API_VERSION,
+            dataset_id: result.dataset_id().as_str().to_owned(),
+            bbox: bbox_array(viewport),
+            nodes: result
+                .nodes()
+                .iter()
+                .map(TopologyNodeV1::from_domain)
+                .collect(),
+            segments: result
+                .segments()
+                .iter()
+                .map(|segment| TopologySegmentV1::from_domain(segment))
+                .collect(),
+            meta: TopologyMetaV1 {
+                segments_returned: result.segments().len(),
+                nodes_returned: result.nodes().len(),
+                limit: result.limit(),
+                truncated: result.truncated(),
+                diagnostics: include_diagnostics
+                    .then(|| TopologyDiagnosticsV1::from_domain(result.diagnostics())),
+            },
+        }
+    }
+}
+
 /// Where a dataset came from.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -505,6 +703,19 @@ pub struct ImportStatisticsV1 {
     pub bytes_read: Option<u64>,
     /// How many features the dataset holds.
     pub feature_count: usize,
+    /// How many nodes the finished dataset topology holds.
+    ///
+    /// A **final dataset count**, not a source-element counter. It is not
+    /// `nodesIndexed`: most indexed nodes are shape coordinates and never
+    /// become topology nodes, and a node that only a non-road way or a skipped
+    /// road mentions never becomes one at all.
+    pub topology_nodes: usize,
+    /// How many segments the finished dataset topology holds.
+    ///
+    /// Also a final count. It is not `featuresEmitted`: a road splits into as
+    /// many segments as it has split points minus one, so a junction-heavy
+    /// road contributes several and a plain one contributes exactly one.
+    pub topology_segments: usize,
 }
 
 /// One grouped import warning.
@@ -585,7 +796,7 @@ impl CurrentDatasetV1 {
             bounds: dataset.bounds().map(bbox_array),
             source: Some(source_v1(dataset.source())),
             attribution: dataset.attribution().map(attribution_v1),
-            statistics: Some(statistics_v1(report)),
+            statistics: Some(statistics_v1(report, dataset)),
             warnings: report.issues().groups().map(warning_v1).collect(),
             failure: failure.map(failure_v1),
         }
@@ -606,7 +817,7 @@ fn attribution_v1(attribution: &Attribution) -> AttributionV1 {
     }
 }
 
-fn statistics_v1(report: &ImportReport) -> ImportStatisticsV1 {
+fn statistics_v1(report: &ImportReport, dataset: &Dataset) -> ImportStatisticsV1 {
     let stats = report.stats();
     ImportStatisticsV1 {
         elapsed_ms: elapsed_millis(report.elapsed()),
@@ -619,6 +830,8 @@ fn statistics_v1(report: &ImportReport) -> ImportStatisticsV1 {
         relations_seen: stats.relations_seen,
         bytes_read: stats.bytes_read,
         feature_count: report.feature_count(),
+        topology_nodes: dataset.topology().node_count(),
+        topology_segments: dataset.topology().segment_count(),
     }
 }
 

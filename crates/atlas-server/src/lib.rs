@@ -27,6 +27,7 @@ pub fn router(state: SharedState) -> Router {
         .route("/health/ready", get(routes::health::ready))
         .route("/api/v1/datasets/current", get(routes::datasets::current))
         .route("/api/v1/map/features", get(routes::features::query))
+        .route("/api/v1/map/topology", get(routes::topology::query))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

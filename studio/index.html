@@ -60,6 +60,27 @@
           <div id="inspector-panel"></div>
         </section>
 
+        <section class="panel">
+          <h2>Road topology</h2>
+          <div class="controls">
+            <label>
+              <input id="toggle-topology" type="checkbox" />
+              Show the source-derived road topology
+            </label>
+          </div>
+          <div id="topology-panel"></div>
+          <p class="note">
+            Topology says which road paths are structurally connected and where they split. It is
+            <strong>not</strong> a routing graph, and a segment is <strong>not</strong> evidence
+            that any mode may traverse it: direction, access and speed are facts on the road
+            feature, joined by <code>roadFeatureId</code>. Two points are connected when they share
+            a source identity — never because their coordinates match or their lines cross.
+          </p>
+          <div id="topology-legend"></div>
+          <h3>Topology inspector</h3>
+          <div id="topology-inspector-panel"></div>
+        </section>
+
         <footer id="attribution">
           Map data ©
           <a
