@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# Host wrapper for the Seyra release CLI. Host prerequisites: bash, coreutils (sha256sum), Docker
+# Engine and Docker Compose v2. Everything else runs inside the locally loaded seyra-demo/ops image;
+# nothing is pulled or downloaded (--pull never).
+#
+#   SEYRA_HOME=/srv/seyra bin/seyra-maps <command> ...
+#   bin/seyra-maps bootstrap-load /path/to/bundle     # first install from an offline bundle
+set -euo pipefail
+install_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+lock="$install_dir/infra/dependencies.lock.json"
+[ -f "$lock" ] || { echo "missing $lock" >&2; exit 2; }
+ops_ref="$(grep -o '"ref": "seyra-demo/ops:[^"]*"' "$lock" | head -1 | cut -d'"' -f4)"
+[ -n "$ops_ref" ] || { echo "no ops image in $lock" >&2; exit 2; }
+
+if [ "${1:-}" = "bootstrap-load" ]; then
+  bundle="$(cd "${2:?bundle directory required}" && pwd)"
+  manifest="$bundle/bundle-manifest.json"
+  archive="$(grep -A6 '"role": "OPS"' "$manifest" | grep '"archive"' | cut -d'"' -f4)"
+  expected="$(grep -A6 '"role": "OPS"' "$manifest" | grep '"archive_sha256"' | cut -d'"' -f4)"
+  actual="$(sha256sum "$bundle/$archive" | cut -d' ' -f1)"
+  [ "$actual" = "$expected" ] || { echo "ops image archive checksum mismatch: $actual != $expected" >&2; exit 3; }
+  (cd "$bundle" && sha256sum --quiet -c SHA256SUMS) || { echo "bundle checksum verification failed" >&2; exit 3; }
+  docker load -i "$bundle/$archive"
+  exec docker run --rm -i --pull never --network none \
+    -v /var/run/docker.sock:/var/run/docker.sock -v "$bundle:$bundle:ro" -v "$install_dir:/opt/seyra-install:ro" \
+    "$ops_ref" bundle load "$bundle"
+fi
+
+: "${SEYRA_HOME:?set SEYRA_HOME to an absolute directory for Seyra state}"
+case "$SEYRA_HOME" in /*) ;; *) echo "SEYRA_HOME must be absolute" >&2; exit 2;; esac
+mkdir -p "$SEYRA_HOME"
+mounts=(-v /var/run/docker.sock:/var/run/docker.sock -v "$SEYRA_HOME:$SEYRA_HOME" -v "$install_dir:/opt/seyra-install:ro")
+die() { echo "seyra-maps: $*" >&2; exit 2; }
+home_cmp="$(cd "$SEYRA_HOME" && pwd)"
+inside_home() { case "$1" in "$home_cmp"|"$home_cmp"/*) return 0;; *) return 1;; esac; }
+declare -A mounted=()
+# Owner-supplied input files (--pbf) are checked here, before Docker
+# runs: the argument must be present and name an existing readable regular file. Each file is
+# bind-mounted read-only at its own absolute path (relative paths resolve against the caller's
+# directory). Inputs inside SEYRA_HOME are already visible through its writable mount and get no
+# extra mount, which would shadow writable state; a file named twice is mounted once.
+resolve_input() { # flag value -> sets $resolved and registers the mount
+  local flag="$1" v="$2" d
+  [ -n "$v" ] || die "$flag needs a file argument"
+  case "$v" in *$'\n'*|*'"'*) die "$flag path contains a newline or double quote";; esac
+  d="$(cd "$(dirname -- "$v")" 2>/dev/null && pwd)" || die "$flag: the directory of $v does not exist"
+  resolved="$d/$(basename -- "$v")"
+  [ -f "$resolved" ] || die "$flag: $resolved is not an existing regular file"
+  [ -r "$resolved" ] || die "$flag: $resolved is not readable"
+  if ! inside_home "$resolved" && [ -z "${mounted[$resolved]:-}" ]; then
+    mounted[$resolved]=1
+    # --mount (CSV with quoted fields) keeps paths with spaces, commas or colons intact.
+    mounts+=(--mount "type=bind,\"source=$resolved\",\"target=$resolved\",readonly")
+  fi
+}
+args=("$@")
+for ((i = 0; i < ${#args[@]}; i++)); do
+  case "${args[$i]}" in
+    --pbf)
+      [ $((i + 1)) -lt ${#args[@]} ] || die "${args[$i]} needs a file argument"
+      resolve_input "${args[$i]}" "${args[$((i + 1))]}"
+      args[$((i + 1))]="$resolved"; i=$((i + 1)) ;;
+    --from)
+      [ $((i + 1)) -lt ${#args[@]} ] || die "--from needs a directory"
+      # Service-local sources (a backup generation) live inside
+      # SEYRA_HOME and are root-only (0700); the CLI checks them as root through the home mount, so
+      # resolve those lexically instead of entering them as the operator. Others: an operator
+      # directory, checked here and mounted read-only.
+      d="$(realpath -s -m -- "${args[$((i + 1))]}")"
+      if ! inside_home "$d"; then
+        d="$(cd "${args[$((i + 1))]}" 2>/dev/null && pwd)" || die "--from: ${args[$((i + 1))]} is not a directory"
+        inside_home "$d" || mounts+=(-v "$d:$d:ro")
+      fi
+      args[$((i + 1))]="$d"; i=$((i + 1)) ;;
+    --out)
+      [ $((i + 1)) -lt ${#args[@]} ] || die "--out needs a directory"
+      # A new output directory is 0755 whatever the operator's umask (bundles and backups are read
+      # by other operators; nobody else may add files).
+      [ -d "${args[$((i + 1))]}" ] || mkdir -p -m 0755 "${args[$((i + 1))]}"
+      d="$(cd "${args[$((i + 1))]}" && pwd)"; args[$((i + 1))]="$d"; inside_home "$d" || mounts+=(-v "$d:$d"); i=$((i + 1)) ;;
+  esac
+done
+# `bundle verify|load DIR`: the bundle directory is mounted read-only at its own path.
+if [ "${args[0]:-}" = bundle ] && { [ "${args[1]:-}" = verify ] || [ "${args[1]:-}" = load ]; } && [ -n "${args[2]:-}" ]; then
+  d="$(cd "${args[2]}" && pwd)"; args[2]="$d"; mounts+=(-v "$d:$d:ro")
+fi
+# The ops container joins the internal build network (no outside route) when it exists.
+net=none
+docker network inspect seyra_demo_build >/dev/null 2>&1 && net=seyra_demo_build
+exec docker run --rm -i --pull never --network "$net" "${mounts[@]}" -e SEYRA_HOME="$SEYRA_HOME" "$ops_ref" "${args[@]}"

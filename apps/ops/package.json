@@ -1,0 +1,25 @@
+{
+  "name": "@seyra/ops",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "seyra-maps release CLI: offline import, staging validation, maintenance cutover, rollback, bundles",
+  "bin": {
+    "seyra-maps": "./dist/main.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@seyra/contracts": "1.0.0",
+    "typebox": "1.3.37",
+    "@seyra/map-assets": "1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "6.0.3",
+    "vitest": "5.0.4"
+  }
+}

@@ -1,0 +1,1194 @@
+--- upstream/.dockerignore
++++ demo/.dockerignore
+@@ -10,3 +10,9 @@
+ docs
+ prompts
+ **/*.tsbuildinfo
++
++.build
++.demo-state
++.demo-input
++validation
++scripts
+--- upstream/apps/ops/src/access.test.ts
++++ demo/apps/ops/src/access.test.ts
+@@ -54,7 +54,8 @@
+   });
+ });
+ 
+-describe('runtime boundary (review R1)', () => {
++// This group exercises Linux SEYRA_HOME paths; the target VM remains Linux-only.
++describe.skipIf(process.platform === 'win32')('runtime boundary (review R1)', () => {
+   let home = '';
+   beforeEach(() => {
+     home = mkdtempSync(join(tmpdir(), 'seyra-access-'));
+--- upstream/apps/ops/src/activate.ts
++++ demo/apps/ops/src/activate.ts
+@@ -1,7 +1,6 @@
+ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+ import { join } from 'node:path';
+ import { assertRuntimeEnvSafe, composeRuntime, parseEnv, runtimeEnv, writeRuntimeEnv, NO_RELEASE } from './compose.js';
+-import { assertServedPair } from './tls.js';
+ import { importLeaseState, recoverInterrupted } from './import-lock.js';
+ import { readOwner, withLifecycleLock } from './lifecycle-lock.js';
+ import { psql, recordEvent, renderDbName } from './db.js';
+@@ -150,10 +149,9 @@
+  */
+ export async function restartProxy(l: Layout, log: (m: string) => void): Promise<void> {
+   assertRuntimeEnvSafe(l);
+-  assertServedPair({ dir: l.tls });
+   await composeRuntime(l, ['up', '-d', '--no-deps', '--force-recreate', 'proxy']);
+   await assertIngressPublished(l, log);
+-  log('[ingress] proxy recreated with the current certificate and access configuration');
++  log('[ingress] proxy recreated with the current HTTP access configuration');
+ }
+ 
+ /**
+@@ -265,10 +263,6 @@
+ 
+ async function activateLocked(l: Layout, datasetId: string, opts: ActivateOptions): Promise<void> {
+   if (readTransition(l)) throw new Error('an earlier activation/rollback did not finish; run: seyra-maps recover');
+-  // Evaluated under the lifecycle lock, before anything changes: never activate onto an unfinished
+-  // or mismatched certificate replacement (a TLS command could have finished just before we got
+-  // the lock). Recovery paths (restorePrevious, recover) do not check, so they can always run.
+-  assertServedPair({ dir: l.tls });
+   const s = readSettings(l);
+   const timeoutS = opts.readinessTimeoutS ?? s.readinessTimeoutS;
+   const pollMs = opts.pollMs ?? 3000;
+--- upstream/apps/ops/src/bundle.ts
++++ demo/apps/ops/src/bundle.ts
+@@ -42,14 +42,18 @@
+   'infra/compose/runtime.yml',
+   'infra/compose/runtime.relay.yml',
+   'infra/compose/jobs.yml',
+-  'infra/edge',
+   'infra/catalog',
+   'infra/valhalla',
+   'infra/dependencies.lock.json',
+   'infra/prepare/sources.json',
+   'apps/ops/migrations',
+   'docs/RUNBOOK.md',
+-  'docs/MOBILE_INTEGRATION.md',
++  'docs/README-FA.md',
++  'demo.sh',
++  'scripts',
++  'SOURCE.json',
++  'fixtures/osm',
++  'docs/VALIDATION.md',
+   'docs/LICENSES.md',
+   'docs/openapi',
+ ];
+--- upstream/apps/ops/src/compose.ts
++++ demo/apps/ops/src/compose.ts
+@@ -5,8 +5,8 @@
+ import { imageEnv, type LockedImage } from './lock.js';
+ import { run, type RunOptions, type RunResult } from './proc.js';
+ 
+-export const RUNTIME_PROJECT = 'seyra';
+-export const JOBS_PROJECT = 'seyra-jobs';
++export const RUNTIME_PROJECT = 'seyra-demo';
++export const JOBS_PROJECT = 'seyra-demo-jobs';
+ 
+ export function composeFile(l: Layout, name: 'runtime.yml' | 'jobs.yml' | 'runtime.relay.yml'): string {
+   return join(l.install, 'infra', 'compose', name);
+@@ -121,7 +121,7 @@
+ }
+ 
+ export async function ensureNetworks(): Promise<void> {
+-  for (const name of ['seyra_backend', 'seyra_build']) {
++  for (const name of ['seyra_demo_backend', 'seyra_demo_build']) {
+     const exists = await run('docker', ['network', 'inspect', name], { allowFailure: true });
+     // Internal networks: no route to the outside world for anything attached to them.
+     if (exists.code !== 0) await run('docker', ['network', 'create', '--internal', '--label', 'seyra.managed=true', name]);
+--- upstream/apps/ops/src/layout.ts
++++ demo/apps/ops/src/layout.ts
+@@ -7,7 +7,6 @@
+ export interface Layout {
+   home: string;
+   secrets: string;
+-  tls: string;
+   state: string;
+   active: string;
+   previous: string;
+@@ -40,7 +39,6 @@
+   return {
+     home: h,
+     secrets: join(h, 'secrets'),
+-    tls: join(h, 'secrets', 'tls'),
+     state,
+     active: join(state, 'active'),
+     previous: join(state, 'previous'),
+@@ -75,7 +73,6 @@
+   for (const [dir, mode] of [
+     [l.home, 0o755],
+     [l.secrets, 0o711],
+-    [l.tls, 0o711],
+     [l.state, 0o755],
+     [l.active, 0o755],
+     [l.previous, 0o755],
+@@ -127,7 +124,7 @@
+ 
+ export const DEFAULT_SETTINGS: Settings = {
+   bindAddr: '127.0.0.1',
+-  httpsPort: 8443,
++  httpsPort: 8080,
+   accessMode: 'loopback',
+   lanCidrs: '',
+   serverNames: 'localhost 127.0.0.1',
+--- upstream/apps/ops/src/main.ts
++++ demo/apps/ops/src/main.ts
+@@ -11,21 +11,13 @@
+ import { lockedImages, verifyImages } from './lock.js';
+ import { readManifest } from './manifest.js';
+ import { init } from './setup.js';
+-import { assertServedPair } from './tls.js';
+-import { tlsCommand } from './tls-cli.js';
+ 
+-const USAGE = `seyra-maps — offline Map Services release tool (runs inside the seyra/ops image)
++const USAGE = `seyra-maps — HTTP demonstration Map Services release tool (runs inside the seyra-demo/ops image)
+ 
+   init [--bind IP] [--port N] [--access loopback|lan] [--lan-cidrs a/b,c/d] [--server-names "h1 h2"]
+        [--relay-peer IP --relay-bind IP --relay-port N --relay-client-cidrs a/b --relay-server-names "h1"] [--no-relay]
+   access apply                      write runtime.env from the persisted access/relay settings (active release kept)
+-  proxy restart                     recreate only the proxy (new certificate or applied access settings)
+-  tls csr --names n1,n2 [--replace-pending]      new server key (stays here) + CSR for an external issuer
+-  tls import --cert LEAF [--chain FILE] --ca ROOT --names n1,n2 [--key FILE]
+-                                    validate the issued certificate, then replace the served pair (journalled)
+-  tls restore --from DIR            re-install a backup made by tls import (validated, journalled)
+-  tls status | tls recover          served certificate metadata | finish/undo an interrupted replacement
+-  tls init --names localhost,127.0.0.1           TEST ONLY: on-host test CA for synthetic fixtures
++  proxy restart                     recreate only the HTTP proxy with applied access settings
+   verify-images                     check every locked image is loaded with its locked identity
+   import --pbf /abs/path/iran.osm.pbf [--snapshot-timestamp ISO8601]
+   activate DATASET_ID               maintenance cutover to a validated release
+@@ -97,8 +89,6 @@
+         log,
+       ));
+       return 0;
+-    case 'tls':
+-      return tlsCommand(layout(), rest, log);
+     case 'access':
+       if (rest[0] !== 'apply') throw new Error('access apply');
+       await withLifecycleLock(layout(), 'access-apply', null, async () => {
+@@ -139,7 +129,6 @@
+         // Image references are tags; refuse to start anything that no longer resolves to the lock.
+         const bad = (await verifyImages(lockedImages(l.install))).filter((r) => !r.ok);
+         if (bad.length) throw new Error(`refusing to start: ${bad.map((b) => `${b.role} is ${b.observed ?? 'missing'}, locked ${b.expected ?? 'unknown'}`).join('; ')}`);
+-        assertServedPair({ dir: l.tls }); // never start the ingress on a half-replaced or mismatched pair
+         await startStack(l, log);
+       });
+       return 0;
+--- upstream/apps/ops/src/setup.ts
++++ demo/apps/ops/src/setup.ts
+@@ -1,11 +1,10 @@
+ import { randomBytes } from 'node:crypto';
+-import { chmodSync, chownSync, existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
++import { chmodSync, chownSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+ import { join } from 'node:path';
+ import { composeRuntime, ensureNetworks, runtimeEnv, writeRuntimeEnv, NO_RELEASE } from './compose.js';
+ import { initDatabase, waitForDb } from './db.js';
+ import { DEFAULT_SETTINGS, ensureDirs, layout, readSettings, validateSettings, writeAtomic, type Settings } from './layout.js';
+ import { lockedImages } from './lock.js';
+-import { run } from './proc.js';
+ import { UID } from './importer.js';
+ import { readPointers } from './activate.js';
+ 
+@@ -45,32 +44,3 @@
+   log(`[init] database roles ensured; migrations applied: ${applied.length ? applied.join(', ') : 'none (up to date)'}`);
+ }
+ 
+-/**
+- * TEST ONLY (synthetic fixtures): an on-host test CA + server certificate. Its CA key stays in
+- * secrets/tls, so it is not the LAN provisioning design; LAN hosts use `tls csr` + `tls import`
+- * with an issuer managed off the host (tls.ts).
+- */
+-export async function tlsInit(names: string[], log: (m: string) => void, days = 825): Promise<void> {
+-  const l = layout();
+-  mkdirSync(l.tls, { recursive: true, mode: 0o711 });
+-  const caKey = join(l.tls, 'ca.key');
+-  const caCrt = join(l.tls, 'ca.crt');
+-  const key = join(l.tls, 'server.key');
+-  const csr = join(l.tls, 'server.csr');
+-  const crt = join(l.tls, 'server.crt');
+-  if (existsSync(crt)) throw new Error('TLS material already exists; remove it deliberately before re-issuing');
+-  const san = names.map((n) => (/^\d+\.\d+\.\d+\.\d+$/.test(n) ? `IP:${n}` : `DNS:${n}`)).join(',');
+-  const ext = join(l.tls, 'server.ext');
+-  writeFileSync(ext, `basicConstraints=CA:FALSE\nkeyUsage=digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=${san}\n`);
+-  await run('openssl', ['req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1', '-nodes', '-keyout', caKey, '-out', caCrt, '-days', '3650', '-subj', '/CN=Seyra internal test CA', '-addext', 'basicConstraints=critical,CA:TRUE', '-addext', 'keyUsage=critical,keyCertSign,cRLSign']);
+-  await run('openssl', ['req', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1', '-nodes', '-keyout', key, '-out', csr, '-subj', `/CN=${names[0]}`]);
+-  await run('openssl', ['x509', '-req', '-in', csr, '-CA', caCrt, '-CAkey', caKey, '-CAcreateserial', '-out', crt, '-days', String(days), '-extfile', ext]);
+-  chmodSync(caKey, 0o400);
+-  chownSync(key, 101, 101); // nginx user in the proxy image
+-  chmodSync(key, 0o400);
+-  chmodSync(crt, 0o444);
+-  chmodSync(caCrt, 0o444);
+-  log(`[tls] issued server certificate for ${names.join(', ')}; distribute ${caCrt} to clients that must trust it`);
+-  log('[tls] TEST ONLY: this CA key is on the host; for LAN provisioning use tls csr + tls import with an issuer managed elsewhere');
+-}
+-
+--- upstream/apps/ops/src/staging.ts
++++ demo/apps/ops/src/staging.ts
+@@ -52,10 +52,10 @@
+ export async function stageValidate(l: Layout, images: LockedImage[], releaseDir: string, datasetId: string, log: (m: string) => void): Promise<StageResult> {
+   const short = randomBytes(3).toString('hex');
+   const names = {
+-    valhalla: `seyra-stage-valhalla-${short}`,
+-    photon: `seyra-stage-photon-${short}`,
+-    overpass: `seyra-stage-overpass-${short}`,
+-    tegola: `seyra-stage-tegola-${short}`,
++    valhalla: `seyra-demo-stage-valhalla-${short}`,
++    photon: `seyra-demo-stage-photon-${short}`,
++    overpass: `seyra-demo-stage-overpass-${short}`,
++    tegola: `seyra-demo-stage-tegola-${short}`,
+   };
+   const env = { ...imageEnv(images), SEYRA_JOB_RELEASE: releaseDir };
+   const checks: StageCheck[] = [];
+--- upstream/bin/seyra-maps
++++ demo/bin/seyra-maps
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env bash
+ # Host wrapper for the Seyra release CLI. Host prerequisites: bash, coreutils (sha256sum), Docker
+-# Engine and Docker Compose v2. Everything else runs inside the locally loaded seyra/ops image;
++# Engine and Docker Compose v2. Everything else runs inside the locally loaded seyra-demo/ops image;
+ # nothing is pulled or downloaded (--pull never).
+ #
+ #   SEYRA_HOME=/srv/seyra bin/seyra-maps <command> ...
+@@ -9,7 +9,7 @@
+ install_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ lock="$install_dir/infra/dependencies.lock.json"
+ [ -f "$lock" ] || { echo "missing $lock" >&2; exit 2; }
+-ops_ref="$(grep -o '"ref": "seyra/ops:[^"]*"' "$lock" | head -1 | cut -d'"' -f4)"
++ops_ref="$(grep -o '"ref": "seyra-demo/ops:[^"]*"' "$lock" | head -1 | cut -d'"' -f4)"
+ [ -n "$ops_ref" ] || { echo "no ops image in $lock" >&2; exit 2; }
+ 
+ if [ "${1:-}" = "bootstrap-load" ]; then
+@@ -34,7 +34,7 @@
+ home_cmp="$(cd "$SEYRA_HOME" && pwd)"
+ inside_home() { case "$1" in "$home_cmp"|"$home_cmp"/*) return 0;; *) return 1;; esac; }
+ declare -A mounted=()
+-# Owner-supplied input files (--pbf, TLS --cert/--key/--ca/--chain) are checked here, before Docker
++# Owner-supplied input files (--pbf) are checked here, before Docker
+ # runs: the argument must be present and name an existing readable regular file. Each file is
+ # bind-mounted read-only at its own absolute path (relative paths resolve against the caller's
+ # directory). Inputs inside SEYRA_HOME are already visible through its writable mount and get no
+@@ -56,13 +56,13 @@
+ args=("$@")
+ for ((i = 0; i < ${#args[@]}; i++)); do
+   case "${args[$i]}" in
+-    --pbf|--cert|--key|--ca|--chain)
++    --pbf)
+       [ $((i + 1)) -lt ${#args[@]} ] || die "${args[$i]} needs a file argument"
+       resolve_input "${args[$i]}" "${args[$((i + 1))]}"
+       args[$((i + 1))]="$resolved"; i=$((i + 1)) ;;
+     --from)
+       [ $((i + 1)) -lt ${#args[@]} ] || die "--from needs a directory"
+-      # Service-local sources (a tls import backup previous-*, a backup generation) live inside
++      # Service-local sources (a backup generation) live inside
+       # SEYRA_HOME and are root-only (0700); the CLI checks them as root through the home mount, so
+       # resolve those lexically instead of entering them as the operator. Others: an operator
+       # directory, checked here and mounted read-only.
+@@ -86,5 +86,5 @@
+ fi
+ # The ops container joins the internal build network (no outside route) when it exists.
+ net=none
+-docker network inspect seyra_build >/dev/null 2>&1 && net=seyra_build
++docker network inspect seyra_demo_build >/dev/null 2>&1 && net=seyra_demo_build
+ exec docker run --rm -i --pull never --network "$net" "${mounts[@]}" -e SEYRA_HOME="$SEYRA_HOME" "$ops_ref" "${args[@]}"
+--- upstream/docs/RUNBOOK.md
++++ demo/docs/RUNBOOK.md
+@@ -1,369 +1,9 @@
+-# Seyra Map Services — operator runbook (phase 1)
++# Seyra HTTP VM demo runbook
+ 
+-This covers the offline operational host. Software and image acquisition happens separately, in a **preparation environment** with Internet access; see "Preparation" at the end. Nothing in installation, import, start, update or rollback downloads anything.
++Use [the Persian runbook](README-FA.md) for preparation, real OSM input, synthetic fixture, LAN access, smoke checks, start/stop, logs and optional offline export.
+ 
+-All four map capabilities run together and unconditionally:
+-- tiles: Tegola + Nginx
+-- routing: Valhalla
+-- geocoding: Photon
+-- POI presets: Overpass
++Source: `pouriya-sedaghat/seyra`, branch `feat/map-services-v1`, commit `80935b42a9b5616c21df7483412c5fb2ccbc6df8`.
+ 
+-There are no switches to turn any of them off.
++This extracted variant uses HTTP on host port 8080 and requires no CA, TLS certificate or browser trust installation. The provider/API/web implementations are retained. The CA/PKI tools and original handoff plans are omitted. The HTTP boundary, operations startup checks and Docker resource names were adapted locally. See `SOURCE.json` for provenance and `VALIDATION.md` for what was actually tested.
+ 
+-> Numbers marked *fixture* were measured on the synthetic test dataset in a cloud preparation container. They are not capacity, RAM, disk or downtime figures for the Iran dataset; those must be measured on the target host (see "Pending validation").
+-
+-## 1. Host prerequisites
+-
+-- linux/amd64 host. Ubuntu 24.04 is the reference; the preparation run used a cloud container, not customer hardware.
+-- Docker Engine with Compose v2. The preparation environment used Engine 29.8.2 and Compose v5.6.0.
+-- bash, coreutils (`sha256sum`), and `jq`/`curl` for checks.
+-- Disk, on the filesystem that holds `SEYRA_HOME` (all import output goes there: managed source copy, render database under `data/postgres`, Valhalla, the temporary Nominatim database under `work/`, Photon, Overpass and its build-time temporaries, logs). Plan for:
+-  - **each import in progress:** about **120 × the PBF size** free. The measured Iran reference (229,845,082-byte PBF, run `vm2-2026-10-18`) used 21.93 GB at its sampled low point, which is 95.4 × the input, during the Overpass build. 120× adds about 25 % margin. That is about 27.6 GB for that extract.
+-  - **each retained release:** about 48 × the PBF size (11.1 GB for that extract). `prune` keeps the active and the previous release.
+-  - **separately**, if Docker's data root is on another filesystem: the loaded images (about 3.6 GB) and container logs. The import check does not see that filesystem.
+-  - These figures come from one extract on one host. Re-measure for a larger extract or a different pipeline.
+-- Time: a synchronised clock (TLS validity, log timestamps).
+-- Network: none required. The default ingress is `https://127.0.0.1:8443`.
+-
+-**Trust boundary.** Processes running on the Docker host itself can reach container bridge addresses; Docker does not filter host-local traffic (evidence AC16.3b). Treat shell access to the host as administrative access to the providers. Other machines cannot reach providers, the database or the API directly (evidence AC16.3).
+-
+-## 2. Install from the offline bundle
+-
+-**Authenticity.** `SHA256SUMS` and the bundle manifest protect against corruption and partial edits, but someone who rewrites an archive, the manifest and `SHA256SUMS` together can pass them. Transfer the digest of `SHA256SUMS` (printed at export: `sha256sum SHA256SUMS`) through a separate trusted channel, such as a signed change ticket or a phone readback, and compare it before installing. Even then, `bundle load` refuses any image whose real ID differs from the manifest (evidence T4).
+-
+-```bash
+-# copy the bundle directory to the host (removable media / internal transfer), then:
+-cd /path/to/bundle
+-sha256sum SHA256SUMS                       # compare with the digest received out of band
+-sha256sum --quiet -c SHA256SUMS            # integrity of every archive and install file
+-sudo cp -r install /opt/seyra              # install tree: wrapper, compose files, catalog, lock, docs
+-/opt/seyra/bin/seyra-maps bootstrap-load /path/to/bundle
+-```
+-
+-**Who can read the bundle.** `bundle export` gives every file it writes to the owner of the `--out` directory, which the wrapper creates as the operator who runs it. Archives and files are `0644` (executables `0755`) and directories `0755`, so that operator can run the checks above and `bootstrap-load` without root. A bundle holds image archives and install files, never secrets or keys. Copy it with modes preserved. To install under `/opt/seyra`, the `sudo cp` above is the only step that needs root.
+-
+-`bootstrap-load`:
+-1. Verifies the ops image archive and `SHA256SUMS`.
+-2. Runs `docker load` for the ops image.
+-3. Runs `bundle load` inside it, which re-verifies every checksum, loads each image archive, and requires each loaded reference to resolve to the exact image ID recorded in the bundle manifest.
+-
+-A tampered or corrupted archive stops the install (evidence AC18).
+-
+-```bash
+-export SEYRA_HOME=/srv/seyra               # absolute; all state lives here
+-/opt/seyra/bin/seyra-maps verify-images    # every locked image present with its locked ID
+-/opt/seyra/bin/seyra-maps init             # directories, secrets, internal networks, DB roles, migrations
+-/opt/seyra/bin/seyra-maps tls init --names localhost,127.0.0.1    # TEST ONLY (synthetic fixtures); see below for LAN hosts
+-```
+-
+-`init` defaults to loopback-only access (`--bind 127.0.0.1 --port 8443`).
+-- It generates random passwords in `$SEYRA_HOME/secrets/`. Each is mode 0400 and owned by the UID of the one container that needs it.
+-- It creates the internal networks `seyra_backend` and `seyra_build` (no outside route).
+-- It creates the roles `seyra_api` (control data, read-only), `seyra_tile_reader` (map render databases, read-only) and `seyra_render_import` (one release's render DB, only until it is frozen).
+-
+-### TLS certificates
+-
+-**Test only:** `tls init` creates an on-host test CA and a server certificate for the synthetic fixture flows; clients of such a host trust `secrets/tls/ca.crt`. Its CA private key stays in `secrets/tls`, so it is **not** the provisioning design for LAN clients.
+-
+-**LAN hosts:** the issuer is managed outside the serving host. It is either the company CA or an operator-controlled development issuer (`infra/tls/dev-issuer.sh`, run on another machine). Both use the same interface:
+-
+-```bash
+-seyra-maps tls csr --names <lan-address>[,<lan-name>]        # new server key stays in secrets/tls/pending (0400); the CSR there is 0444, readable by the operator
+-#   ... the issuer signs the CSR for serverAuth, elsewhere ...
+-seyra-maps tls import --cert leaf.crt [--chain intermediates.pem] --ca issuer-root.crt --names <lan-address>[,<lan-name>]
+-seyra-maps proxy restart                                      # serve the new pair (providers keep running)
+-seyra-maps tls status                                         # public metadata only: subject, SAN, validity, fingerprint
+-seyra-maps tls restore --from <SEYRA_HOME>/secrets/tls/previous-<time>   # validated rollback to a saved set
+-```
+-
+-`tls import` validates everything before it changes a file, and a failed validation keeps the previous pair. It checks:
+-- the key matches the leaf;
+-- every `--names` entry is in the SAN (no wildcards);
+-- the certificate is currently valid and valid for at most 825 days in total;
+-- it is not a CA certificate, and it has serverAuth and digitalSignature;
+-- the chain verifies to the given root for every name;
+-- no input file carries a private key other than the server key.
+-
+-The replacement itself is journalled:
+-- Every input is read once into a private staging directory, and validation and installation use only those staged bytes, so changing an input file afterwards cannot change what is installed.
+-- The previous set is copied to `secrets/tls/previous-<time>/`: the served file, the split `leaf.crt`/`chain.pem`, the key, the trust anchor and `served.json`.
+-- An interruption leaves a journal that makes `start`, `proxy restart` and activation refuse until `seyra-maps tls recover` completes or undoes it. Recovery only completes a set whose certificate and key match; otherwise it restores the verified previous pair, and if neither is valid it refuses and keeps everything for inspection.
+-
+-Roll back to an earlier certificate with `seyra-maps tls restore --from <SEYRA_HOME>/secrets/tls/previous-<time>`. The backup is validated like an import: key match, names (from its `served.json`, or else its own SAN), purpose and its saved chain to its saved trust anchor. It then goes through the same journalled replacement, followed by `seyra-maps proxy restart`. The `previous-<time>` directories are root-only (0700); the wrapper passes a `--from` path inside `SEYRA_HOME` through unchanged and the CLI checks it as root, so the non-root operator runs this command as written.
+-
+-Every TLS command that changes `secrets/tls` (`csr`, `import`, `restore`, `recover`, and the test-only `init`) takes the same lifecycle lock as `start`, `proxy restart` and activation, and checks its preconditions after acquiring it. Two TLS or lifecycle commands never interleave.
+-
+-The host wrapper checks every input file argument (`--cert`, `--key`, `--ca`, `--chain`, `--pbf`) before Docker runs: the argument must be present and name an existing readable regular file. Relative paths resolve against the current directory, and each file is mounted read-only at its own path, so inputs may live in any directories. Files inside `SEYRA_HOME` (for example the pending key or a backup) need no extra mount.
+-
+-Only the leaf key, the served chain and the public root are stored. No OCSP, CRL or AIA fetch is required at run time: revocation is handled by short-lived leaves and re-issue.
+-
+-## 3. Import an owner-supplied OSM extract
+-
+-```bash
+-seyra-maps import --pbf /data/owner/iran-YYYYMMDD.osm.pbf [--snapshot-timestamp 2026-10-01T00:00:00Z]
+-```
+-
+-The original file is only read: it is checksummed and copied into the release. It is never modified, moved or deleted. Every build step writes only into a new `releases/<dataset_id>/` directory and a new render database. The active release is not touched; build containers have no network, or only the internal build network.
+-
+-Steps:
+-1. `source-checksum`
+-2. `source-validate` (osmium)
+-3. `source-copy`
+-4. `render-import` (osm2pgsql flex into `render_<id>`, then frozen read-only)
+-5. `routing-build` (Valhalla tiles)
+-6. `geocoder-build` (temporary Nominatim → export → Seyra normalization → Photon index)
+-7. `overpass-build` (osmium XML → Overpass base, version label `seyra:<id>`)
+-8. `map-styles`
+-9. `staging-validation`: the real providers are started against the new stores on the build network; tiles, routing, geocoder and Overpass are probed with data sampled from the release, and each provider's identity is recorded.
+-
+-`dataset_id = ds-<snapshot date>-<12 hex>`. The hash covers the source checksum, pipeline files and versions, the data-shaping image IDs (DB, osmtools, Valhalla, geocoder-build, Photon, Overpass, Tegola) and the map-asset digest. A release can only be served by those exact images: `activate` refuses otherwise ("re-import required").
+-
+-Free-space admission (before anything is created or removed):
+-- `required = max(minFreeBytes, minFreeFactor × PBF size)`, with defaults of 2 GiB and **120** (`state/settings.json`).
+-- `available = free space on SEYRA_HOME's filesystem + a conservative reclaim estimate for a failed build of the same dataset_id`. The estimate counts only allocated blocks of that release's regular files and directories on the same filesystem. It never follows symlinks, gives no credit to a file that keeps another hard link outside the release, and counts the render database as 0 (`pg_database_size` is recorded but is not an equal free-space gain).
+-- If `available < required`, the import stops with both figures and **nothing is changed**; the failed build and its render database are kept.
+-- Otherwise the failed build is removed. Free space is then *observed* again and compared with the requirement before anything new is written. If the removal released less than estimated, the import stops there.
+-- `init` writes every setting into `settings.json`. A home initialised before this default changed therefore keeps `minFreeFactor: 40` until you edit it, and every import then logs a warning that the factor is below the measured reference. Raise it, or lower it only after measuring your own extract.
+-- The guard is a sizing guard, not a reservation: another process can still fill the disk during an import.
+-
+-Free-space measurement: the importer samples free space on SEYRA_HOME's filesystem every 5 s and at each step boundary. It records each step's minimum (`steps[].free_bytes_min`), the run's low-water mark with its time (`free_bytes_min_observed`, `free_bytes_min_observed_at`), the sampling settings and the admission figures (`capacity_check`) in the release manifest. A dip shorter than the interval can be missed.
+-
+-Failure handling:
+-- A failed import leaves the release marked `failed`. Re-running the same input replaces that failed build automatically.
+-- If an import process dies (killed, reboot), the next import detects the abandoned lock, stops the orphaned build containers and marks the interrupted release `failed` (evidence L2).
+-- Corrupt or truncated input is rejected at `source-validate` (evidence L1).
+-
+-*Fixture:* a full import, including staging, took about 1.5 minutes.
+-
+-## 4. Activate (maintenance cutover)
+-
+-```bash
+-seyra-maps status                       # releases, pointers, live readiness
+-seyra-maps activate <dataset_id>
+-```
+-
+-1. Re-verify the release: artifact checksums, the frozen render DB marker, and the data-component image IDs.
+-2. Set the maintenance flag; the API answers `503 MAINTENANCE`.
+-3. Drain the API (40 s grace), then stop the providers and proxy.
+-4. Write the new `runtime.env` and `release.json`, keeping the previous ones.
+-5. Start the whole stack.
+-6. Wait until **all four providers report the new release's identities**:
+-   - Tegola: map name.
+-   - Valhalla: tileset timestamp.
+-   - Photon: release marker document.
+-   - Overpass: base version label.
+-7. Clear maintenance and update the active/previous pointers.
+-
+-**Failure during activation.** Before step 2, `activate` saves the current `runtime.env` and `release.json` under `state/transition/` and writes a journal, `state/transition.json` (`from`, `to`, phase).
+-
+-If any later step fails, `activate` stops the API, restores the saved configuration, starts the stack again and waits for the previous release's identities. This covers a `docker compose up` error, a filesystem error, or the new release not reporting within `readinessTimeoutS` (default 300 s). On success it clears maintenance and fails with "previous release … restored and ready" (evidence L3, L7).
+-
+-If restoring the previous release also fails, the command reports both errors. The platform then **stays in maintenance**, and the journal and the saved configuration are kept (evidence L8). Fix the cause (for example a port held by another process), then run:
+-
+-```bash
+-seyra-maps status     # shows "UNFINISHED activate <from> -> <to> … run: seyra-maps recover"
+-seyra-maps recover
+-```
+-
+-While a journal exists, `activate`, `rollback`, `prune` and `start` refuse to run. `recover` also covers a killed `activate` process:
+-- If the pointers were already committed to the new release, it finishes that activation.
+-- Otherwise it restores the previous release.
+-- If this was a first activation with no previous release, it restores the saved configuration and leaves the platform in maintenance until a release is activated.
+-
+-This is **not** zero-downtime and not an atomic multi-service swap. *Fixture:* about 25 s of refused connections while the proxy restarts, then about 11 s of `503 MAINTENANCE`; about 42 s end to end.
+-
+-## 5. Rollback, prune, start/stop
+-
+-```bash
+-seyra-maps rollback          # cut back to the previous release (same verified cutover)
+-seyra-maps prune             # keep active + previous; drop other releases and their render DBs
+-seyra-maps stop | start      # start refuses if any image no longer matches the lock
+-seyra-maps verify-release <dataset_id>
+-```
+-
+-Releases are never pruned automatically.
+-
+-**Lifecycle lock.** Each state-changing command holds `state/lifecycle.lock` while it runs: `init`, `start`, `stop`, `activate`, `rollback`, `recover`, `prune`, `backup`, `restore`, and the set-up phase of `import`. A second such command fails at once with "another lifecycle operation is running: <op> <target> (started …)". Retry it when the first command has finished.
+-
+-The lock is a kernel `flock(2)` held by the running command. The kernel releases it as soon as that command's process or ops container ends, however it ends, so a crash never leaves a lock that has to be cleared by hand.
+-- The file itself stays in place. It only records the current owner, and `status` shows whether that owner still holds the lock.
+-- A record left by a command that ended without releasing the lock is replaced by the next command. If an activation journal also exists, only `recover` may run (section 4).
+-- `SEYRA_HOME` must be on a local Linux filesystem that enforces `flock` (not a network share); every command verifies this and refuses otherwise.
+-
+-A long `import` also holds a lease, `state/import.lock`, which names the release being built:
+-- `prune` never removes that release or any release still `building` (evidence L9).
+-- An import lease whose owner process or ops container no longer exists is treated as abandoned. It is removed only while holding the lifecycle lock, and the abandoned import is marked `failed` (evidence L2).
+-- A lease whose owner's liveness cannot be determined is never removed automatically.
+-
+-## 6. LAN access for shared testing
+-
+-Loopback is the default. Every LAN path needs an explicit allowlist and a certificate for the LAN name (§2, *TLS certificates*). Every path (web client, Swagger, API, map assets) sits behind the same access boundary. Client integration: `docs/CLIENT_INTEGRATION.md`.
+-
+-### 6.1 Direct LAN mode (Seyra runs on the host's own Docker daemon)
+-
+-```bash
+-seyra-maps tls csr --names 10.20.0.15   # then tls import the issued certificate
+-seyra-maps init --access lan --bind 10.20.0.15 --lan-cidrs 10.20.0.0/24 --server-names "maps.internal 10.20.0.15"
+-seyra-maps start
+-```
+-
+-Docker's published-port NAT normally keeps the client source address, so nginx checks the real client against the allowlist. Confirm this with a real LAN client before relying on it. Connections that originate on the host itself take a different path and cannot stand in for a LAN client test.
+-
+-`init` persists the settings, but `runtime.env` is written only by the first `init` and by activations. On an install that is already running, apply changed access settings deliberately:
+-
+-```bash
+-seyra-maps access apply      # rewrites only access/relay keys for the active release; keeps runtime.env.prev
+-seyra-maps proxy restart     # recreates only the proxy and checks every expected publication
+-```
+-
+-### 6.2 Relay mode (Seyra inside a nested Docker host)
+-
+-When the stack runs inside a nested host on an internal network, the host's LAN address cannot be bound inside the inner daemon. A small layer-4 relay (`infra/edge/`, operator commands in `infra/edge/edge.sh`, settings in an operator-local copy of `infra/edge/edge.env.example`) publishes the LAN port and forwards TCP to a separate relay listener of the proxy:
+-
+-```bash
+-seyra-maps init --access loopback --bind 127.0.0.1 --server-names "localhost 127.0.0.1 <lan-address>" \
+-  --relay-peer <edge address on the lab network> --relay-bind <nested host lab address> --relay-port <relay port> \
+-  --relay-client-cidrs <approved client subnet> --relay-server-names "<lan-address>"
+-seyra-maps access apply && seyra-maps proxy restart
+-```
+-
+-- **Edge:** sends a PROXY protocol header built from its actual TCP peer, and allows only the approved subnet. It holds no TLS key and logs no addresses.
+-- **Inner relay listener** (container port 8444, added by `runtime.relay.yml` only when a relay is configured):
+-  - requires PROXY protocol;
+-  - accepts only the configured relay as its actual socket peer (403 otherwise);
+-  - only then checks the conveyed client address against the approved subnet.
+-  - HTTP forwarding headers are never trusted, and unknown Host names get 421.
+-- **Ordinary listener:** stays the loopback-only local control path for CLI, readiness and recovery calls, with no PROXY header and no LAN exposure.
+-- **Settings rules:** a relay requires loopback access mode. Its peer must be one exact non-loopback address outside the client allowlist. Its server names may not contain loopback names.
+-- **Egress:** the edge's network namespace gets an egress guard (new connections only to the relay upstream). `tests/offline/namespace-egress.sh` checks the namespaces directly. The old outbound counter treats private destinations as local, so it cannot prove LAN isolation.
+-- **Rollback order:**
+-  1. `init --no-relay`, then `access apply` and `proxy restart`: the inner proxy stops trusting the edge address and the LAN path closes;
+-  2. `edge.sh stop`;
+-  3. `edge.sh remove`.
+-
+-  A stopped container releases its lab address at once, and Docker gives it to the next container (verified on Docker 29). So the inner relay must stop trusting the address **before** the edge stops.
+-
+-  `edge.sh stop` stops the edge only on positive, read-only evidence from the serving installation (`EDGE_INNER_DOCKER_HOST`, `EDGE_INNER_HOME` in the edge env file) that the edge's exact lab address is no longer trusted:
+-  - `state/settings.json` is read and its `relayPeer` is not that address;
+-  - exactly one serving proxy container exists and is plainly running (not stopped, restarting or paused); its `SEYRA_RELAY_PEER` is not that address; without a relay peer it publishes no relay port;
+-  - `state/runtime.env` has not changed since that proxy was created (by ctime), so a restart would apply the same state.
+-
+-  A closed or refusing relay port is **not** evidence: a stopped or restarting proxy keeps its configured trust and applies it again on start. Any unreadable, failed, stale or inconsistent state refuses and keeps the edge, and so its address. `stop --force` is for emergencies only. It stops the edge without this evidence, and any container that later receives the address can then claim approved clients until step 1 is done, so step 1 must follow at once.
+-
+-### 6.3 Rules for both modes
+-
+-Access settings are validated by `init` before anything is saved, again before every start, and independently by the proxy entrypoint:
+-- **Loopback mode** requires a bind address in `127.0.0.0/8` and no CIDRs.
+-- **LAN mode** requires a non-loopback bind address and at least one CIDR. Each CIDR must be a canonical IPv4 network (`10.20.0.0/24`, not `10.20.0.5/24`) with a prefix length of 8–32. Every allowlist ends in `deny all`.
+-- Invalid settings are refused with the reason: `0.0.0.0` in loopback mode, `0.0.0.0/0`, malformed or out-of-range addresses. A hand-edited `runtime.env` that breaks these rules makes `start` refuse (evidence AC16.11–AC16.15).
+-- LAN mode without CIDRs fails closed: the proxy refuses to start (evidence AC16.9).
+-- Clients outside the CIDRs get 403 (evidence AC16.10).
+-- Unknown Host names get 421.
+-- The hidden diagnostics route (`/api/v1/map/diagnostics` and its normalized or encoded variants) is blocked at the ingress. Operators use `seyra-maps status`.
+-- Bodies over 64 KiB get a typed 413 `PAYLOAD_TOO_LARGE` from the ingress.
+-- This is network access control only, not user authentication; Authentication is a separate future module.
+-- Do not change the host firewall for Seyra tests.
+-
+-## 7. Backup and restore
+-
+-```bash
+-seyra-maps backup [--out /backup/seyra] [--include-sources]     # default root: $SEYRA_HOME/backups
+-```
+-
+-Each run publishes one **backup generation** under the backup root, `seyra-backup-<UTC stamp>-<id>/`, containing:
+-- `seyra_app.sql`: a `pg_dump` of the control database `seyra_app`, checked for its completion trailer.
+-- `state.tar.gz`: pointers, settings, history and runtime config.
+-- `manifests.tar.gz`: every release manifest.
+-- With `--include-sources`, `sources/<dataset_id>.osm.pbf` and `.json`: the managed input copy of the active and previous releases, checked against their release manifests. These are large. A restore then does not depend on finding the owner's original files.
+-- `backup-manifest.json`, the completion record. It lists every file with its role, size and SHA-256, the backed-up pointers, and each release's source identity (file name, SHA-256, snapshot timestamp).
+-
+-The generation is assembled in a hidden `.seyra-backup-…partial` directory. The completion record is written last, everything is flushed to disk, and only then is the directory renamed to its final name. A published generation is therefore complete by construction. A backup that fails removes its `.partial` directory. One that is killed leaves it behind; restore reports it and never reads it, and you can delete it. Use the same root for repeated backups and remove old generations under your retention policy.
+-
+-**Secrets and TLS keys are never included.** Back up `$SEYRA_HOME/secrets` separately (`cp -a`, preserving owners and modes), under your key-handling policy. The database role passwords in a restored host must match the dump's host, so the secrets backup is part of every restore.
+-
+-Map stores are not backed up. They are rebuilt from the original input and the locked images; identical inputs and images reproduce the same `dataset_id`.
+-
+-**Restore on a fresh host** (order matters):
+-
+-```bash
+-# 1. install from the bundle (section 2): copy install/, bootstrap-load, verify-images
+-# 2. secrets first, so init creates the DB roles with the backed-up passwords
+-#    (and the existing TLS CA/certificate stay valid for clients):
+-mkdir -p "$SEYRA_HOME" && cp -a /backup/secrets "$SEYRA_HOME/secrets"
+-# 3. init: directories, networks, DB roles from the restored secrets, schema
+-seyra-maps init
+-# 4. restore: selects and verifies ONE generation, then replaces the freshly initialised control DB
+-#    with its dump, re-applies grants/migrations, restores settings and history, and
+-#    prints the re-import commands for the backed-up active and previous releases
+-seyra-maps restore --from /backup/seyra [--generation seyra-backup-…]
+-# 5. run the printed imports (previous first, then active); each must report the backed-up dataset_id
+-seyra-maps import --pbf /backup/seyra/seyra-backup-…/sources/<previous>.osm.pbf [--snapshot-timestamp …]
+-seyra-maps import --pbf /backup/seyra/seyra-backup-…/sources/<active>.osm.pbf  [--snapshot-timestamp …]
+-# 6. activate previous, then active (restores the active/previous pair)
+-seyra-maps activate <previous> && seyra-maps activate <active>
+-```
+-
+-**Which generation is restored.** `--from` may name a generation directory itself, or a backup root.
+-- For a root, restore uses the **newest published generation**, or the one given with `--generation`. It prints which one it chose, the other complete generations, and every `.partial` attempt it ignored.
+-- Files are never combined across generations.
+-- The previous flat layout (`seyra_app-*.sql`, `state-*.tar.gz` and `manifests-*.tar.gz` side by side, without a completion record) is refused. Nothing can prove those files belong to one complete backup. Take a new backup.
+-
+-**What is verified before anything changes.** The whole selected generation is checked before the database is touched:
+-- every listed file is present with its recorded size and SHA-256, and no unlisted files are present;
+-- the SQL dump is complete;
+-- the state archive's settings satisfy the access rules (section 6), and its pointers match the record;
+-- the archived release manifests, and any included sources, match the recorded release identities.
+-
+-Any mismatch stops restore with the reason. Restore does not fall back to another generation on its own; to use an older one, name it with `--generation`.
+-
+-Notes on `restore`:
+-- It refuses on a host that already serves a release, and before changing anything if a secret is missing.
+-- It does not restore the release pointers, because the map stores do not exist until step 5.
+-- Without `--include-sources`, it prints the source file name and SHA-256 to look for; rebuild from the owner's original input with that checksum.
+-
+-The isolated drill `tests/offline/restore-drill.sh` follows these steps from one offline host to a second, empty one. It also checks the generation selection, an interrupted attempt and a damaged generation; see `docs/TEST_RESULTS.md`. Install and rollback are not restore tests.
+-
+-## 8. Updating software (new bundle)
+-
+-1. Prepare a new bundle in the preparation environment, and send the digest of its `SHA256SUMS` through the trusted channel.
+-2. On the host, **before replacing anything or running a file from the new bundle**, verify it with the tools already installed: compare `sha256sum SHA256SUMS` with the received digest, then run `sha256sum --quiet --strict -c SHA256SUMS` and check that the bundle contains no file missing from `SHA256SUMS`. Stop if any check fails.
+-3. Replace the install tree, then run `bootstrap-load` from the new tree.
+-
+-Then:
+-- **API/proxy/ops-only changes:** `seyra-maps start` recreates the changed containers.
+-- **Any data-component change** (DB, osmtools, Valhalla, geocoder-build, Photon, Overpass, Tegola) or catalog/pipeline/style change: re-import and activate. `activate` refuses a release built with different data-component images.
+-
+-## 9. Health and diagnostics
+-
+-- `GET /health/ready` (via the proxy) returns 200 only when all four providers and the control DB answer with the active release's identities; otherwise it returns 503.
+-- `GET /api/v1/map/health` returns the same details without a 503.
+-- `seyra-maps status` shows releases, pointers and live readiness.
+-- Swagger UI `/api/docs/` and the specification `/api/docs/json` are served by the API through the same ingress and access rules; they load while a provider is down.
+-- The API's internal diagnostics route is not reachable through the ingress (blocked, including path variants).
+-- Logs: `docker logs seyra-api-1` and `seyra-proxy-1`. Both are redacted: no query strings, coordinates or bodies are logged (evidence AC17.11).
+-
+-## 10. Preparation environment (Internet-connected; not the operational host)
+-
+-```bash
+-SEYRA_SOURCES=/prep/sources infra/prepare/fetch-sources.sh          # pinned tags/commits/artifact sha256 (infra/prepare/sources.json)
+-SEYRA_SOURCES=/prep/sources [SEYRA_PREP_CA=/path/ca.pem] infra/prepare/build-images.sh
+-SEYRA_SOURCES=/prep/sources node infra/prepare/write-lock.mjs        # real identities -> infra/dependencies.lock.json
+-SEYRA_HOME=/prep/home bin/seyra-maps bundle export --out /prep/bundle-$(date +%F)
+-bin/seyra-maps bundle verify /prep/bundle-...
+-```
+-
+-Base images are pinned by digest in the Dockerfiles. Registry access in the 2026-10-14 preparation run:
+-- Docker Hub pulls went through `mirror.gcr.io` because of 429 limits.
+-- ghcr.io was blocked, so Valhalla was built from source.
+-
+-## 11. Pending validation
+-
+-These items are owner/target-host work, not done here:
+-- Iran extract import time, RAM and disk.
+-- Full-country tile, routing and geocoder latency and load.
+-- Overpass limits under real data.
+-- Staging and rollback storage sizing.
+-- Update cadence, downtime and SLA.
+-- Target OS, CPU, internal CA, DNS and time.
+-- Mobile SDK execution.
+-- Distribution licence review (`docs/LICENSES.md`).
++The ZIP is source plus preparation scripts. It contains no Docker image archives or real OSM dataset. Run `bash scripts/prepare.sh` on an Internet-connected linux/amd64 Docker host before `bash demo.sh --pbf /path/to/map.osm.pbf`. Use a fresh state directory. The synthetic fixture is fictional and is explicitly selected with `--synthetic`.
+--- upstream/fixtures/osm/build-fixture-pbf.sh
++++ demo/fixtures/osm/build-fixture-pbf.sh
+@@ -4,7 +4,7 @@
+ set -euo pipefail
+ here="$(cd "$(dirname "$0")" && pwd)"
+ out="$(mkdir -p "${1:?output directory}" && cd "$1" && pwd)"
+-img="$(grep -o '"ref": "seyra/osmtools:[^"]*"' "$here/../../infra/dependencies.lock.json" | head -1 | cut -d'"' -f4)"
++img="$(grep -o '"ref": "seyra-demo/osmtools:[^"]*"' "$here/../../infra/dependencies.lock.json" | head -1 | cut -d'"' -f4)"
+ docker run --rm --pull never --network none -v "$here:/fx:ro" -v "$out:/out" --user "$(id -u):$(id -g)" "$img" \
+   osmium cat /fx/synthetic-v1.osm -o /out/synthetic-v1.osm.pbf -O \
+   --output-header="osmosis_replication_timestamp=2026-10-01T00:00:00Z"
+--- upstream/infra/compose/jobs.yml
++++ demo/infra/compose/jobs.yml
+@@ -3,7 +3,7 @@
+ # These definitions never replace or disable the runtime providers in runtime.yml; they write
+ # only into a NEW staging release directory and a NEW render database. No job has network
+ # access except the render import (database on the internal build network). pull_policy: never.
+-name: seyra-jobs
++name: seyra-demo-jobs
+ 
+ x-job: &job
+   pull_policy: never
+@@ -12,7 +12,7 @@
+ 
+ networks:
+   build:
+-    name: seyra_build
++    name: seyra_demo_build
+     external: true
+ 
+ services:
+--- upstream/infra/compose/runtime.yml
++++ demo/infra/compose/runtime.yml
+@@ -5,9 +5,9 @@
+ #   no profiles and no feature toggles.
+ # - Images must already be loaded locally (pull_policy: never); there are no build sections and no
+ #   install/download steps. A missing image fails before operation.
+-# - Providers and the database are only on the internal `seyra_backend` network (no host ports).
+-#   Only the TLS proxy publishes a port, on 127.0.0.1 by default.
+-name: seyra
++# - Providers and the database are only on the internal `seyra_demo_backend` network (no host ports).
++#   Only the HTTP demo proxy publishes a port, on 127.0.0.1 by default.
++name: seyra-demo
+ 
+ x-hardening: &hardening
+   pull_policy: never
+@@ -20,21 +20,19 @@
+ 
+ networks:
+   backend:
+-    name: seyra_backend
++    name: seyra_demo_backend
+     external: true
+   build:
+-    name: seyra_build
++    name: seyra_demo_build
+     external: true
+   frontend:
+-    name: seyra_frontend
++    name: seyra_demo_frontend
+     driver: bridge
+ 
+ secrets:
+   db_admin_password: { file: "${SEYRA_HOME:?}/secrets/db_admin_password" }
+   db_api_password: { file: "${SEYRA_HOME:?}/secrets/db_api_password" }
+   tile_db_password: { file: "${SEYRA_HOME:?}/secrets/tile_db_password" }
+-  tls_cert: { file: "${SEYRA_HOME:?}/secrets/tls/server.crt" }
+-  tls_key: { file: "${SEYRA_HOME:?}/secrets/tls/server.key" }
+ 
+ services:
+   db:
+@@ -150,15 +148,12 @@
+       SEYRA_RELAY_PEER: "${SEYRA_RELAY_PEER:-}"
+       SEYRA_RELAY_CLIENT_CIDRS: "${SEYRA_RELAY_CLIENT_CIDRS:-}"
+       SEYRA_RELAY_SERVER_NAMES: "${SEYRA_RELAY_SERVER_NAMES:-}"
+-    secrets:
+-      - source: tls_cert
+-      - source: tls_key
+     tmpfs: ["/tmp:uid=101,gid=101"]
+     volumes:
+       - "${SEYRA_RELEASE_DIR:?}/maps:/srv/seyra/release/maps:ro"
+       - "${SEYRA_HOME:?}/cache/tiles:/var/cache/seyra/tiles"
+     ports:
+-      - "${SEYRA_BIND_ADDR:-127.0.0.1}:${SEYRA_HTTPS_PORT:-8443}:8443"
++      - "${SEYRA_BIND_ADDR:-127.0.0.1}:${SEYRA_HTTPS_PORT:-8080}:8443"
+     networks: [frontend, backend]
+     depends_on:
+       api: { condition: service_started }
+--- upstream/infra/dependencies.lock.json
++++ demo/infra/dependencies.lock.json
+@@ -2,7 +2,7 @@
+   "schema": "seyra.dependencies-lock/1",
+   "generated_at": "2026-10-19T14:50:19.732Z",
+   "generated_by": "infra/prepare/write-lock.mjs",
+-  "status": "LOCKED (preparation build verified); runtime/acceptance evidence is in docs/TEST_RESULTS.md",
++  "status": "UNBUILT DEMO TEMPLATE — scripts/prepare.sh writes real local image identities",
+   "preparation_environment": {
+     "host_os": "Ubuntu 26.04 LTS",
+     "kernel": "Linux 7.0.0-38-generic",
+@@ -16,10 +16,8 @@
+     "db": {
+       "role": "DB",
+       "ref": "postgis/postgis:17-3.5",
+-      "image_id": "sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6",
+-      "repo_digests": [
+-        "postgis/postgis@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6"
+-      ],
++      "image_id": null,
++      "repo_digests": [],
+       "platform": "linux/amd64",
+       "created": "2026-08-31T11:34:38.705037667Z",
+       "origin": "upstream docker.io/postgis/postgis pulled directly by the locked digest sha256:01a6a70e… on the replacement VM",
+@@ -32,15 +30,13 @@
+       },
+       "os_packages": null,
+       "license": "PostgreSQL (server), GPL-2.0-or-later (PostGIS)",
+-      "validation": "identity inspected; functional checks recorded in docs/TEST_RESULTS.md"
++      "validation": "NOT BUILT in this extracted package; run scripts/prepare.sh"
+     },
+     "tegola": {
+       "role": "TEGOLA",
+-      "ref": "seyra/tegola:0.21.2-seyra1",
+-      "image_id": "sha256:4379ed15b436599a68b7908c8b35767c586801273eeca725ca144926e5e0757f",
+-      "repo_digests": [
+-        "seyra/tegola@sha256:4379ed15b436599a68b7908c8b35767c586801273eeca725ca144926e5e0757f"
+-      ],
++      "ref": "seyra-demo/tegola:0.21.2-seyra1",
++      "image_id": null,
++      "repo_digests": [],
+       "platform": "linux/amd64",
+       "created": "2026-10-18T09:05:32.137001344Z",
+       "origin": "custom build from pinned sources (preparation environment)",
+@@ -62,15 +58,13 @@
+         "sha256": "e4e2c48fdd20ddf62b993c9d663975ce50b5d7bc5b393441ed7186856c874ec3"
+       },
+       "license": "MIT",
+-      "validation": "identity inspected; functional checks recorded in docs/TEST_RESULTS.md"
++      "validation": "NOT BUILT in this extracted package; run scripts/prepare.sh"
+     },
+     "valhalla": {
+       "role": "VALHALLA",
+-      "ref": "seyra/valhalla:3.9.1-seyra1",
+-      "image_id": "sha256:df4afb12dd7e4d5a110178d3a931facc206239470dc043c38dd117af331defc3",
+-      "repo_digests": [
+-        "seyra/valhalla@sha256:df4afb12dd7e4d5a110178d3a931facc206239470dc043c38dd117af331defc3"
+-      ],
++      "ref": "seyra-demo/valhalla:3.9.1-seyra1",
++      "image_id": null,
++      "repo_digests": [],
+       "platform": "linux/amd64",
+       "created": "2026-10-18T08:59:14.151002863Z",
+       "origin": "custom build from pinned sources (preparation environment)",
+@@ -92,15 +86,13 @@
+         "sha256": "34612a45838d74c7c02c2125ec0822fb865e428b86c91e994b50273106ca34b1"
+       },
+       "license": "MIT (Valhalla), BSD-2-Clause (prime_server)",
+-      "validation": "identity inspected; functional checks recorded in docs/TEST_RESULTS.md"
++      "validation": "NOT BUILT in this extracted package; run scripts/prepare.sh"
+     },
+     "photon": {
+       "role": "PHOTON",
+-      "ref": "seyra/photon:1.3.0-seyra1",
+-      "image_id": "sha256:46112b0677bb6866b8c7c5c55d883d5c302264f7c855a5bc4a5fefac745f97b2",
+-      "repo_digests": [
+-        "seyra/photon@sha256:46112b0677bb6866b8c7c5c55d883d5c302264f7c855a5bc4a5fefac745f97b2"
+-      ],
++      "ref": "seyra-demo/photon:1.3.0-seyra1",
++      "image_id": null,
++      "repo_digests": [],
+       "platform": "linux/amd64",
+       "created": "2026-10-18T09:06:10.839515984Z",
+       "origin": "custom build from pinned sources (preparation environment)",
+@@ -122,15 +114,13 @@
+         "sha256": "1ff2afc46cfaf2bb1d64789ed0f0ee8dd6b6c434b32fb6ff66bb2ff1b0747e65"
+       },
+       "license": "Apache-2.0 (Photon), GPL-2.0-with-classpath-exception (OpenJDK)",
+-      "validation": "identity inspected; functional checks recorded in docs/TEST_RESULTS.md"
++      "validation": "NOT BUILT in this extracted package; run scripts/prepare.sh"
+     },
+     "overpass": {
+       "role": "OVERPASS",
+-      "ref": "seyra/overpass:0.7.62.4-seyra1",
+-      "image_id": "sha256:44d8f7a9837f953d34122189a716c663263a7e6a531104548f37c5604c4b85fa",
+-      "repo_digests": [
+-        "seyra/overpass@sha256:44d8f7a9837f953d34122189a716c663263a7e6a531104548f37c5604c4b85fa"
+-      ],
++      "ref": "seyra-demo/overpass:0.7.62.4-seyra1",
++      "image_id": null,
++      "repo_digests": [],
+       "platform": "linux/amd64",
+       "created": "2026-10-18T09:04:56.035378466Z",
+       "origin": "custom build from pinned sources (preparation environment)",
+@@ -151,15 +141,13 @@
+         "sha256": "68890328c203f871d17b6e88c0230db3a4cfc443e4a43b508e77dd1045d381c2"
+       },
+       "license": "AGPL-3.0",
+-      "validation": "identity inspected; functional checks recorded in docs/TEST_RESULTS.md"
++      "validation": "NOT BUILT in this extracted package; run scripts/prepare.sh"
+     },
+     "api": {
+       "role": "API",
+-      "ref": "seyra/api:1.0.0-seyra1",
+-      "image_id": "sha256:710d5e37dbc9b844760550dcc54f11fda7ff919d1a1bd591e2a1cb40456c44e0",
+-      "repo_digests": [
+-        "seyra/api@sha256:710d5e37dbc9b844760550dcc54f11fda7ff919d1a1bd591e2a1cb40456c44e0"
+-      ],
++      "ref": "seyra-demo/api:1.0.0-seyra1",
++      "image_id": null,
++      "repo_digests": [],
+       "platform": "linux/amd64",
+       "created": "2026-10-19T14:48:28.411310134Z",
+       "origin": "custom build from pinned sources (preparation environment)",
+@@ -178,15 +166,13 @@
+         "sha256": "cbb2b5dca71d8a2783e578291db6064d0c8bfe98635b16af3f6e6931d2e2313e"
+       },
+       "license": "project (UNLICENSED, owner) + npm dependency licences",
+-      "validation": "identity inspected; functional checks recorded in docs/TEST_RESULTS.md"
++      "validation": "NOT BUILT in this extracted package; run scripts/prepare.sh"
+     },
+     "proxy": {
+       "role": "PROXY",
+-      "ref": "seyra/proxy:1.0.0-seyra1",
+-      "image_id": "sha256:b953043a5c1c53861f6df68d6f94dd0a5492efc3dd4d9b24cc9c3c961e007b62",
+-      "repo_digests": [
+-        "seyra/proxy@sha256:b953043a5c1c53861f6df68d6f94dd0a5492efc3dd4d9b24cc9c3c961e007b62"
+-      ],
++      "ref": "seyra-demo/proxy:1.0.0-seyra1",
++      "image_id": null,
++      "repo_digests": [],
+       "platform": "linux/amd64",
+       "created": "2026-10-19T14:48:43.23869003Z",
+       "origin": "custom build from pinned sources (preparation environment)",
+@@ -203,15 +189,13 @@
+       },
+       "os_packages": null,
+       "license": "BSD-2-Clause (nginx), OFL-1.1 (Vazirmatn), BSD-3-Clause (MapLibre GL JS)",
+-      "validation": "identity inspected; functional checks recorded in docs/TEST_RESULTS.md"
++      "validation": "NOT BUILT in this extracted package; run scripts/prepare.sh"
+     },
+     "osmtools": {
+       "role": "OSMTOOLS",
+-      "ref": "seyra/osmtools:2.3.1-1.19.1-seyra1",
+-      "image_id": "sha256:a6803a35f3a1ed2d059bb170e7e2efdabd31567412c33b94ccd518b6678acfc0",
+-      "repo_digests": [
+-        "seyra/osmtools@sha256:a6803a35f3a1ed2d059bb170e7e2efdabd31567412c33b94ccd518b6678acfc0"
+-      ],
++      "ref": "seyra-demo/osmtools:2.3.1-1.19.1-seyra1",
++      "image_id": null,
++      "repo_digests": [],
+       "platform": "linux/amd64",
+       "created": "2026-10-18T08:48:46.187957774Z",
+       "origin": "custom build from pinned sources (preparation environment)",
+@@ -234,15 +218,13 @@
+         "sha256": "37ace7adb4b115635bf8b1344f269a3e734bd7ada81967e385a6762ba025fa0e"
+       },
+       "license": "GPL-2.0-or-later (osm2pgsql), GPL-3.0 (osmium-tool)",
+-      "validation": "identity inspected; functional checks recorded in docs/TEST_RESULTS.md"
++      "validation": "NOT BUILT in this extracted package; run scripts/prepare.sh"
+     },
+     "geocoder_build": {
+       "role": "GEOCODER_BUILD",
+-      "ref": "seyra/geocoder-build:5.3.2-1.3.0-seyra1",
+-      "image_id": "sha256:ee886ca3890b697b2117919c1dcff389988ee782fb5c1bf20a61c90be8f80057",
+-      "repo_digests": [
+-        "seyra/geocoder-build@sha256:ee886ca3890b697b2117919c1dcff389988ee782fb5c1bf20a61c90be8f80057"
+-      ],
++      "ref": "seyra-demo/geocoder-build:5.3.2-1.3.0-seyra1",
++      "image_id": null,
++      "repo_digests": [],
+       "platform": "linux/amd64",
+       "created": "2026-10-18T09:08:46.00032403Z",
+       "origin": "custom build from pinned sources (preparation environment)",
+@@ -263,15 +245,13 @@
+         "sha256": "1ec675d1811f9fb3fa1e540c52d5f989ba836aed5590598f4cd8df283da8d851"
+       },
+       "license": "GPL-3.0-or-later (Nominatim), PostgreSQL/PostGIS",
+-      "validation": "identity inspected; functional checks recorded in docs/TEST_RESULTS.md"
++      "validation": "NOT BUILT in this extracted package; run scripts/prepare.sh"
+     },
+     "ops": {
+       "role": "OPS",
+-      "ref": "seyra/ops:1.0.0-seyra1",
+-      "image_id": "sha256:8cbabae57ff4609b9fa8dacebc20a70567c0b075804c070654c675b81306d928",
+-      "repo_digests": [
+-        "seyra/ops@sha256:8cbabae57ff4609b9fa8dacebc20a70567c0b075804c070654c675b81306d928"
+-      ],
++      "ref": "seyra-demo/ops:1.0.0-seyra1",
++      "image_id": null,
++      "repo_digests": [],
+       "platform": "linux/amd64",
+       "created": "2026-10-19T14:49:13.02970449Z",
+       "origin": "custom build from pinned sources (preparation environment)",
+@@ -294,7 +274,7 @@
+         "sha256": "ddf26810032553a3af97837ec6420706563f71c17eefb83f02a4e79a8435ba5a"
+       },
+       "license": "project + Apache-2.0 (Docker CLI/Compose)",
+-      "validation": "identity inspected; functional checks recorded in docs/TEST_RESULTS.md"
++      "validation": "NOT BUILT in this extracted package; run scripts/prepare.sh"
+     }
+   },
+   "sources": {
+--- upstream/infra/images/geocoder-build/Dockerfile
++++ demo/infra/images/geocoder-build/Dockerfile
+@@ -2,8 +2,8 @@
+ # Seyra geocoder BUILD image (never a runtime service): ephemeral PostgreSQL 16 + PostGIS,
+ # Nominatim 5.3.2 (hash-pinned wheel; Python dependencies from Ubuntu packages) and the
+ # Photon 1.3.0 CLI used for the JSON export. osm2pgsql/osmium come from the Seyra osmtools image.
+-ARG PHOTON_IMAGE=seyra/photon:1.3.0-seyra1
+-ARG OSMTOOLS_IMAGE=seyra/osmtools:2.3.1-1.19.1-seyra1
++ARG PHOTON_IMAGE=seyra-demo/photon:1.3.0-seyra1
++ARG OSMTOOLS_IMAGE=seyra-demo/osmtools:2.3.1-1.19.1-seyra1
+ FROM ${OSMTOOLS_IMAGE} AS osmtools
+ 
+ FROM ${PHOTON_IMAGE}
+--- upstream/infra/images/proxy/entrypoint.sh
++++ demo/infra/images/proxy/entrypoint.sh
+@@ -2,9 +2,6 @@
+ # Render and start the Seyra proxy. Fails closed on incomplete access configuration
+ # (validation and rendering: seyra-proxy-render).
+ set -eu
+-for f in /run/secrets/tls_cert /run/secrets/tls_key; do
+-  [ -r "$f" ] || { echo "missing TLS material: $f (see RUNBOOK: TLS certificates)" >&2; exit 2; }
+-done
+ [ -f /srv/seyra/release/maps/tiles.json ] || { echo "active release map metadata missing" >&2; exit 2; }
+ mkdir -p /tmp/nginx /var/cache/seyra/tiles
+ /usr/local/bin/seyra-proxy-render
+--- upstream/infra/images/proxy/nginx.conf.template
++++ demo/infra/images/proxy/nginx.conf.template
+@@ -1,4 +1,4 @@
+-# Seyra internal TLS entry point (rendered at container start by seyra-proxy-render).
++# Seyra HTTP demo entry point (rendered at container start by seyra-proxy-render).
+ # Fixed allowlisted routes only (locations.conf); clients never choose provider URLs.
+ worker_processes auto;
+ pid /tmp/nginx/nginx.pid;
+@@ -31,24 +31,16 @@
+   upstream seyra_api { server api:3000; keepalive 16; }
+   upstream seyra_tegola { server tegola:8080; keepalive 16; }
+ 
+-  ssl_protocols TLSv1.2 TLSv1.3;
+-  ssl_prefer_server_ciphers off;
+-  ssl_session_cache shared:seyra_tls:4m;
+-  ssl_session_tickets off;
+ 
+   # Unknown Host names are refused (prevents Host-header injection into absolute style URLs).
+   server {
+-    listen 8443 ssl default_server;
+-    ssl_certificate /run/secrets/tls_cert;
+-    ssl_certificate_key /run/secrets/tls_key;
++    listen 8443 default_server;
+     return 421;
+   }
+ 
+   server {
+-    listen 8443 ssl;
++    listen 8443;
+     server_name ${SEYRA_SERVER_NAMES};
+-    ssl_certificate /run/secrets/tls_cert;
+-    ssl_certificate_key /run/secrets/tls_key;
+ 
+ ${SEYRA_ACCESS_RULES}
+ 
+--- upstream/infra/images/proxy/render.sh
++++ demo/infra/images/proxy/render.sh
+@@ -114,18 +114,14 @@
+   }
+ 
+   server {
+-    listen 8444 ssl proxy_protocol default_server;
+-    ssl_certificate /run/secrets/tls_cert;
+-    ssl_certificate_key /run/secrets/tls_key;
++    listen 8444 proxy_protocol default_server;
+     if (\$seyra_relay_peer = 0) { return 403; }
+     return 421;
+   }
+ 
+   server {
+-    listen 8444 ssl proxy_protocol;
++    listen 8444 proxy_protocol;
+     server_name $SEYRA_RELAY_SERVER_NAMES;
+-    ssl_certificate /run/secrets/tls_cert;
+-    ssl_certificate_key /run/secrets/tls_key;
+ 
+     # Only the relay's PROXY header replaces the client address; HTTP forwarding headers never do.
+     set_real_ip_from $SEYRA_RELAY_PEER/32;
+--- upstream/infra/images/proxy/security-headers.conf
++++ demo/infra/images/proxy/security-headers.conf
+@@ -1,6 +1,5 @@
+ # Security headers for every response. nginx drops server-level add_header directives in any
+ # location that defines its own add_header, so each such location includes this file again.
+-add_header Strict-Transport-Security "max-age=31536000" always;
+ add_header X-Content-Type-Options "nosniff" always;
+ add_header X-Frame-Options "DENY" always;
+ add_header Referrer-Policy "no-referrer" always;
+--- upstream/infra/prepare/build-images.sh
++++ demo/infra/prepare/build-images.sh
+@@ -7,19 +7,21 @@
+ src="${SEYRA_SOURCES:?}"
+ secret=()
+ if [ -n "${SEYRA_PREP_CA:-}" ]; then secret=(--secret "id=prep_ca,src=$SEYRA_PREP_CA"); fi
+-b() { echo "== building $1"; shift; docker build "$@"; }
+-b osmtools -t seyra/osmtools:2.3.1-1.19.1-seyra1 -f "$repo/infra/images/osmtools/Dockerfile" \
++network_args=()
++if [ -n "${SEYRA_BUILD_NETWORK:-}" ]; then network_args=(--network "$SEYRA_BUILD_NETWORK"); fi
++b() { echo "== building $1"; shift; docker build "${network_args[@]}" "$@"; }
++b osmtools -t seyra-demo/osmtools:2.3.1-1.19.1-seyra1 -f "$repo/infra/images/osmtools/Dockerfile" \
+   --build-context osm2pgsql_src="$src/osm2pgsql" --build-context osmium_tool_src="$src/osmium-tool" "$repo/infra"
+-b valhalla -t seyra/valhalla:3.9.1-seyra1 --build-context valhalla_src="$src/valhalla" \
++b valhalla -t seyra-demo/valhalla:3.9.1-seyra1 --build-context valhalla_src="$src/valhalla" \
+   --build-context prime_server_src="$src/prime_server" "$repo/infra/images/valhalla"
+-b overpass -t seyra/overpass:0.7.62.4-seyra1 --build-context overpass_src="$src/overpass" "$repo/infra/images/overpass"
+-b tegola -t seyra/tegola:0.21.2-seyra1 --build-arg TEGOLA_REVISION="$(git -C "$src/tegola" rev-parse HEAD)" \
++b overpass -t seyra-demo/overpass:0.7.62.4-seyra1 --build-context overpass_src="$src/overpass" "$repo/infra/images/overpass"
++b tegola -t seyra-demo/tegola:0.21.2-seyra1 --build-arg TEGOLA_REVISION="$(git -C "$src/tegola" rev-parse HEAD)" \
+   --build-context tegola_src="$src/tegola" "$repo/infra/images/tegola"
+-b photon -t seyra/photon:1.3.0-seyra1 --build-context photon_artifacts="$src/artifacts" \
++b photon -t seyra-demo/photon:1.3.0-seyra1 --build-context photon_artifacts="$src/artifacts" \
+   --build-context photon_src="$src/photon" "$repo/infra/images/photon"
+-b geocoder-build -t seyra/geocoder-build:5.3.2-1.3.0-seyra1 --build-context nominatim_artifacts="$src/artifacts" \
++b geocoder-build -t seyra-demo/geocoder-build:5.3.2-1.3.0-seyra1 --build-context nominatim_artifacts="$src/artifacts" \
+   "$repo/infra/images/geocoder-build"
+-b api "${secret[@]}" -t seyra/api:1.0.0-seyra1 -f "$repo/infra/images/api/Dockerfile" "$repo"
+-b proxy "${secret[@]}" -t seyra/proxy:1.0.0-seyra1 -f "$repo/infra/images/proxy/Dockerfile" "$repo"
+-b ops "${secret[@]}" -t seyra/ops:1.0.0-seyra1 -f "$repo/infra/images/ops/Dockerfile" "$repo"
++b api "${secret[@]}" -t seyra-demo/api:1.0.0-seyra1 -f "$repo/infra/images/api/Dockerfile" "$repo"
++b proxy "${secret[@]}" -t seyra-demo/proxy:1.0.0-seyra1 -f "$repo/infra/images/proxy/Dockerfile" "$repo"
++b ops "${secret[@]}" -t seyra-demo/ops:1.0.0-seyra1 -f "$repo/infra/images/ops/Dockerfile" "$repo"
+ echo "all images built; now run: node infra/prepare/write-lock.mjs"
+--- upstream/infra/prepare/fetch-sources.sh
++++ demo/infra/prepare/fetch-sources.sh
+@@ -20,6 +20,18 @@
+     print(f"ok  {name} {s['tag']} {head}")
+ for fname, a in cfg["artifacts"].items():
+     p = os.path.join(dest, "artifacts", fname)
++    if not os.path.exists(p) and a["url"].startswith("https://pypi.org/project/"):
++        # Resolve only the named, pinned wheel. Verify registry metadata against the existing
++        # source checksum before downloading; never pick a newer release or install a package.
++        with urllib.request.urlopen('https://pypi.org/pypi/nominatim-db/5.3.2/json', timeout=60) as response:
++            metadata = json.load(response)
++        wheel = next((item for item in metadata['urls'] if item['filename'] == fname), None)
++        if not wheel or wheel['digests']['sha256'] != a['sha256']:
++            sys.exit(f'{fname}: pinned wheel missing or checksum metadata differs')
++        with urllib.request.urlopen(wheel['url'], timeout=120) as response, open(p + '.partial', 'wb') as out:
++            import shutil
++            shutil.copyfileobj(response, out)
++        os.replace(p + '.partial', p)
+     if not os.path.exists(p) and a["url"].startswith("https://github.com/"):
+         subprocess.run(["curl", "-fsSL", "-o", p, a["url"]], check=True)
+     if not os.path.exists(p):
+--- upstream/infra/prepare/write-lock.mjs
++++ demo/infra/prepare/write-lock.mjs
+@@ -8,6 +8,7 @@
+ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+ import { dirname, join } from 'node:path';
+ import { fileURLToPath } from 'node:url';
++import { loadVerifiedSourceHeads } from './verified-source-heads.mjs';
+ 
+ const repo = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+ const sourcesDir = process.env.SEYRA_SOURCES;
+@@ -22,6 +23,9 @@
+ };
+ const sha256 = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
+ const sources = JSON.parse(readFileSync(join(repo, 'infra/prepare/sources.json'), 'utf8'));
++const verifiedHeads = process.env.SEYRA_VERIFIED_SOURCE_HEADS
++  ? loadVerifiedSourceHeads(process.env.SEYRA_VERIFIED_SOURCE_HEADS, join(repo, 'infra/prepare/sources.json'), sourcesDir)
++  : null;
+ 
+ const inspect = (ref) => JSON.parse(sh('docker', ['image', 'inspect', ref]))[0];
+ // Some tools print their version on stderr; capture both streams.
+@@ -56,7 +60,8 @@
+ const sourceEntries = {};
+ for (const [name, s] of Object.entries(sources.sources)) {
+   const path = join(sourcesDir, name);
+-  const head = existsSync(path) ? sh('git', ['-C', path, 'rev-parse', 'HEAD']) : null;
++  const head = verifiedHeads ? verifiedHeads[name] : existsSync(path) ? sh('git', ['-C', path, 'rev-parse', 'HEAD']) : null;
++  if (head !== s.commit) throw new Error(`${name}: source checkout does not match pinned commit ${s.commit}`);
+   sourceEntries[name] = {
+     url: s.url,
+     tag: s.tag,
+@@ -75,15 +80,15 @@
+ 
+ const IMAGES = [
+   { role: 'DB', ref: 'postgis/postgis:17-3.5', origin: process.env.SEYRA_PREP_DB_ORIGIN ?? 'upstream docker.io/postgis/postgis (pulled through the mirror.gcr.io registry mirror in preparation)', versions: (r) => ({ postgres: inImage(r, 'postgres', ['--version']) }), license: 'PostgreSQL (server), GPL-2.0-or-later (PostGIS)' },
+-  { role: 'TEGOLA', ref: 'seyra/tegola:0.21.2-seyra1', dockerfile: 'infra/images/tegola/Dockerfile', sources: ['tegola'], versions: (r) => ({ tegola: inImage(r, '/usr/local/bin/tegola', ['version']).split('\n').slice(0, 3).join(' | ') }), license: 'MIT' },
+-  { role: 'VALHALLA', ref: 'seyra/valhalla:3.9.1-seyra1', dockerfile: 'infra/images/valhalla/Dockerfile', sources: ['valhalla', 'prime_server'], versions: (r) => ({ valhalla_service: inImage(r, 'valhalla_service', ['--version']) }), license: 'MIT (Valhalla), BSD-2-Clause (prime_server)' },
+-  { role: 'PHOTON', ref: 'seyra/photon:1.3.0-seyra1', dockerfile: 'infra/images/photon/Dockerfile', sources: ['photon'], versions: (r) => ({ java: inImage(r, 'java', ['-version']).split('\n')[0] ?? '', photon_jar_sha256: inImage(r, 'sha256sum', ['/opt/photon/photon.jar']).split(' ')[0] }), license: 'Apache-2.0 (Photon), GPL-2.0-with-classpath-exception (OpenJDK)' },
+-  { role: 'OVERPASS', ref: 'seyra/overpass:0.7.62.4-seyra1', dockerfile: 'infra/images/overpass/Dockerfile', sources: ['overpass'], versions: () => ({ overpass: '0.7.62.4 (configure AC_INIT; responses report "Overpass API 0.7.62.4")' }), license: 'AGPL-3.0' },
+-  { role: 'API', ref: 'seyra/api:1.0.0-seyra1', dockerfile: 'infra/images/api/Dockerfile', versions: (r) => ({ node: inImage(r, 'node', ['--version']) }), license: 'project (UNLICENSED, owner) + npm dependency licences' },
+-  { role: 'PROXY', ref: 'seyra/proxy:1.0.0-seyra1', dockerfile: 'infra/images/proxy/Dockerfile', versions: (r) => ({ nginx: inImage(r, 'nginx', ['-v']), assets_sha256: JSON.parse(inImage(r, 'cat', ['/usr/share/seyra/assets/asset-manifest.json'])).assets_sha256 }), license: 'BSD-2-Clause (nginx), OFL-1.1 (Vazirmatn), BSD-3-Clause (MapLibre GL JS)' },
+-  { role: 'OSMTOOLS', ref: 'seyra/osmtools:2.3.1-1.19.1-seyra1', dockerfile: 'infra/images/osmtools/Dockerfile', sources: ['osm2pgsql', 'osmium-tool'], versions: (r) => ({ osm2pgsql: inImage(r, 'osm2pgsql', ['--version']).split('\n')[0], osmium: inImage(r, 'osmium', ['--version']).split('\n')[0] }), license: 'GPL-2.0-or-later (osm2pgsql), GPL-3.0 (osmium-tool)' },
+-  { role: 'GEOCODER_BUILD', ref: 'seyra/geocoder-build:5.3.2-1.3.0-seyra1', dockerfile: 'infra/images/geocoder-build/Dockerfile', sources: ['nominatim', 'photon'], versions: (r) => ({ nominatim: inImage(r, '/opt/nominatim/bin/nominatim', ['--version']), postgres: inImage(r, '/usr/lib/postgresql/16/bin/postgres', ['--version']) }), license: 'GPL-3.0-or-later (Nominatim), PostgreSQL/PostGIS' },
+-  { role: 'OPS', ref: 'seyra/ops:1.0.0-seyra1', dockerfile: 'infra/images/ops/Dockerfile', versions: (r) => ({ node: inImage(r, 'node', ['--version']), docker: inImage(r, 'docker', ['--version']), compose: inImage(r, 'docker', ['compose', 'version']) }), license: 'project + Apache-2.0 (Docker CLI/Compose)' },
++  { role: 'TEGOLA', ref: 'seyra-demo/tegola:0.21.2-seyra1', dockerfile: 'infra/images/tegola/Dockerfile', sources: ['tegola'], versions: (r) => ({ tegola: inImage(r, '/usr/local/bin/tegola', ['version']).split('\n').slice(0, 3).join(' | ') }), license: 'MIT' },
++  { role: 'VALHALLA', ref: 'seyra-demo/valhalla:3.9.1-seyra1', dockerfile: 'infra/images/valhalla/Dockerfile', sources: ['valhalla', 'prime_server'], versions: (r) => ({ valhalla_service: inImage(r, 'valhalla_service', ['--version']) }), license: 'MIT (Valhalla), BSD-2-Clause (prime_server)' },
++  { role: 'PHOTON', ref: 'seyra-demo/photon:1.3.0-seyra1', dockerfile: 'infra/images/photon/Dockerfile', sources: ['photon'], versions: (r) => ({ java: inImage(r, 'java', ['-version']).split('\n')[0] ?? '', photon_jar_sha256: inImage(r, 'sha256sum', ['/opt/photon/photon.jar']).split(' ')[0] }), license: 'Apache-2.0 (Photon), GPL-2.0-with-classpath-exception (OpenJDK)' },
++  { role: 'OVERPASS', ref: 'seyra-demo/overpass:0.7.62.4-seyra1', dockerfile: 'infra/images/overpass/Dockerfile', sources: ['overpass'], versions: () => ({ overpass: '0.7.62.4 (configure AC_INIT; responses report "Overpass API 0.7.62.4")' }), license: 'AGPL-3.0' },
++  { role: 'API', ref: 'seyra-demo/api:1.0.0-seyra1', dockerfile: 'infra/images/api/Dockerfile', versions: (r) => ({ node: inImage(r, 'node', ['--version']) }), license: 'project (UNLICENSED, owner) + npm dependency licences' },
++  { role: 'PROXY', ref: 'seyra-demo/proxy:1.0.0-seyra1', dockerfile: 'infra/images/proxy/Dockerfile', versions: (r) => ({ nginx: inImage(r, 'nginx', ['-v']), assets_sha256: JSON.parse(inImage(r, 'cat', ['/usr/share/seyra/assets/asset-manifest.json'])).assets_sha256 }), license: 'BSD-2-Clause (nginx), OFL-1.1 (Vazirmatn), BSD-3-Clause (MapLibre GL JS)' },
++  { role: 'OSMTOOLS', ref: 'seyra-demo/osmtools:2.3.1-1.19.1-seyra1', dockerfile: 'infra/images/osmtools/Dockerfile', sources: ['osm2pgsql', 'osmium-tool'], versions: (r) => ({ osm2pgsql: inImage(r, 'osm2pgsql', ['--version']).split('\n')[0], osmium: inImage(r, 'osmium', ['--version']).split('\n')[0] }), license: 'GPL-2.0-or-later (osm2pgsql), GPL-3.0 (osmium-tool)' },
++  { role: 'GEOCODER_BUILD', ref: 'seyra-demo/geocoder-build:5.3.2-1.3.0-seyra1', dockerfile: 'infra/images/geocoder-build/Dockerfile', sources: ['nominatim', 'photon'], versions: (r) => ({ nominatim: inImage(r, '/opt/nominatim/bin/nominatim', ['--version']), postgres: inImage(r, '/usr/lib/postgresql/16/bin/postgres', ['--version']) }), license: 'GPL-3.0-or-later (Nominatim), PostgreSQL/PostGIS' },
++  { role: 'OPS', ref: 'seyra-demo/ops:1.0.0-seyra1', dockerfile: 'infra/images/ops/Dockerfile', versions: (r) => ({ node: inImage(r, 'node', ['--version']), docker: inImage(r, 'docker', ['--version']), compose: inImage(r, 'docker', ['compose', 'version']) }), license: 'project + Apache-2.0 (Docker CLI/Compose)' },
+ ];
+ 
+ const images = {};
+@@ -104,7 +109,7 @@
+     reported_versions: img.versions(img.ref),
+     os_packages: img.role === 'DB' ? null : dpkgDigest(img.ref),
+     license: img.license,
+-    validation: 'identity inspected; functional checks recorded in docs/TEST_RESULTS.md',
++    validation: 'image inspected during demo preparation; full VM smoke check must be run separately',
+   };
+ }
+ 
+@@ -121,7 +126,7 @@
+   schema: 'seyra.dependencies-lock/1',
+   generated_at: new Date().toISOString(),
+   generated_by: 'infra/prepare/write-lock.mjs',
+-  status: 'LOCKED (preparation build verified); runtime/acceptance evidence is in docs/TEST_RESULTS.md',
++  status: 'DEMO image identities inspected; see docs/VALIDATION.md for executed checks',
+   preparation_environment: {
+     host_os: /PRETTY_NAME="([^"]+)"/.exec(osRelease)?.[1] ?? 'unknown',
+     kernel: sh('uname', ['-sr']),

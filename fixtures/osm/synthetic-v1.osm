@@ -1,0 +1,699 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="seyra synthetic fixture generator v1">
+  <!-- SYNTHETIC TEST FIXTURE. Fictional objects near 0,0 — not real geography. -->
+  <bounds minlat="0.0000000" minlon="0.0000000" maxlat="0.0950000" maxlon="0.0950000"/>
+  <node id="1000" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0100000" lon="0.0100000"/>
+  <node id="1001" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0150000" lon="0.0100000"/>
+  <node id="1002" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0200000" lon="0.0100000"/>
+  <node id="1003" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0250000" lon="0.0100000"/>
+  <node id="1004" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0300000" lon="0.0100000"/>
+  <node id="1005" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0350000" lon="0.0100000"/>
+  <node id="1006" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0400000" lon="0.0100000"/>
+  <node id="1007" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0100000" lon="0.0150000"/>
+  <node id="1008" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0150000" lon="0.0150000"/>
+  <node id="1009" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0200000" lon="0.0150000"/>
+  <node id="1010" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0250000" lon="0.0150000"/>
+  <node id="1011" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0300000" lon="0.0150000"/>
+  <node id="1012" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0350000" lon="0.0150000"/>
+  <node id="1013" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0400000" lon="0.0150000"/>
+  <node id="1014" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0100000" lon="0.0200000"/>
+  <node id="1015" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0150000" lon="0.0200000"/>
+  <node id="1016" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0200000" lon="0.0200000"/>
+  <node id="1017" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0250000" lon="0.0200000"/>
+  <node id="1018" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0300000" lon="0.0200000"/>
+  <node id="1019" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0350000" lon="0.0200000"/>
+  <node id="1020" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0400000" lon="0.0200000"/>
+  <node id="1021" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0100000" lon="0.0250000"/>
+  <node id="1022" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0150000" lon="0.0250000"/>
+  <node id="1023" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0200000" lon="0.0250000"/>
+  <node id="1024" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0250000" lon="0.0250000"/>
+  <node id="1025" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0300000" lon="0.0250000"/>
+  <node id="1026" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0350000" lon="0.0250000"/>
+  <node id="1027" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0400000" lon="0.0250000"/>
+  <node id="1028" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0100000" lon="0.0300000"/>
+  <node id="1029" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0150000" lon="0.0300000"/>
+  <node id="1030" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0200000" lon="0.0300000"/>
+  <node id="1031" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0250000" lon="0.0300000"/>
+  <node id="1032" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0300000" lon="0.0300000"/>
+  <node id="1033" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0350000" lon="0.0300000"/>
+  <node id="1034" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0400000" lon="0.0300000"/>
+  <node id="1035" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0100000" lon="0.0350000"/>
+  <node id="1036" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0150000" lon="0.0350000"/>
+  <node id="1037" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0200000" lon="0.0350000"/>
+  <node id="1038" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0250000" lon="0.0350000"/>
+  <node id="1039" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0300000" lon="0.0350000"/>
+  <node id="1040" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0350000" lon="0.0350000"/>
+  <node id="1041" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0400000" lon="0.0350000"/>
+  <node id="1042" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0100000" lon="0.0400000"/>
+  <node id="1043" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0150000" lon="0.0400000"/>
+  <node id="1044" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0200000" lon="0.0400000"/>
+  <node id="1045" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0250000" lon="0.0400000"/>
+  <node id="1046" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0300000" lon="0.0400000"/>
+  <node id="1047" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0350000" lon="0.0400000"/>
+  <node id="1048" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0400000" lon="0.0400000"/>
+  <node id="1049" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0100000" lon="0.0450000"/>
+  <node id="1050" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0150000" lon="0.0450000"/>
+  <node id="1051" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0200000" lon="0.0450000"/>
+  <node id="1052" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0250000" lon="0.0450000"/>
+  <node id="1053" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0300000" lon="0.0450000"/>
+  <node id="1054" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0350000" lon="0.0450000"/>
+  <node id="1055" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0400000" lon="0.0450000"/>
+  <node id="1056" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0100000" lon="0.0500000"/>
+  <node id="1057" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0150000" lon="0.0500000"/>
+  <node id="1058" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0200000" lon="0.0500000"/>
+  <node id="1059" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0250000" lon="0.0500000"/>
+  <node id="1060" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0300000" lon="0.0500000"/>
+  <node id="1061" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0350000" lon="0.0500000"/>
+  <node id="1062" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0400000" lon="0.0500000"/>
+  <node id="1063" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0300000" lon="0.0250000"/>
+  <node id="1064" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0350000" lon="0.0350000"/>
+  <node id="1065" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0430000" lon="0.0100000"/>
+  <node id="1066" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0430000" lon="0.0500000"/>
+  <node id="1067" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0800000" lon="0.0800000"/>
+  <node id="1068" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0800000" lon="0.0850000"/>
+  <node id="1069" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0850000" lon="0.0850000"/>
+  <node id="1070" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0120000" lon="0.0520000"/>
+  <node id="1071" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0120000" lon="0.0580000"/>
+  <node id="1072" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0160000" lon="0.0580000"/>
+  <node id="1073" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0160000" lon="0.0520000"/>
+  <node id="1074" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0050000" lon="0.0000000"/>
+  <node id="1075" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0060000" lon="0.0300000"/>
+  <node id="1076" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0065000" lon="0.0600000"/>
+  <node id="1077" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0500000" lon="0.0200000"/>
+  <node id="1078" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0450000" lon="0.0250000"/>
+  <node id="1079" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0075000" lon="0.0000000"/>
+  <node id="1080" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0075000" lon="0.0500000"/>
+  <node id="1081" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0260000" lon="0.0110000"/>
+  <node id="1082" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0260000" lon="0.0190000"/>
+  <node id="1083" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0340000" lon="0.0190000"/>
+  <node id="1084" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0340000" lon="0.0110000"/>
+  <node id="1085" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0260000" lon="0.0400000"/>
+  <node id="1086" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0260000" lon="0.0460000"/>
+  <node id="1087" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0320000" lon="0.0460000"/>
+  <node id="1088" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0320000" lon="0.0400000"/>
+  <node id="1089" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0310000" lon="0.0260000"/>
+  <node id="1090" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0310000" lon="0.0290000"/>
+  <node id="1091" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0340000" lon="0.0290000"/>
+  <node id="1092" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0340000" lon="0.0260000"/>
+  <node id="1093" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0205000" lon="0.0125000"/>
+  <node id="1094" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0205000" lon="0.0129000"/>
+  <node id="1095" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0208000" lon="0.0129000"/>
+  <node id="1096" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0208000" lon="0.0125000"/>
+  <node id="1097" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0205000" lon="0.0185000"/>
+  <node id="1098" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0205000" lon="0.0189000"/>
+  <node id="1099" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0208000" lon="0.0189000"/>
+  <node id="1100" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0208000" lon="0.0185000"/>
+  <node id="1101" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0215000" lon="0.0300000"/>
+  <node id="1102" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0215000" lon="0.0310000"/>
+  <node id="1103" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0225000" lon="0.0310000"/>
+  <node id="1104" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0225000" lon="0.0300000"/>
+  <node id="1105" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0218000" lon="0.0303000"/>
+  <node id="1106" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0218000" lon="0.0307000"/>
+  <node id="1107" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0222000" lon="0.0307000"/>
+  <node id="1108" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0222000" lon="0.0303000"/>
+  <node id="1109" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0206000" lon="0.0158000">
+    <tag k="amenity" v="hospital"/>
+    <tag k="name" v="بیمارستان آزمایشی"/>
+    <tag k="name:en" v="Synthetic Hospital"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1110" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0206000" lon="0.0258000">
+    <tag k="amenity" v="pharmacy"/>
+    <tag k="name" v="داروخانه كوثر آزمايشي"/>
+    <tag k="name:en" v="Synthetic Kowsar Pharmacy"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1111" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0206000" lon="0.0358000">
+    <tag k="amenity" v="police"/>
+    <tag k="name" v="کلانتری آزمایشی"/>
+    <tag k="name:en" v="Synthetic Police Station"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1112" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0206000" lon="0.0458000">
+    <tag k="amenity" v="fire_station"/>
+    <tag k="name" v="آتش‌نشانی آزمایشی"/>
+    <tag k="name:en" v="Synthetic Fire Station"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1113" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0156000" lon="0.0208000">
+    <tag k="amenity" v="fuel"/>
+    <tag k="name" v="جایگاه سوخت آزمایشی"/>
+    <tag k="name:en" v="Synthetic Fuel"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1114" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0156000" lon="0.0408000"/>
+  <node id="1115" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0156000" lon="0.0413000"/>
+  <node id="1116" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0160000" lon="0.0413000"/>
+  <node id="1117" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0160000" lon="0.0408000"/>
+  <node id="1118" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0306000" lon="0.0158000"/>
+  <node id="1119" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0306000" lon="0.0166000"/>
+  <node id="1120" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0311000" lon="0.0166000"/>
+  <node id="1121" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0311000" lon="0.0158000"/>
+  <node id="1122" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0306000" lon="0.0258000">
+    <tag k="amenity" v="restaurant"/>
+    <tag k="name" v="رستوران لاله آزمایشی"/>
+    <tag k="name:en" v="Synthetic Laleh Restaurant"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1123" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0306000" lon="0.0308000">
+    <tag k="amenity" v="cafe"/>
+    <tag k="name" v="کافه آزمایشی"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1124" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0306000" lon="0.0358000">
+    <tag k="amenity" v="fast_food"/>
+    <tag k="name" v="فست‌فود آزمایشی"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1125" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0256000" lon="0.0408000">
+    <tag k="name" v="نانوایی آزمایشی"/>
+    <tag k="name:en" v="Synthetic Bakery"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+    <tag k="shop" v="bakery"/>
+  </node>
+  <node id="1126" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0256000" lon="0.0458000">
+    <tag k="name" v="فروشگاه ۲۴ ساعته آزمایشی"/>
+    <tag k="name:en" v="Synthetic 24h Store"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+    <tag k="shop" v="convenience"/>
+  </node>
+  <node id="1127" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0356000" lon="0.0208000">
+    <tag k="name" v="هتل آزمایشی"/>
+    <tag k="name:en" v="Synthetic Hotel"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+    <tag k="tourism" v="hotel"/>
+  </node>
+  <node id="1128" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0356000" lon="0.0258000">
+    <tag k="name" v="موزه آزمایشی"/>
+    <tag k="name:en" v="Synthetic Museum"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+    <tag k="tourism" v="museum"/>
+  </node>
+  <node id="1129" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0356000" lon="0.0308000">
+    <tag k="name" v="اداره آزمایشی"/>
+    <tag k="office" v="government"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1130" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0356000" lon="0.0358000">
+    <tag k="healthcare" v="clinic"/>
+    <tag k="name" v="درمانگاه آزمایشی"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1131" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0356000" lon="0.0408000">
+    <tag k="craft" v="carpenter"/>
+    <tag k="name" v="نجاری آزمایشی"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1132" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0356000" lon="0.0458000">
+    <tag k="historic" v="monument"/>
+    <tag k="name" v="بنای یادبود مُحَمَّد آزمایشی"/>
+    <tag k="name:en" v="Synthetic Monument"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1133" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0406000" lon="0.0158000">
+    <tag k="emergency" v="ambulance_station"/>
+    <tag k="name" v="پایگاه اورژانس آزمایشی"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1134" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0406000" lon="0.0208000">
+    <tag k="name" v="ایستگاه آزمایشی"/>
+    <tag k="name:en" v="Synthetic Station"/>
+    <tag k="public_transport" v="station"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1135" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0406000" lon="0.0258000">
+    <tag k="amenity" v="bench"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1136" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0406000" lon="0.0308000">
+    <tag k="amenity" v="synthetic_unlisted_value"/>
+    <tag k="name" v="مکان عمومی آزمایشی"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1137" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0406000" lon="0.0358000">
+    <tag k="amenity" v="library"/>
+    <tag k="name:en" v="Synthetic English-only Library"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1138" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0420000" lon="0.0150000">
+    <tag k="power" v="tower"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1139" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0420000" lon="0.0160000">
+    <tag k="barrier" v="gate"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1140" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0270000" lon="0.0300000">
+    <tag k="name" v="شهر آزمایشی"/>
+    <tag k="name:en" v="Synthetic City"/>
+    <tag k="name:fa" v="شهر آزمایشی"/>
+    <tag k="place" v="city"/>
+    <tag k="population" v="50000"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1141" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0350000" lon="0.0200000">
+    <tag k="name" v="محله آزمایشی"/>
+    <tag k="name:en" v="Synthetic Suburb"/>
+    <tag k="place" v="suburb"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1142" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0830000" lon="0.0800000">
+    <tag k="name" v="روستای جزیره آزمایشی"/>
+    <tag k="place" v="village"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </node>
+  <node id="1143" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0000000" lon="0.0000000"/>
+  <node id="1144" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0000000" lon="0.0950000"/>
+  <node id="1145" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0950000" lon="0.0950000"/>
+  <node id="1146" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0950000" lon="0.0000000"/>
+  <node id="1147" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0050000" lon="0.0050000"/>
+  <node id="1148" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0050000" lon="0.0600000"/>
+  <node id="1149" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0450000" lon="0.0600000"/>
+  <node id="1150" version="1" timestamp="2026-10-01T00:00:00Z" lat="0.0450000" lon="0.0050000"/>
+  <way id="5000" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1000"/>
+    <nd ref="1007"/>
+    <nd ref="1014"/>
+    <nd ref="1021"/>
+    <nd ref="1028"/>
+    <nd ref="1035"/>
+    <nd ref="1042"/>
+    <nd ref="1049"/>
+    <nd ref="1056"/>
+    <tag k="highway" v="motorway"/>
+    <tag k="maxspeed" v="120"/>
+    <tag k="motorcycle" v="no"/>
+    <tag k="name" v="آزادراه آزمایشی ۱"/>
+    <tag k="name:en" v="Synthetic Motorway 1"/>
+    <tag k="name:fa" v="آزادراه آزمایشی ۱"/>
+    <tag k="oneway" v="no"/>
+    <tag k="ref" v="SYN-1"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5001" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1001"/>
+    <nd ref="1008"/>
+    <nd ref="1015"/>
+    <nd ref="1022"/>
+    <nd ref="1029"/>
+    <nd ref="1036"/>
+    <nd ref="1043"/>
+    <nd ref="1050"/>
+    <nd ref="1057"/>
+    <tag k="highway" v="tertiary"/>
+    <tag k="maxspeed" v="30"/>
+    <tag k="name" v="جاده کناری آزمایشی"/>
+    <tag k="name:en" v="Synthetic Side Road"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5002" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1000"/>
+    <nd ref="1001"/>
+    <tag k="highway" v="tertiary"/>
+    <tag k="maxspeed" v="30"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5003" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1056"/>
+    <nd ref="1057"/>
+    <tag k="highway" v="tertiary"/>
+    <tag k="maxspeed" v="30"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5004" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1002"/>
+    <nd ref="1009"/>
+    <nd ref="1016"/>
+    <nd ref="1023"/>
+    <nd ref="1030"/>
+    <nd ref="1037"/>
+    <nd ref="1044"/>
+    <nd ref="1051"/>
+    <nd ref="1058"/>
+    <tag k="highway" v="primary"/>
+    <tag k="maxspeed" v="50"/>
+    <tag k="name" v="خيابان اصلي آزمايشي"/>
+    <tag k="name:en" v="Synthetic Main Street"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5005" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1001"/>
+    <nd ref="1002"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="کوچه آزمایشی ۱"/>
+    <tag k="name:en" v="Synthetic Alley 1"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5006" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1015"/>
+    <nd ref="1016"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="کوچه آزمایشی ۳"/>
+    <tag k="name:en" v="Synthetic Alley 3"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5007" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1029"/>
+    <nd ref="1030"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="کوچه آزمایشی ۵"/>
+    <tag k="name:en" v="Synthetic Alley 5"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5008" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1043"/>
+    <nd ref="1044"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="کوچه آزمایشی ۷"/>
+    <tag k="name:en" v="Synthetic Alley 7"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5009" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1057"/>
+    <nd ref="1058"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="کوچه آزمایشی ۹"/>
+    <tag k="name:en" v="Synthetic Alley 9"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5010" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1003"/>
+    <nd ref="1010"/>
+    <nd ref="1017"/>
+    <nd ref="1024"/>
+    <nd ref="1031"/>
+    <nd ref="1038"/>
+    <nd ref="1045"/>
+    <nd ref="1052"/>
+    <nd ref="1059"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="خیابان آزمایشی ۳"/>
+    <tag k="name:en" v="Synthetic Row 3"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5011" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1004"/>
+    <nd ref="1011"/>
+    <nd ref="1018"/>
+    <nd ref="1025"/>
+    <nd ref="1032"/>
+    <nd ref="1039"/>
+    <nd ref="1046"/>
+    <nd ref="1053"/>
+    <nd ref="1060"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="خیابان آزمایشی ۴"/>
+    <tag k="name:en" v="Synthetic Row 4"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5012" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1005"/>
+    <nd ref="1012"/>
+    <nd ref="1019"/>
+    <nd ref="1026"/>
+    <nd ref="1033"/>
+    <nd ref="1040"/>
+    <nd ref="1047"/>
+    <nd ref="1054"/>
+    <nd ref="1061"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="خیابان‌ شمالی‌ آزمایشی"/>
+    <tag k="name:en" v="Synthetic Row 5"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5013" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1006"/>
+    <nd ref="1013"/>
+    <nd ref="1020"/>
+    <nd ref="1027"/>
+    <nd ref="1034"/>
+    <nd ref="1041"/>
+    <nd ref="1048"/>
+    <nd ref="1055"/>
+    <nd ref="1062"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="خیابان آزمایشی ۶"/>
+    <tag k="name:en" v="Synthetic Row 6"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5014" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1002"/>
+    <nd ref="1003"/>
+    <nd ref="1004"/>
+    <nd ref="1005"/>
+    <nd ref="1006"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="خیابان عمودی آزمایشی ۰"/>
+    <tag k="name:en" v="Synthetic Column 0"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5015" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1016"/>
+    <nd ref="1017"/>
+    <nd ref="1018"/>
+    <nd ref="1019"/>
+    <nd ref="1020"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="خیابان عمودی آزمایشی ۲"/>
+    <tag k="name:en" v="Synthetic Column 2"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5016" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1044"/>
+    <nd ref="1045"/>
+    <nd ref="1046"/>
+    <nd ref="1047"/>
+    <nd ref="1048"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="خیابان عمودی آزمایشی ۶"/>
+    <tag k="name:en" v="Synthetic Column 6"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5017" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1058"/>
+    <nd ref="1059"/>
+    <nd ref="1060"/>
+    <nd ref="1061"/>
+    <nd ref="1062"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="خیابان عمودی آزمایشی ۸"/>
+    <tag k="name:en" v="Synthetic Column 8"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5018" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1030"/>
+    <nd ref="1031"/>
+    <nd ref="1032"/>
+    <nd ref="1033"/>
+    <nd ref="1034"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="یک‌طرفه آزمایشی"/>
+    <tag k="name:en" v="Synthetic One-way North"/>
+    <tag k="oneway" v="yes"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5019" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1017"/>
+    <nd ref="1063"/>
+    <nd ref="1064"/>
+    <nd ref="1048"/>
+    <tag k="highway" v="footway"/>
+    <tag k="name" v="پیاده‌روی آزمایشی"/>
+    <tag k="name:en" v="Synthetic Footpath"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5020" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1010"/>
+    <nd ref="1011"/>
+    <tag k="highway" v="service"/>
+    <tag k="motor_vehicle" v="no"/>
+    <tag k="name" v="کوچه بدون خودرو آزمایشی"/>
+    <tag k="name:en" v="Synthetic No-motor Lane"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5021" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1065"/>
+    <nd ref="1066"/>
+    <tag k="name" v="راه‌آهن آزمایشی"/>
+    <tag k="name:en" v="Synthetic Railway"/>
+    <tag k="railway" v="rail"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5022" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1067"/>
+    <nd ref="1068"/>
+    <nd ref="1069"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="جزیره آزمایشی"/>
+    <tag k="name:en" v="Synthetic Island Road"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5023" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1070"/>
+    <nd ref="1071"/>
+    <nd ref="1072"/>
+    <nd ref="1073"/>
+    <nd ref="1070"/>
+    <tag k="name" v="دریاچه آزمایشی"/>
+    <tag k="name:en" v="Synthetic Lake"/>
+    <tag k="natural" v="water"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+    <tag k="water" v="lake"/>
+  </way>
+  <way id="5024" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1074"/>
+    <nd ref="1075"/>
+    <nd ref="1076"/>
+    <tag k="name" v="رود آزمایشی"/>
+    <tag k="name:en" v="Synthetic River"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+    <tag k="waterway" v="river"/>
+  </way>
+  <way id="5025" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1077"/>
+    <nd ref="1078"/>
+    <tag k="name" v="نهر آزمایشی"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+    <tag k="waterway" v="stream"/>
+  </way>
+  <way id="5026" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1079"/>
+    <nd ref="1080"/>
+    <tag k="name" v="کانال آزمایشی"/>
+    <tag k="name:en" v="Synthetic Canal"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+    <tag k="waterway" v="canal"/>
+  </way>
+  <way id="5027" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1081"/>
+    <nd ref="1082"/>
+    <nd ref="1083"/>
+    <nd ref="1084"/>
+    <nd ref="1081"/>
+    <tag k="landuse" v="residential"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5028" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1085"/>
+    <nd ref="1086"/>
+    <nd ref="1087"/>
+    <nd ref="1088"/>
+    <nd ref="1085"/>
+    <tag k="name" v="جنگل آزمایشی"/>
+    <tag k="natural" v="wood"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5029" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1089"/>
+    <nd ref="1090"/>
+    <nd ref="1091"/>
+    <nd ref="1092"/>
+    <nd ref="1089"/>
+    <tag k="leisure" v="park"/>
+    <tag k="name" v="پارک لاله آزمایشی"/>
+    <tag k="name:en" v="Synthetic Tulip Park"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5030" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1093"/>
+    <nd ref="1094"/>
+    <nd ref="1095"/>
+    <nd ref="1096"/>
+    <nd ref="1093"/>
+    <tag k="addr:housenumber" v="۱۲"/>
+    <tag k="addr:street" v="خيابان اصلي آزمايشي"/>
+    <tag k="building" v="yes"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5031" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1097"/>
+    <nd ref="1098"/>
+    <nd ref="1099"/>
+    <nd ref="1100"/>
+    <nd ref="1097"/>
+    <tag k="addr:housenumber" v="14"/>
+    <tag k="addr:street" v="خيابان اصلي آزمايشي"/>
+    <tag k="building" v="yes"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5032" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1101"/>
+    <nd ref="1102"/>
+    <nd ref="1103"/>
+    <nd ref="1104"/>
+    <nd ref="1101"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5033" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1105"/>
+    <nd ref="1106"/>
+    <nd ref="1107"/>
+    <nd ref="1108"/>
+    <nd ref="1105"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5034" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1114"/>
+    <nd ref="1115"/>
+    <nd ref="1116"/>
+    <nd ref="1117"/>
+    <nd ref="1114"/>
+    <tag k="amenity" v="parking"/>
+    <tag k="name" v="پارکینگ آزمایشی"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5035" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1118"/>
+    <nd ref="1119"/>
+    <nd ref="1120"/>
+    <nd ref="1121"/>
+    <nd ref="1118"/>
+    <tag k="amenity" v="school"/>
+    <tag k="name" v="مدرسه آزمایشی"/>
+    <tag k="name:en" v="Synthetic School"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5036" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1143"/>
+    <nd ref="1144"/>
+    <nd ref="1145"/>
+    <nd ref="1146"/>
+    <nd ref="1143"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <way id="5037" version="1" timestamp="2026-10-01T00:00:00Z">
+    <nd ref="1147"/>
+    <nd ref="1148"/>
+    <nd ref="1149"/>
+    <nd ref="1150"/>
+    <nd ref="1147"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+  </way>
+  <relation id="9000" version="1" timestamp="2026-10-01T00:00:00Z">
+    <member type="way" ref="5032" role="outer"/>
+    <member type="way" ref="5033" role="inner"/>
+    <tag k="building" v="yes"/>
+    <tag k="name" v="ساختمان حیاط‌دار آزمایشی"/>
+    <tag k="name:en" v="Synthetic Courtyard Building"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+    <tag k="type" v="multipolygon"/>
+  </relation>
+  <relation id="9001" version="1" timestamp="2026-10-01T00:00:00Z">
+    <member type="way" ref="5036" role="outer"/>
+    <tag k="admin_level" v="4"/>
+    <tag k="boundary" v="administrative"/>
+    <tag k="name" v="استان آزمایشی"/>
+    <tag k="name:en" v="Synthetic Province"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+    <tag k="type" v="boundary"/>
+  </relation>
+  <relation id="9002" version="1" timestamp="2026-10-01T00:00:00Z">
+    <member type="way" ref="5037" role="outer"/>
+    <tag k="admin_level" v="6"/>
+    <tag k="boundary" v="administrative"/>
+    <tag k="name" v="شهرستان آزمایشی"/>
+    <tag k="name:en" v="Synthetic County"/>
+    <tag k="seyra:fixture" v="synthetic"/>
+    <tag k="type" v="boundary"/>
+  </relation>
+</osm>

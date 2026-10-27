@@ -1,0 +1,44 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/map/route",
+    "body": {
+      "profile": "car",
+      "objective": "time",
+      "order": "optimized",
+      "points": [
+        {
+          "id": "a",
+          "lon": 0.01,
+          "lat": 0.02
+        },
+        {
+          "id": "island",
+          "lon": 0.085,
+          "lat": 0.08
+        },
+        {
+          "id": "b",
+          "lon": 0.05,
+          "lat": 0.02
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 422,
+    "body": {
+      "error": {
+        "code": "NO_ROUTE",
+        "message": "no visit order with a finite modeled cost exists; no stop is omitted",
+        "request_id": "<request-id>",
+        "provider": "valhalla",
+        "details": {
+          "unreachable_pairs": 2,
+          "pair_routes_computed": 2
+        },
+        "dataset_id": "ds-20261001-681455d56afb"
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "comment": "Pinned upstream sources for the Seyra preparation build. Commits are the peeled commits of the listed tags as fetched on 2026-10-14.",
+  "sources": {
+    "valhalla": { "url": "https://github.com/valhalla/valhalla", "tag": "3.9.1", "commit": "bafb69902220615a48307d5c790fb6c943802ba4", "submodules": true },
+    "prime_server": { "url": "https://github.com/kevinkreiser/prime_server", "tag": "0.12.0", "commit": "fea0909dd07548a611ea20b81f4b42b091f6c0d2", "submodules": true },
+    "overpass": { "url": "https://github.com/drolbr/Overpass-API", "tag": "osm3s_v0.7.62.4", "commit": "6a33115360dd40be95c0285b7fc6ef79fdb4fa5c" },
+    "osm2pgsql": { "url": "https://github.com/osm2pgsql-dev/osm2pgsql", "tag": "2.3.1", "commit": "a32140835bf919cd3f0a15478db320b05b59a5ab" },
+    "osmium-tool": { "url": "https://github.com/osmcode/osmium-tool", "tag": "v1.19.1", "commit": "18ac055a71ffebefb3b7407c0d324e2532770a79" },
+    "tegola": { "url": "https://github.com/go-spatial/tegola", "tag": "v0.21.2", "commit": "a803ac9b084c2a9a32ff9c6fb0a7ee9ba30c7e8f" },
+    "photon": { "url": "https://github.com/komoot/photon", "tag": "1.3.0", "commit": "4c28c7c132694d72673a2475ddab854bd32dac71" },
+    "nominatim": { "url": "https://github.com/osm-search/Nominatim", "tag": "v5.3.2", "commit": "57feabc92b216e0f1376a4e6398d805c6215468d" }
+  },
+  "artifacts": {
+    "photon-1.3.0.jar": { "url": "https://github.com/komoot/photon/releases/download/1.3.0/photon-1.3.0.jar", "sha256": "a89707c0045e4807b2a1180e132e68e108d998709f48b6c94b98a6e281f571a5" },
+    "nominatim_db-5.3.2-py3-none-any.whl": { "url": "https://pypi.org/project/nominatim-db/5.3.2/", "sha256": "c5e1c4bd27f52a48843a5fe204a1a7b5f4d4d2911880e65721b4c900b13227e5" }
+  }
+}

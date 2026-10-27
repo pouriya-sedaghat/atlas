@@ -1,0 +1,44 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/map/autocomplete?q=%D8%B1%D8%B3%D8%AA%D9%88%D8%B1%D8%A7%D9%86%20%D9%84%D8%A7%D9%84&lang=fa&limit=3"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "dataset_id": "ds-20261001-681455d56afb",
+      "provider": "photon",
+      "operation": "autocomplete",
+      "language": "fa",
+      "normalized_query": "رستوران لال",
+      "result_status": "ok",
+      "results": [
+        {
+          "id": "osm:n1122",
+          "osm_type": "node",
+          "osm_id": 1122,
+          "name": "رستوران لاله آزمایشی",
+          "names": {
+            "default": "رستوران لاله آزمایشی",
+            "en": "Synthetic Laleh Restaurant"
+          },
+          "category": {
+            "key": "amenity",
+            "value": "restaurant"
+          },
+          "address": {
+            "street": "پیاده‌روی آزمایشی",
+            "district": "محله آزمایشی",
+            "city": "شهر آزمایشی",
+            "county": "شهرستان آزمایشی",
+            "state": "استان آزمایشی"
+          },
+          "coordinate": {
+            "lon": 0.0258,
+            "lat": 0.0306
+          }
+        }
+      ]
+    }
+  }
+}

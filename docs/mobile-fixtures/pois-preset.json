@@ -1,0 +1,76 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/map/pois?bbox=0.005,0.005,0.06,0.06&preset=food&lang=fa&limit=2"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "dataset_id": "ds-20261001-681455d56afb",
+      "provider": "overpass",
+      "selector": {
+        "preset": "food",
+        "filters": [
+          {
+            "key": "amenity",
+            "value": "restaurant"
+          },
+          {
+            "key": "amenity",
+            "value": "fast_food"
+          },
+          {
+            "key": "amenity",
+            "value": "cafe"
+          },
+          {
+            "key": "amenity",
+            "value": "food_court"
+          }
+        ]
+      },
+      "bbox": [
+        0.005,
+        0.005,
+        0.06,
+        0.06
+      ],
+      "bbox_area_km2": 37.402,
+      "limit": 2,
+      "truncated": true,
+      "features": [
+        {
+          "id": "osm:n1122",
+          "osm_type": "node",
+          "osm_id": 1122,
+          "coordinate": {
+            "lon": 0.0258,
+            "lat": 0.0306
+          },
+          "key": "amenity",
+          "value": "restaurant",
+          "name": "رستوران لاله آزمایشی",
+          "names": {
+            "default": "رستوران لاله آزمایشی",
+            "en": "Synthetic Laleh Restaurant"
+          }
+        },
+        {
+          "id": "osm:n1123",
+          "osm_type": "node",
+          "osm_id": 1123,
+          "coordinate": {
+            "lon": 0.0308,
+            "lat": 0.0306
+          },
+          "key": "amenity",
+          "value": "cafe",
+          "name": "کافه آزمایشی",
+          "names": {
+            "default": "کافه آزمایشی"
+          }
+        }
+      ]
+    }
+  }
+}

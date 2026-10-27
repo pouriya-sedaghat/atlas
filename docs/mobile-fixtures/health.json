@@ -1,0 +1,58 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/map/health"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "status": "ready",
+      "dataset_id": "ds-20261001-681455d56afb",
+      "providers": [
+        {
+          "provider": "tiles",
+          "implementation": "tegola",
+          "expected_identity": "seyra_ds_20261001_681455d56afb",
+          "checked_at": "2026-10-14T13:28:10.014Z",
+          "status": "ok",
+          "observed_identity": "seyra_ds_20261001_681455d56afb",
+          "latency_ms": 15
+        },
+        {
+          "provider": "routing",
+          "implementation": "valhalla",
+          "expected_identity": "1791983703",
+          "checked_at": "2026-10-14T13:28:10.018Z",
+          "status": "ok",
+          "observed_identity": "1791983703",
+          "latency_ms": 6
+        },
+        {
+          "provider": "geocoder",
+          "implementation": "photon",
+          "expected_identity": "seyra-release-ds-20261001-681455d56afb",
+          "checked_at": "2026-10-14T13:28:10.019Z",
+          "status": "ok",
+          "observed_identity": "seyra-release-ds-20261001-681455d56afb",
+          "latency_ms": 159
+        },
+        {
+          "provider": "overpass",
+          "implementation": "overpass",
+          "expected_identity": "seyra:ds-20261001-681455d56afb",
+          "checked_at": "2026-10-14T13:28:10.020Z",
+          "status": "ok",
+          "observed_identity": "seyra:ds-20261001-681455d56afb",
+          "latency_ms": 106
+        }
+      ],
+      "dependencies": [
+        {
+          "name": "control_db",
+          "status": "ok"
+        }
+      ],
+      "checked_at": "2026-10-14T13:28:10.179Z"
+    }
+  }
+}

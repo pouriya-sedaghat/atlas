@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/map/pois?bbox=44,25,63,40&preset=hospitals"
+  },
+  "response": {
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "BBOX_TOO_LARGE",
+        "message": "bbox area 2963495.2 km² exceeds 100 km²",
+        "request_id": "<request-id>",
+        "details": {
+          "area_km2": 2963495.245,
+          "limit_km2": 100
+        },
+        "dataset_id": "ds-20261001-681455d56afb"
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/map/route",
+    "body": {
+      "profile": "car",
+      "objective": "time",
+      "points": [
+        {
+          "id": "a",
+          "lon": 0.01,
+          "lat": 0.02
+        },
+        {
+          "id": "m",
+          "lon": 0.03,
+          "lat": 0.025
+        },
+        {
+          "id": "b",
+          "lon": 0.05,
+          "lat": 0.03
+        }
+      ],
+      "alternatives": 1
+    }
+  },
+  "response": {
+    "status": 422,
+    "body": {
+      "error": {
+        "code": "UNSUPPORTED_COMBINATION",
+        "message": "alternatives are supported only for two-point ordered routes",
+        "request_id": "<request-id>",
+        "details": {
+          "alternatives": 1,
+          "points": 3
+        },
+        "dataset_id": "ds-20261001-681455d56afb"
+      }
+    }
+  }
+}

@@ -1,0 +1,111 @@
+# Seyra Tegola configuration — generated per release by seyra-maps; do not edit by hand.
+# Dataset: {{DATASET_ID}}  Catalog: {{CATALOG_VERSION}}
+# The password is substituted by Tegola from the process environment, which the image
+# entrypoint fills from the mounted secret file. No cache back end: Nginx keeps a bounded,
+# dataset-versioned tile cache.
+
+[webserver]
+port = ":8080"
+
+  [webserver.headers]
+  Cache-Control = "no-store"
+
+[[providers]]
+name = "render"
+type = "mvt_postgis"
+uri = "postgres://seyra_tile_reader:${SEYRA_TILE_DB_PASSWORD}@{{DB_HOST}}:5432/{{RENDER_DB}}?sslmode=disable&pool_max_conns=8&pool_min_conns=1"
+srid = 3857
+
+  [[providers.layers]]
+  name = "water"
+  id_fieldname = "feature_id"
+  geometry_type = "MultiPolygon"
+  sql = "SELECT ST_AsMVTGeom(CASE WHEN !ZOOM! < 14 THEN ST_SimplifyPreserveTopology(geom, !PIXEL_WIDTH! / 2) ELSE geom END, !BBOX!) AS geom, feature_id, osm_type, osm_id, class, name, name_fa, name_en FROM render.water WHERE geom && !BBOX! AND min_zoom <= !ZOOM! AND (!ZOOM! >= 12 OR ST_Area(geom) > 4 * !PIXEL_WIDTH! * !PIXEL_WIDTH!)"
+
+  [[providers.layers]]
+  name = "landcover"
+  id_fieldname = "feature_id"
+  geometry_type = "MultiPolygon"
+  sql = "SELECT ST_AsMVTGeom(CASE WHEN !ZOOM! < 14 THEN ST_SimplifyPreserveTopology(geom, !PIXEL_WIDTH! / 2) ELSE geom END, !BBOX!) AS geom, feature_id, osm_type, osm_id, class, subclass, name, name_fa, name_en FROM render.landcover WHERE geom && !BBOX! AND min_zoom <= !ZOOM! AND (!ZOOM! >= 12 OR ST_Area(geom) > 4 * !PIXEL_WIDTH! * !PIXEL_WIDTH!)"
+
+  [[providers.layers]]
+  name = "waterways"
+  id_fieldname = "feature_id"
+  geometry_type = "LineString"
+  sql = "SELECT ST_AsMVTGeom(CASE WHEN !ZOOM! < 14 THEN ST_Simplify(geom, !PIXEL_WIDTH! / 2) ELSE geom END, !BBOX!) AS geom, feature_id, osm_type, osm_id, waterway, name, name_fa, name_en FROM render.waterways WHERE geom && !BBOX! AND min_zoom <= !ZOOM!"
+
+  [[providers.layers]]
+  name = "boundaries"
+  id_fieldname = "feature_id"
+  geometry_type = "MultiLineString"
+  sql = "SELECT ST_AsMVTGeom(CASE WHEN !ZOOM! < 14 THEN ST_Simplify(geom, !PIXEL_WIDTH! / 2) ELSE geom END, !BBOX!) AS geom, feature_id, osm_type, osm_id, admin_level, name, name_fa, name_en FROM render.boundaries WHERE geom && !BBOX! AND min_zoom <= !ZOOM!"
+
+  [[providers.layers]]
+  name = "transport"
+  id_fieldname = "feature_id"
+  geometry_type = "LineString"
+  sql = "SELECT ST_AsMVTGeom(CASE WHEN !ZOOM! < 13 THEN ST_Simplify(geom, !PIXEL_WIDTH! / 2) ELSE geom END, !BBOX!) AS geom, feature_id, osm_type, osm_id, class, type, ref, bridge, tunnel, layer, oneway, access, motorcycle, motor_vehicle, foot, z_order, name, name_fa, name_en FROM render.transport WHERE geom && !BBOX! AND min_zoom <= !ZOOM! ORDER BY z_order"
+
+  [[providers.layers]]
+  name = "buildings"
+  id_fieldname = "feature_id"
+  geometry_type = "MultiPolygon"
+  sql = "SELECT ST_AsMVTGeom(geom, !BBOX!) AS geom, feature_id, osm_type, osm_id, building, housenumber, name, name_fa, name_en FROM render.buildings WHERE geom && !BBOX! AND min_zoom <= !ZOOM!"
+
+  [[providers.layers]]
+  name = "places"
+  id_fieldname = "feature_id"
+  geometry_type = "Point"
+  sql = "SELECT ST_AsMVTGeom(geom, !BBOX!) AS geom, feature_id, osm_type, osm_id, place, population, name, name_fa, name_en FROM render.places WHERE geom && !BBOX! AND min_zoom <= !ZOOM! ORDER BY population DESC NULLS LAST"
+
+  [[providers.layers]]
+  name = "pois"
+  id_fieldname = "feature_id"
+  geometry_type = "Point"
+  sql = "SELECT ST_AsMVTGeom(geom, !BBOX!) AS geom, feature_id, osm_type, osm_id, key, value, major, name, name_fa, name_en FROM render.pois WHERE geom && !BBOX! AND min_zoom <= !ZOOM! ORDER BY major DESC"
+
+[[maps]]
+name = "{{MAP_NAME}}"
+attribution = "© OpenStreetMap contributors (ODbL)"
+bounds = {{BOUNDS}}
+center = {{CENTER}}
+
+  [[maps.layers]]
+  provider_layer = "render.water"
+  min_zoom = 0
+  max_zoom = 16
+
+  [[maps.layers]]
+  provider_layer = "render.landcover"
+  min_zoom = 0
+  max_zoom = 16
+
+  [[maps.layers]]
+  provider_layer = "render.waterways"
+  min_zoom = 0
+  max_zoom = 16
+
+  [[maps.layers]]
+  provider_layer = "render.boundaries"
+  min_zoom = 0
+  max_zoom = 16
+
+  [[maps.layers]]
+  provider_layer = "render.transport"
+  min_zoom = 4
+  max_zoom = 16
+
+  [[maps.layers]]
+  provider_layer = "render.buildings"
+  min_zoom = 14
+  max_zoom = 16
+
+  [[maps.layers]]
+  provider_layer = "render.places"
+  min_zoom = 0
+  max_zoom = 16
+
+  [[maps.layers]]
+  provider_layer = "render.pois"
+  min_zoom = 12
+  max_zoom = 16

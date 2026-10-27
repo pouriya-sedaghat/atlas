@@ -1,0 +1,160 @@
+# Seyra Map Services — OPERATIONAL compose. Generated values come from
+# ${SEYRA_HOME}/state/runtime.env (written by `seyra-maps activate`).
+#
+# - All four required map capabilities (tiles, routing, geocoder, Overpass) always run: there are
+#   no profiles and no feature toggles.
+# - Images must already be loaded locally (pull_policy: never); there are no build sections and no
+#   install/download steps. A missing image fails before operation.
+# - Providers and the database are only on the internal `seyra_demo_backend` network (no host ports).
+#   Only the HTTP demo proxy publishes a port, on 127.0.0.1 by default.
+name: seyra-demo
+
+x-hardening: &hardening
+  pull_policy: never
+  restart: unless-stopped
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+networks:
+  backend:
+    name: seyra_demo_backend
+    external: true
+  build:
+    name: seyra_demo_build
+    external: true
+  frontend:
+    name: seyra_demo_frontend
+    driver: bridge
+
+secrets:
+  db_admin_password: { file: "${SEYRA_HOME:?}/secrets/db_admin_password" }
+  db_api_password: { file: "${SEYRA_HOME:?}/secrets/db_api_password" }
+  tile_db_password: { file: "${SEYRA_HOME:?}/secrets/tile_db_password" }
+
+services:
+  db:
+    image: "${SEYRA_IMAGE_DB:?}"
+    pull_policy: never
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
+    environment:
+      POSTGRES_USER: seyra_admin
+      POSTGRES_DB: seyra_app
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_admin_password
+    secrets: [db_admin_password]
+    volumes:
+      - "${SEYRA_HOME:?}/data/postgres:/var/lib/postgresql/data"
+    networks: [backend, build]
+    shm_size: "256m"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "seyra_admin", "-d", "seyra_app"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  tegola:
+    <<: *hardening
+    image: "${SEYRA_IMAGE_TEGOLA:?}"
+    read_only: true
+    environment:
+      SEYRA_TEGOLA_CONFIG: /srv/release/tegola/tegola.toml
+      SEYRA_TILE_DB_PASSWORD_FILE: /run/secrets/tile_db_password
+    secrets: [tile_db_password]
+    volumes:
+      - "${SEYRA_RELEASE_DIR:?}/tegola:/srv/release/tegola:ro"
+    networks: [backend]
+    depends_on: { db: { condition: service_healthy } }
+
+  valhalla:
+    <<: *hardening
+    image: "${SEYRA_IMAGE_VALHALLA:?}"
+    read_only: true
+    command: ["valhalla_service", "/data/valhalla/valhalla.json", "${SEYRA_VALHALLA_THREADS:-2}"]
+    tmpfs: ["/tmp"]
+    volumes:
+      - "${SEYRA_RELEASE_DIR:?}/valhalla:/data/valhalla:ro"
+    networks: [backend]
+
+  photon:
+    <<: *hardening
+    image: "${SEYRA_IMAGE_PHOTON:?}"
+    read_only: true
+    environment:
+      PHOTON_JAVA_OPTS: "${SEYRA_PHOTON_JAVA_OPTS:--Xms512m -Xmx2g}"
+    tmpfs: ["/tmp"]
+    # The embedded OpenSearch needs write access to its index directory (locks, translog).
+    # Serving never imports; the index was built by the geocoder job into this release only.
+    volumes:
+      - "${SEYRA_RELEASE_DIR:?}/photon:/data/photon"
+    networks: [backend]
+
+  overpass:
+    <<: *hardening
+    image: "${SEYRA_IMAGE_OVERPASS:?}"
+    read_only: true
+    environment:
+      OVERPASS_SPACE_BYTES: "${SEYRA_OVERPASS_SPACE_BYTES:-1073741824}"
+      OVERPASS_TIME_UNITS: "${SEYRA_OVERPASS_TIME_UNITS:-262144}"
+    tmpfs: ["/tmp", "/run/overpass:uid=10004,gid=10004"]
+    volumes:
+      - "${SEYRA_RELEASE_DIR:?}/overpass/db:/data/overpass/db:ro"
+    networks: [backend]
+
+  api:
+    <<: *hardening
+    image: "${SEYRA_IMAGE_API:?}"
+    read_only: true
+    tmpfs: ["/tmp"]
+    stop_grace_period: 40s
+    environment:
+      SEYRA_ACTIVE_RELEASE_FILE: /srv/seyra/active/release.json
+      SEYRA_MAINTENANCE_FILE: /srv/seyra/flags/maintenance
+      SEYRA_DB_HOST: db
+      SEYRA_DB_NAME: seyra_app
+      SEYRA_DB_USER: seyra_api
+      SEYRA_DB_PASSWORD_FILE: /run/secrets/db_api_password
+      SEYRA_SHUTDOWN_GRACE_MS: "30000"
+      SEYRA_LOG_LEVEL: "${SEYRA_LOG_LEVEL:-info}"
+    secrets: [db_api_password]
+    volumes:
+      - "${SEYRA_HOME:?}/state/active:/srv/seyra/active:ro"
+      - "${SEYRA_HOME:?}/state/flags:/srv/seyra/flags:ro"
+    networks: [backend]
+    depends_on:
+      db: { condition: service_healthy }
+      tegola: { condition: service_started }
+      valhalla: { condition: service_started }
+      photon: { condition: service_started }
+      overpass: { condition: service_started }
+
+  proxy:
+    <<: *hardening
+    image: "${SEYRA_IMAGE_PROXY:?}"
+    read_only: true
+    environment:
+      SEYRA_DATASET_ID: "${SEYRA_DATASET_ID:?}"
+      SEYRA_ACCESS_MODE: "${SEYRA_ACCESS_MODE:-loopback}"
+      # Same variable as the published port binding below; the entrypoint refuses loopback mode
+      # unless this is a loopback address.
+      SEYRA_BIND_ADDR: "${SEYRA_BIND_ADDR:-127.0.0.1}"
+      SEYRA_LAN_ALLOW_CIDRS: "${SEYRA_LAN_ALLOW_CIDRS:-}"
+      SEYRA_SERVER_NAMES: "${SEYRA_SERVER_NAMES:-localhost 127.0.0.1}"
+      SEYRA_TILE_CACHE_MAX: "${SEYRA_TILE_CACHE_MAX:-2g}"
+      # Optional relay listener (all empty = none); its port mapping is in runtime.relay.yml.
+      SEYRA_RELAY_PEER: "${SEYRA_RELAY_PEER:-}"
+      SEYRA_RELAY_CLIENT_CIDRS: "${SEYRA_RELAY_CLIENT_CIDRS:-}"
+      SEYRA_RELAY_SERVER_NAMES: "${SEYRA_RELAY_SERVER_NAMES:-}"
+    tmpfs: ["/tmp:uid=101,gid=101"]
+    volumes:
+      - "${SEYRA_RELEASE_DIR:?}/maps:/srv/seyra/release/maps:ro"
+      - "${SEYRA_HOME:?}/cache/tiles:/var/cache/seyra/tiles"
+    ports:
+      - "${SEYRA_BIND_ADDR:-127.0.0.1}:${SEYRA_HTTPS_PORT:-8080}:8443"
+    networks: [frontend, backend]
+    depends_on:
+      api: { condition: service_started }
+      tegola: { condition: service_started }

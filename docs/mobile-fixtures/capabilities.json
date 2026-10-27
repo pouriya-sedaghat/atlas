@@ -1,0 +1,500 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/map/capabilities"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "api_version": "v1",
+      "contracts_version": "1.0.0",
+      "limits_version": "1.0.0",
+      "catalog_version": "seyra-catalog-1.0.0",
+      "search_normalization_version": "fa-search-norm-1",
+      "dataset_id": "ds-20261001-681455d56afb",
+      "coordinate_reference": "WGS84 (EPSG:4326); GeoJSON positions are [lon, lat]",
+      "units": {
+        "distance": "m",
+        "duration": "s",
+        "area": "km2"
+      },
+      "languages": [
+        "fa",
+        "en"
+      ],
+      "label_fallback": {
+        "fa": [
+          "name:fa",
+          "name",
+          "name:en"
+        ],
+        "en": [
+          "name:en",
+          "name",
+          "name:fa"
+        ]
+      },
+      "required_capabilities": [
+        "tiles",
+        "routing",
+        "geocoder",
+        "overpass"
+      ],
+      "providers": {
+        "tiles": "tegola",
+        "routing": "valhalla",
+        "geocoder": "photon",
+        "overpass": "overpass",
+        "straight_line": "postgis"
+      },
+      "map": {
+        "tilejson": "/maps/ds-20261001-681455d56afb/tiles.json",
+        "tiles": "/maps/ds-20261001-681455d56afb/tiles/{z}/{x}/{y}.pbf",
+        "tegola_map": "seyra_ds_20261001_681455d56afb",
+        "styles": {
+          "light_fa": "/maps/ds-20261001-681455d56afb/styles/light-fa.json",
+          "light_en": "/maps/ds-20261001-681455d56afb/styles/light-en.json",
+          "dark_fa": "/maps/ds-20261001-681455d56afb/styles/dark-fa.json",
+          "dark_en": "/maps/ds-20261001-681455d56afb/styles/dark-en.json"
+        },
+        "native_zoom": {
+          "min": 0,
+          "max": 16
+        },
+        "client_max_zoom": 22,
+        "overzoom_note": "Above the native range clients overzoom; no extra geometry is invented."
+      },
+      "routing": {
+        "profiles": [
+          "car",
+          "pedestrian",
+          "motorcycle"
+        ],
+        "objectives": [
+          "time",
+          "distance"
+        ],
+        "order_modes": [
+          "ordered",
+          "optimized"
+        ],
+        "support": [
+          {
+            "order": "ordered",
+            "min_points": 2,
+            "max_points": 2,
+            "objectives": [
+              "time",
+              "distance"
+            ],
+            "profiles": [
+              "car",
+              "pedestrian",
+              "motorcycle"
+            ],
+            "max_alternatives": 2,
+            "note": "Up to max_alternatives additional routes; the provider may return fewer or none."
+          },
+          {
+            "order": "ordered",
+            "min_points": 3,
+            "max_points": 25,
+            "objectives": [
+              "time",
+              "distance"
+            ],
+            "profiles": [
+              "car",
+              "pedestrian",
+              "motorcycle"
+            ],
+            "max_alternatives": 0,
+            "note": "Multipoint alternatives are unsupported in phase 1 (UNSUPPORTED_COMBINATION)."
+          },
+          {
+            "order": "optimized",
+            "min_points": 2,
+            "max_points": 2,
+            "objectives": [
+              "time",
+              "distance"
+            ],
+            "profiles": [
+              "car",
+              "pedestrian",
+              "motorcycle"
+            ],
+            "max_alternatives": 0,
+            "note": "Two points: input order is returned; no reordering, no alternatives."
+          },
+          {
+            "order": "optimized",
+            "min_points": 3,
+            "max_points": 10,
+            "objectives": [
+              "time",
+              "distance"
+            ],
+            "profiles": [
+              "car",
+              "pedestrian",
+              "motorcycle"
+            ],
+            "max_alternatives": 0,
+            "note": "Fixed first/last points; exact Held–Karp order over the modeled directed pair-cost table only."
+          }
+        ],
+        "unsupported": [
+          "alternatives with more than 2 points",
+          "alternatives with optimized order",
+          "date_time / time-dependent routing",
+          "live traffic",
+          "point counts above the configured limits"
+        ],
+        "route_optimality": "not_guaranteed",
+        "duration_semantics": "static_estimate",
+        "optimization": "held_karp_directed_pair_costs (exact for the modeled pair-cost table only)"
+      },
+      "proximity": {
+        "metrics": [
+          "straight_line",
+          "road_distance",
+          "travel_time"
+        ],
+        "directions": [
+          "origin_to_candidate",
+          "candidate_to_origin"
+        ],
+        "max_candidates": 50,
+        "ranking_scope": "supplied_candidates_only"
+      },
+      "geocoding": {
+        "operations": [
+          "search",
+          "autocomplete",
+          "reverse"
+        ],
+        "result_limit": {
+          "min": 1,
+          "max": 20
+        },
+        "query_max_code_points": 256
+      },
+      "pois": {
+        "presets": [
+          {
+            "id": "hospitals",
+            "label": {
+              "fa": "بیمارستان",
+              "en": "Hospitals"
+            },
+            "filters": [
+              {
+                "key": "amenity",
+                "value": "hospital"
+              },
+              {
+                "key": "healthcare",
+                "value": "hospital"
+              }
+            ]
+          },
+          {
+            "id": "pharmacies",
+            "label": {
+              "fa": "داروخانه",
+              "en": "Pharmacies"
+            },
+            "filters": [
+              {
+                "key": "amenity",
+                "value": "pharmacy"
+              },
+              {
+                "key": "healthcare",
+                "value": "pharmacy"
+              }
+            ]
+          },
+          {
+            "id": "police",
+            "label": {
+              "fa": "پلیس",
+              "en": "Police"
+            },
+            "filters": [
+              {
+                "key": "amenity",
+                "value": "police"
+              }
+            ]
+          },
+          {
+            "id": "fire_stations",
+            "label": {
+              "fa": "آتش‌نشانی",
+              "en": "Fire stations"
+            },
+            "filters": [
+              {
+                "key": "amenity",
+                "value": "fire_station"
+              }
+            ]
+          },
+          {
+            "id": "fuel",
+            "label": {
+              "fa": "جایگاه سوخت",
+              "en": "Fuel"
+            },
+            "filters": [
+              {
+                "key": "amenity",
+                "value": "fuel"
+              }
+            ]
+          },
+          {
+            "id": "parking",
+            "label": {
+              "fa": "پارکینگ",
+              "en": "Parking"
+            },
+            "filters": [
+              {
+                "key": "amenity",
+                "value": "parking"
+              }
+            ]
+          },
+          {
+            "id": "schools",
+            "label": {
+              "fa": "مدرسه",
+              "en": "Schools"
+            },
+            "filters": [
+              {
+                "key": "amenity",
+                "value": "school"
+              }
+            ]
+          },
+          {
+            "id": "food",
+            "label": {
+              "fa": "غذا",
+              "en": "Food"
+            },
+            "filters": [
+              {
+                "key": "amenity",
+                "value": "restaurant"
+              },
+              {
+                "key": "amenity",
+                "value": "fast_food"
+              },
+              {
+                "key": "amenity",
+                "value": "cafe"
+              },
+              {
+                "key": "amenity",
+                "value": "food_court"
+              }
+            ]
+          }
+        ],
+        "selector_allowlist": {
+          "amenity": [
+            "atm",
+            "bank",
+            "bar",
+            "bench",
+            "bicycle_parking",
+            "bus_station",
+            "cafe",
+            "car_rental",
+            "car_wash",
+            "charging_station",
+            "cinema",
+            "clinic",
+            "college",
+            "community_centre",
+            "courthouse",
+            "dentist",
+            "doctors",
+            "drinking_water",
+            "driving_school",
+            "embassy",
+            "fast_food",
+            "fire_station",
+            "food_court",
+            "fountain",
+            "fuel",
+            "hospital",
+            "ice_cream",
+            "kindergarten",
+            "library",
+            "marketplace",
+            "mosque",
+            "nursing_home",
+            "parking",
+            "pharmacy",
+            "place_of_worship",
+            "police",
+            "post_box",
+            "post_office",
+            "prison",
+            "pub",
+            "public_bath",
+            "recycling",
+            "restaurant",
+            "school",
+            "shelter",
+            "social_facility",
+            "taxi",
+            "telephone",
+            "theatre",
+            "toilets",
+            "townhall",
+            "university",
+            "veterinary",
+            "waste_disposal"
+          ],
+          "shop": [
+            "bakery",
+            "beauty",
+            "bicycle",
+            "books",
+            "butcher",
+            "car",
+            "car_parts",
+            "car_repair",
+            "chemist",
+            "clothes",
+            "computer",
+            "confectionery",
+            "convenience",
+            "cosmetics",
+            "department_store",
+            "electronics",
+            "florist",
+            "furniture",
+            "gift",
+            "greengrocer",
+            "hairdresser",
+            "hardware",
+            "jewelry",
+            "kiosk",
+            "mall",
+            "mobile_phone",
+            "motorcycle",
+            "optician",
+            "pastry",
+            "shoes",
+            "sports",
+            "stationery",
+            "supermarket",
+            "tailor",
+            "tyres",
+            "variety_store"
+          ],
+          "tourism": [
+            "apartment",
+            "attraction",
+            "camp_site",
+            "guest_house",
+            "hostel",
+            "hotel",
+            "information",
+            "motel",
+            "museum",
+            "picnic_site",
+            "viewpoint",
+            "zoo"
+          ],
+          "leisure": [
+            "fitness_centre",
+            "garden",
+            "park",
+            "pitch",
+            "playground",
+            "sports_centre",
+            "stadium",
+            "swimming_pool"
+          ],
+          "office": [
+            "company",
+            "educational_institution",
+            "government",
+            "insurance",
+            "lawyer",
+            "ngo",
+            "telecommunication"
+          ],
+          "healthcare": [
+            "clinic",
+            "dentist",
+            "doctor",
+            "hospital",
+            "laboratory",
+            "pharmacy",
+            "rehabilitation"
+          ],
+          "craft": [
+            "carpenter",
+            "electrician",
+            "plumber",
+            "shoemaker",
+            "tailor"
+          ],
+          "historic": [
+            "archaeological_site",
+            "building",
+            "castle",
+            "memorial",
+            "monument",
+            "ruins"
+          ],
+          "emergency": [
+            "ambulance_station",
+            "defibrillator",
+            "fire_hydrant",
+            "phone"
+          ],
+          "public_transport": [
+            "platform",
+            "station",
+            "stop_position"
+          ]
+        },
+        "max_bbox_km2": 100,
+        "max_results": 200,
+        "overpass_timeout_s": 10
+      },
+      "limits": {
+        "orderedMaxPoints": 25,
+        "optimizedMaxPoints": 10,
+        "maxAlternatives": 2,
+        "proximityMaxCandidates": 50,
+        "searchMinResults": 1,
+        "searchMaxResults": 20,
+        "queryMaxCodePoints": 256,
+        "poiMaxBboxKm2": 100,
+        "poiMaxResults": 200,
+        "overpassTimeoutS": 10,
+        "overpassMaxSizeBytes": 67108864,
+        "providerConcurrency": 4,
+        "providerQueueSize": 64,
+        "routeDeadlineMs": 30000,
+        "optimizeDeadlineMs": 120000,
+        "searchDeadlineMs": 10000,
+        "poiDeadlineMs": 15000,
+        "reverseMaxRadiusM": 5000
+      }
+    }
+  }
+}

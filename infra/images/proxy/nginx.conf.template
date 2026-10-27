@@ -1,0 +1,54 @@
+# Seyra HTTP demo entry point (rendered at container start by seyra-proxy-render).
+# Fixed allowlisted routes only (locations.conf); clients never choose provider URLs.
+worker_processes auto;
+pid /tmp/nginx/nginx.pid;
+error_log /dev/stderr warn;
+events { worker_connections 1024; }
+
+http {
+  include /etc/nginx/mime.types;
+  # .mjs: MapLibre's module web worker must be served as JavaScript (nosniff is on).
+  types { application/x-protobuf pbf; text/javascript mjs; }
+  default_type application/octet-stream;
+  server_tokens off;
+  sendfile on;
+  client_body_temp_path /tmp/nginx/body;
+  proxy_temp_path /tmp/nginx/proxy;
+  fastcgi_temp_path /tmp/nginx/fastcgi;
+  uwsgi_temp_path /tmp/nginx/uwsgi;
+  scgi_temp_path /tmp/nginx/scgi;
+
+  # Redacted access log: no query strings (search text, coordinates) and no client addresses. The
+  # request id is a random per-request value (also returned in ingress-generated JSON errors).
+  log_format seyra '$time_iso8601 $request_method $uri $status $body_bytes_sent $request_time $request_id';
+  access_log /dev/stdout seyra;
+
+  # Bounded, dataset-scoped tile cache (keys include /maps/<dataset_id>/).
+  proxy_cache_path /var/cache/seyra/tiles levels=1:2 keys_zone=seyra_tiles:16m max_size=${SEYRA_TILE_CACHE_MAX} inactive=7d use_temp_path=off;
+
+  map $ds $ds_active { "${SEYRA_DATASET_ID}" 1; default 0; }
+
+  upstream seyra_api { server api:3000; keepalive 16; }
+  upstream seyra_tegola { server tegola:8080; keepalive 16; }
+
+
+  # Unknown Host names are refused (prevents Host-header injection into absolute style URLs).
+  server {
+    listen 8443 default_server;
+    return 421;
+  }
+
+  server {
+    listen 8443;
+    server_name ${SEYRA_SERVER_NAMES};
+
+${SEYRA_ACCESS_RULES}
+
+    include /tmp/nginx/locations.conf;
+  }
+
+  # Optional relay listener (nested-host topology), rendered only when SEYRA_RELAY_PEER is set:
+  # PROXY protocol from exactly one relay peer, then the approved client CIDRs on the conveyed
+  # address. Without a relay this include matches no file.
+  include /tmp/nginx/conf.d/*.conf;
+}

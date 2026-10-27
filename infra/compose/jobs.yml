@@ -1,0 +1,160 @@
+# Seyra Map Services — OFFLINE BUILD JOBS and STAGING VALIDATION providers.
+# Run only through `seyra-maps import` (docker compose run with per-release mounts).
+# These definitions never replace or disable the runtime providers in runtime.yml; they write
+# only into a NEW staging release directory and a NEW render database. No job has network
+# access except the render import (database on the internal build network). pull_policy: never.
+name: seyra-demo-jobs
+
+x-job: &job
+  pull_policy: never
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+
+networks:
+  build:
+    name: seyra_demo_build
+    external: true
+
+services:
+  source-info:
+    <<: *job
+    image: "${SEYRA_IMAGE_OSMTOOLS:?}"
+    network_mode: none
+    read_only: true
+    entrypoint: ["osmium", "fileinfo", "-e", "-j", "/in/input.osm.pbf"]
+    volumes: ["${SEYRA_JOB_INPUT:?}:/in/input.osm.pbf:ro"]
+
+  render-import:
+    <<: *job
+    image: "${SEYRA_IMAGE_OSMTOOLS:?}"
+    read_only: true
+    tmpfs: ["/tmp"]
+    networks: [build]
+    environment:
+      PGPASSFILE: /run/seyra/pgpass
+    entrypoint:
+      - osm2pgsql
+      - --create
+      - --slim
+      - --drop
+      - --middle-schema=render
+      - --schema=render
+      - --output=flex
+      - --style=/opt/seyra/catalog/seyra-flex.lua
+      - --number-processes=${SEYRA_BUILD_THREADS:-2}
+      - -H
+      - db
+      - -U
+      - seyra_render_import
+      - -d
+      - "${SEYRA_JOB_RENDER_DB:?}"
+      - /in/input.osm.pbf
+    volumes:
+      - "${SEYRA_JOB_INPUT:?}:/in/input.osm.pbf:ro"
+      - "${SEYRA_JOB_PGPASS:?}:/run/seyra/pgpass:ro"
+
+  valhalla-build:
+    <<: *job
+    image: "${SEYRA_IMAGE_VALHALLA:?}"
+    network_mode: none
+    tmpfs: ["/tmp"]
+    entrypoint: ["bash", "-ec"]
+    command:
+      - |
+        cd /data/valhalla
+        test -z "$$(ls -A tiles 2>/dev/null)" || { echo "refusing to build into non-empty tiles dir" >&2; exit 2; }
+        valhalla_build_admins -c valhalla.json /in/input.osm.pbf
+        valhalla_build_tiles -c valhalla.json -j ${SEYRA_BUILD_THREADS:-2} /in/input.osm.pbf
+        rm -f /data/valhalla/*.bin
+    volumes:
+      - "${SEYRA_JOB_INPUT:?}:/in/input.osm.pbf:ro"
+      - "${SEYRA_JOB_OUT:?}:/data/valhalla"
+
+  geocoder-export:
+    <<: *job
+    image: "${SEYRA_IMAGE_GEOCODER_BUILD:?}"
+    network_mode: none
+    environment:
+      SEYRA_BUILD_THREADS: "${SEYRA_BUILD_THREADS:-2}"
+    volumes:
+      - "${SEYRA_JOB_INPUT:?}:/in/input.osm.pbf:ro"
+      - "${SEYRA_JOB_WORK:?}:/work"
+      - "${SEYRA_JOB_OUT:?}:/out"
+
+  photon-import:
+    <<: *job
+    image: "${SEYRA_IMAGE_PHOTON:?}"
+    network_mode: none
+    tmpfs: ["/tmp"]
+    entrypoint:
+      - java
+      - -Xmx${SEYRA_PHOTON_IMPORT_HEAP:-2g}
+      - -jar
+      - /opt/photon/photon.jar
+      - import
+      - -import-file
+      - /import/photon-import.jsonl
+      - -data-dir
+      - /data/photon
+      - -languages
+      - fa,en
+      - -extra-tags
+      - "${SEYRA_PHOTON_EXTRA_TAGS:?}"
+    volumes:
+      - "${SEYRA_JOB_IMPORT:?}:/import:ro"
+      - "${SEYRA_JOB_OUT:?}:/data/photon"
+
+  overpass-xml:
+    <<: *job
+    image: "${SEYRA_IMAGE_OSMTOOLS:?}"
+    network_mode: none
+    read_only: true
+    entrypoint: ["osmium", "cat", "/in/input.osm.pbf", "-f", "osm", "-o", "-"]
+    volumes: ["${SEYRA_JOB_INPUT:?}:/in/input.osm.pbf:ro"]
+
+  overpass-import:
+    <<: *job
+    image: "${SEYRA_IMAGE_OVERPASS:?}"
+    network_mode: none
+    entrypoint: ["/usr/local/bin/seyra-overpass", "import", "/data/overpass/db", "${SEYRA_JOB_OVERPASS_LABEL:?}"]
+    volumes: ["${SEYRA_JOB_OUT:?}:/data/overpass"]
+
+  # ---- staging validation providers (same images/commands as runtime, staging mounts) ----
+  stage-valhalla:
+    <<: *job
+    image: "${SEYRA_IMAGE_VALHALLA:?}"
+    read_only: true
+    tmpfs: ["/tmp"]
+    command: ["valhalla_service", "/data/valhalla/valhalla.json", "1"]
+    volumes: ["${SEYRA_JOB_RELEASE:?}/valhalla:/data/valhalla:ro"]
+    networks: [build]
+
+  stage-photon:
+    <<: *job
+    image: "${SEYRA_IMAGE_PHOTON:?}"
+    read_only: true
+    tmpfs: ["/tmp"]
+    environment:
+      PHOTON_JAVA_OPTS: "-Xms256m -Xmx1g"
+    volumes: ["${SEYRA_JOB_RELEASE:?}/photon:/data/photon"]
+    networks: [build]
+
+  stage-overpass:
+    <<: *job
+    image: "${SEYRA_IMAGE_OVERPASS:?}"
+    read_only: true
+    tmpfs: ["/tmp", "/run/overpass:uid=10004,gid=10004"]
+    volumes: ["${SEYRA_JOB_RELEASE:?}/overpass/db:/data/overpass/db:ro"]
+    networks: [build]
+
+  stage-tegola:
+    <<: *job
+    image: "${SEYRA_IMAGE_TEGOLA:?}"
+    read_only: true
+    environment:
+      SEYRA_TEGOLA_CONFIG: /srv/release/tegola/tegola.toml
+      SEYRA_TILE_DB_PASSWORD_FILE: /run/seyra/tile_db_password
+    volumes:
+      - "${SEYRA_JOB_RELEASE:?}/tegola:/srv/release/tegola:ro"
+      - "${SEYRA_HOME:?}/secrets/tile_db_password:/run/seyra/tile_db_password:ro"
+    networks: [build]

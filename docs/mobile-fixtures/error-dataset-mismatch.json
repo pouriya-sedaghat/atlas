@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/map/search?q=Synthetic&dataset_id=ds-19990101-000000000000"
+  },
+  "response": {
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "DATASET_MISMATCH",
+        "message": "requested dataset_id is not the active release; reload map assets",
+        "request_id": "<request-id>",
+        "details": {
+          "requested": "ds-19990101-000000000000",
+          "active": "ds-20261001-681455d56afb"
+        },
+        "dataset_id": "ds-20261001-681455d56afb"
+      }
+    }
+  }
+}

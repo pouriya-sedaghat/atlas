@@ -1,0 +1,61 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/map/proximity",
+    "body": {
+      "metric": "road_distance",
+      "direction": "origin_to_candidate",
+      "profile": "car",
+      "origin": {
+        "lon": 0.03,
+        "lat": 0.04
+      },
+      "candidates": [
+        {
+          "id": "south",
+          "lon": 0.03,
+          "lat": 0.02
+        },
+        {
+          "id": "side",
+          "lon": 0.02,
+          "lat": 0.02
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "dataset_id": "ds-20261001-681455d56afb",
+      "metric": "road_distance",
+      "direction": "origin_to_candidate",
+      "profile": "car",
+      "provider": "valhalla",
+      "ranking_scope": "supplied_candidates_only",
+      "ranked_by": "distance_m",
+      "units": {
+        "distance": "m",
+        "duration": "s"
+      },
+      "results": [
+        {
+          "id": "side",
+          "input_index": 1,
+          "rank": 1,
+          "status": "reachable",
+          "distance_m": 3341,
+          "duration_s": 345.804
+        },
+        {
+          "id": "south",
+          "input_index": 0,
+          "rank": 2,
+          "status": "reachable",
+          "distance_m": 4454,
+          "duration_s": 428.045
+        }
+      ]
+    }
+  }
+}

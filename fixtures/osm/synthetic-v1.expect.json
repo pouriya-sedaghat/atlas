@@ -1,0 +1,392 @@
+{
+  "layers": {
+    "transport": [
+      {
+        "type": "w",
+        "id": 5000,
+        "highway": "motorway"
+      },
+      {
+        "type": "w",
+        "id": 5001,
+        "highway": "tertiary"
+      },
+      {
+        "type": "w",
+        "id": 5004,
+        "highway": "primary"
+      },
+      {
+        "type": "w",
+        "id": 5019,
+        "highway": "footway"
+      },
+      {
+        "type": "w",
+        "id": 5021,
+        "railway": "rail"
+      }
+    ],
+    "water": [
+      {
+        "type": "w",
+        "id": 5023,
+        "class": "water"
+      }
+    ],
+    "waterways": [
+      {
+        "type": "w",
+        "id": 5024,
+        "waterway": "river"
+      },
+      {
+        "type": "w",
+        "id": 5025,
+        "waterway": "stream"
+      },
+      {
+        "type": "w",
+        "id": 5026,
+        "waterway": "canal"
+      }
+    ],
+    "landcover": [
+      {
+        "type": "w",
+        "id": 5027,
+        "class": "landuse",
+        "subclass": "residential"
+      },
+      {
+        "type": "w",
+        "id": 5028,
+        "class": "natural",
+        "subclass": "wood"
+      },
+      {
+        "type": "w",
+        "id": 5029,
+        "class": "leisure",
+        "subclass": "park"
+      }
+    ],
+    "pois": [
+      {
+        "type": "w",
+        "id": 5029,
+        "key": "leisure",
+        "value": "park"
+      },
+      {
+        "type": "n",
+        "id": 1109,
+        "key": "amenity",
+        "value": "hospital"
+      },
+      {
+        "type": "n",
+        "id": 1110,
+        "key": "amenity",
+        "value": "pharmacy"
+      },
+      {
+        "type": "n",
+        "id": 1111,
+        "key": "amenity",
+        "value": "police"
+      },
+      {
+        "type": "n",
+        "id": 1112,
+        "key": "amenity",
+        "value": "fire_station"
+      },
+      {
+        "type": "n",
+        "id": 1113,
+        "key": "amenity",
+        "value": "fuel"
+      },
+      {
+        "type": "w",
+        "id": 5034,
+        "key": "amenity",
+        "value": "parking"
+      },
+      {
+        "type": "w",
+        "id": 5035,
+        "key": "amenity",
+        "value": "school"
+      },
+      {
+        "type": "n",
+        "id": 1122,
+        "key": "amenity",
+        "value": "restaurant"
+      },
+      {
+        "type": "n",
+        "id": 1123,
+        "key": "amenity",
+        "value": "cafe"
+      },
+      {
+        "type": "n",
+        "id": 1124,
+        "key": "amenity",
+        "value": "fast_food"
+      },
+      {
+        "type": "n",
+        "id": 1125,
+        "key": "shop",
+        "value": "bakery"
+      },
+      {
+        "type": "n",
+        "id": 1126,
+        "key": "shop",
+        "value": "convenience"
+      },
+      {
+        "type": "n",
+        "id": 1127,
+        "key": "tourism",
+        "value": "hotel"
+      },
+      {
+        "type": "n",
+        "id": 1128,
+        "key": "tourism",
+        "value": "museum"
+      },
+      {
+        "type": "n",
+        "id": 1129,
+        "key": "office",
+        "value": "government"
+      },
+      {
+        "type": "n",
+        "id": 1130,
+        "key": "healthcare",
+        "value": "clinic"
+      },
+      {
+        "type": "n",
+        "id": 1131,
+        "key": "craft",
+        "value": "carpenter"
+      },
+      {
+        "type": "n",
+        "id": 1132,
+        "key": "historic",
+        "value": "monument"
+      },
+      {
+        "type": "n",
+        "id": 1133,
+        "key": "emergency",
+        "value": "ambulance_station"
+      },
+      {
+        "type": "n",
+        "id": 1134,
+        "key": "public_transport",
+        "value": "station"
+      },
+      {
+        "type": "n",
+        "id": 1135,
+        "key": "amenity",
+        "value": "bench"
+      },
+      {
+        "type": "n",
+        "id": 1136,
+        "key": "amenity",
+        "value": "synthetic_unlisted_value"
+      },
+      {
+        "type": "n",
+        "id": 1137,
+        "key": "amenity",
+        "value": "library"
+      }
+    ],
+    "buildings": [
+      {
+        "type": "w",
+        "id": 5030
+      },
+      {
+        "type": "w",
+        "id": 5031
+      },
+      {
+        "type": "r",
+        "id": 9000,
+        "multipolygon": true
+      }
+    ],
+    "places": [
+      {
+        "type": "n",
+        "id": 1140,
+        "place": "city"
+      },
+      {
+        "type": "n",
+        "id": 1141,
+        "place": "suburb"
+      },
+      {
+        "type": "n",
+        "id": 1142,
+        "place": "village"
+      }
+    ],
+    "boundaries": [
+      {
+        "type": "r",
+        "id": 9001,
+        "admin_level": 4
+      },
+      {
+        "type": "r",
+        "id": 9002,
+        "admin_level": 6
+      }
+    ]
+  },
+  "routing": {
+    "oneway": {
+      "way": 5018,
+      "from": [
+        0.03,
+        0.02
+      ],
+      "to": [
+        0.03,
+        0.04
+      ]
+    },
+    "footway": {
+      "way": 5019,
+      "from": [
+        0.02,
+        0.025
+      ],
+      "to": [
+        0.04,
+        0.04
+      ]
+    },
+    "motor_vehicle_no": {
+      "way": 5020
+    },
+    "island": {
+      "way": 5022,
+      "point": [
+        0.085,
+        0.08
+      ]
+    }
+  },
+  "search": [
+    {
+      "query": "خیابان اصلی آزمایشی",
+      "lang": "fa",
+      "expect_osm": "W5004",
+      "note": "Persian Yeh/Kaf query must match Arabic-letter name"
+    },
+    {
+      "query": "Synthetic Main Street",
+      "lang": "en",
+      "expect_osm": "W5004"
+    },
+    {
+      "query": "خیابان آزمایشی 3",
+      "lang": "fa",
+      "expect_osm": "W5010",
+      "note": "ASCII digit query, Persian digit data"
+    },
+    {
+      "query": "خیابان شمالی آزمایشی",
+      "lang": "fa",
+      "expect_osm": "W5012",
+      "note": "ZWNJ in data, space in query"
+    },
+    {
+      "query": "خیابان اصلی آزمایشی 12",
+      "lang": "fa",
+      "expect_osm": "W5030",
+      "note": "housenumber with Persian digits in data"
+    },
+    {
+      "query": "داروخانه کوثر",
+      "lang": "fa",
+      "expect_osm": "N1110",
+      "note": "Persian Kaf query vs Arabic Kaf data"
+    },
+    {
+      "query": "Kowsar",
+      "lang": "en",
+      "expect_osm": "N1110"
+    },
+    {
+      "query": "رستوران لاله",
+      "lang": "fa",
+      "expect_osm": "N1122",
+      "note": "lam-alef"
+    },
+    {
+      "query": "فروشگاه 24 ساعته",
+      "lang": "fa",
+      "expect_osm": "N1126",
+      "note": "digits"
+    },
+    {
+      "query": "بنای یادبود محمد",
+      "lang": "fa",
+      "expect_osm": "N1132",
+      "note": "diacritics in data"
+    },
+    {
+      "query": "Synthetic City",
+      "lang": "en",
+      "expect_osm": "N1140"
+    }
+  ],
+  "uncatalogued": [
+    {
+      "type": "n",
+      "id": 1138,
+      "key": "power"
+    },
+    {
+      "type": "n",
+      "id": 1139,
+      "key": "barrier"
+    }
+  ],
+  "generic_icon_poi": {
+    "type": "n",
+    "id": 1136,
+    "value": "synthetic_unlisted_value"
+  },
+  "label_fallback": {
+    "en_only": 1137,
+    "fa_only_place": 1142
+  },
+  "counts": {
+    "nodes": 151,
+    "ways": 38,
+    "relations": 3
+  },
+  "snapshot_timestamp": "2026-10-01T00:00:00Z",
+  "notice": "SYNTHETIC fixture expectations; not real geography."
+}

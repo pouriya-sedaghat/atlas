@@ -1,0 +1,21 @@
+{
+  "catalog_version": "seyra-catalog-1.0.0",
+  "flex_config": "seyra-flex.lua",
+  "native_zoom": { "min": 0, "max": 16 },
+  "client_max_zoom": 22,
+  "layers": {
+    "boundaries": { "geometry": "MultiLineString", "source": "boundary=administrative ways/relations", "min_zoom": "admin_level <=2:0, <=4:3, <=6:6, <=8:9, else 11" },
+    "places": { "geometry": "Point", "source": "place=* nodes and area label points", "min_zoom": "country 0, state/province 3, city 4, town 7, village 9, suburb 11, hamlet/neighbourhood/locality 13" },
+    "water": { "geometry": "MultiPolygon", "source": "natural=water|bay, waterway=riverbank, landuse=reservoir|basin", "min_zoom": "0 (area threshold below z12)" },
+    "waterways": { "geometry": "LineString", "source": "waterway=river|canal (8), stream|drain|ditch (12), natural=coastline (0, line only)", "min_zoom": "8/12" },
+    "landcover": { "geometry": "MultiPolygon", "source": "natural=* areas (natural classes 0 or 8), landuse=* areas (8), leisure parks/pitches/... (8)", "min_zoom": "0/8 (area threshold below z12)" },
+    "transport": { "geometry": "LineString", "source": "highway=* lines (not area=yes), railway=* lines except platform/station", "min_zoom": "motorway/trunk/primary/rail 4; secondary 8; tertiary 10; minor 12; service/paths 14" },
+    "buildings": { "geometry": "MultiPolygon", "source": "building=* closed ways and multipolygon relations", "min_zoom": "14" },
+    "pois": { "geometry": "Point", "source": "all values of amenity, shop, tourism, leisure, office, healthcare, craft, historic, emergency, public_transport", "min_zoom": "major 12, all 16" }
+  },
+  "exclusions_reported": [
+    "Sea/ocean area fill: OSM coastline lines are rendered as lines; coastline-to-polygon processing and external water polygons are not part of phase 1.",
+    "highway areas (area=yes), aeroway, aerialway, power, barrier, route relations and other uncatalogued tagged objects: kept in render.uncatalogued for inspection, not rendered.",
+    "Terrain and satellite imagery are outside phase 1."
+  ]
+}

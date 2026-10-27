@@ -1,0 +1,257 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/map/route",
+    "body": {
+      "profile": "car",
+      "objective": "time",
+      "points": [
+        {
+          "id": "a",
+          "lon": 0.01,
+          "lat": 0.02
+        },
+        {
+          "id": "b",
+          "lon": 0.05,
+          "lat": 0.03
+        }
+      ],
+      "alternatives": 2,
+      "language": "fa"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "dataset_id": "ds-20261001-681455d56afb",
+      "provider": "valhalla",
+      "profile": "car",
+      "objective": "time",
+      "order": "ordered",
+      "route_optimality": "not_guaranteed",
+      "duration_semantics": "static_estimate",
+      "units": {
+        "distance": "m",
+        "duration": "s"
+      },
+      "coordinate_order": "lon,lat",
+      "visit_order": [
+        {
+          "id": "a",
+          "input_index": 0
+        },
+        {
+          "id": "b",
+          "input_index": 1
+        }
+      ],
+      "alternatives_requested": 2,
+      "alternatives_returned": 2,
+      "routes": [
+        {
+          "rank": 0,
+          "distance_m": 5566,
+          "duration_s": 437.302,
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.01,
+                0.02
+              ],
+              [
+                0.015,
+                0.02
+              ],
+              [
+                0.02,
+                0.02
+              ],
+              [
+                0.025,
+                0.02
+              ],
+              [
+                0.03,
+                0.02
+              ],
+              [
+                0.035,
+                0.02
+              ],
+              [
+                0.04,
+                0.02
+              ],
+              [
+                0.045,
+                0.02
+              ],
+              [
+                0.05,
+                0.02
+              ],
+              [
+                0.05,
+                0.025
+              ],
+              [
+                0.05,
+                0.03
+              ]
+            ]
+          },
+          "legs": [
+            {
+              "from_id": "a",
+              "to_id": "b",
+              "distance_m": 5566,
+              "duration_s": 437.302
+            }
+          ]
+        },
+        {
+          "rank": 1,
+          "distance_m": 5566,
+          "duration_s": 477.023,
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.01,
+                0.02
+              ],
+              [
+                0.015,
+                0.02
+              ],
+              [
+                0.02,
+                0.02
+              ],
+              [
+                0.025,
+                0.02
+              ],
+              [
+                0.03,
+                0.02
+              ],
+              [
+                0.035,
+                0.02
+              ],
+              [
+                0.04,
+                0.02
+              ],
+              [
+                0.04,
+                0.025
+              ],
+              [
+                0.04,
+                0.03
+              ],
+              [
+                0.045,
+                0.03
+              ],
+              [
+                0.05,
+                0.03
+              ]
+            ]
+          },
+          "legs": [
+            {
+              "from_id": "a",
+              "to_id": "b",
+              "distance_m": 5566,
+              "duration_s": 477.023
+            }
+          ]
+        },
+        {
+          "rank": 2,
+          "distance_m": 7795,
+          "duration_s": 496.506,
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.01,
+                0.02
+              ],
+              [
+                0.01,
+                0.015
+              ],
+              [
+                0.01,
+                0.01
+              ],
+              [
+                0.015,
+                0.01
+              ],
+              [
+                0.02,
+                0.01
+              ],
+              [
+                0.025,
+                0.01
+              ],
+              [
+                0.03,
+                0.01
+              ],
+              [
+                0.035,
+                0.01
+              ],
+              [
+                0.04,
+                0.01
+              ],
+              [
+                0.045,
+                0.01
+              ],
+              [
+                0.05,
+                0.01
+              ],
+              [
+                0.05,
+                0.015
+              ],
+              [
+                0.05,
+                0.02
+              ],
+              [
+                0.05,
+                0.025
+              ],
+              [
+                0.05,
+                0.03
+              ]
+            ]
+          },
+          "legs": [
+            {
+              "from_id": "a",
+              "to_id": "b",
+              "distance_m": 7795,
+              "duration_s": 496.506
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

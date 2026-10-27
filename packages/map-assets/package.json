@@ -1,0 +1,32 @@
+{
+  "name": "@seyra/map-assets",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local map assets: SDF glyph PBFs, sprites, font files and the light/dark fa/en style builder",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "assets": "node dist/build-assets.js ../../infra/assets/dist",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@seyra/contracts": "1.0.0"
+  },
+  "devDependencies": {
+    "@maplibre/maplibre-gl-style-spec": "26.4.4",
+    "@types/node": "24.19.2",
+    "opentype.js": "2.0.0",
+    "typescript": "6.0.3",
+    "vazirmatn": "33.0.3",
+    "vitest": "5.0.4"
+  }
+}

@@ -1,0 +1,7 @@
+# Optional relay listener publication (nested-host topology, RUNBOOK §6.2). seyra-maps adds this file
+# to every runtime compose invocation only when runtime.env sets SEYRA_RELAY_PEER. The relay
+# listener (container port 8444) requires PROXY protocol from the one configured relay address.
+services:
+  proxy:
+    ports:
+      - "${SEYRA_RELAY_BIND_ADDR:?}:${SEYRA_RELAY_PORT:?}:8444"
