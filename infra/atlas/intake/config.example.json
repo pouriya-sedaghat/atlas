@@ -1,0 +1,28 @@
+{
+  "root": "/srv/atlas-intake/state",
+  "python": "/usr/bin/python3",
+  "policyFile": "/opt/atlas/infra/atlas/intake/iran-policy.json",
+  "dsnFiles": {
+    "admin": "/srv/atlas-intake/private/admin.dsn",
+    "worker": "/srv/atlas-intake/private/worker.dsn",
+    "reviewer": "/srv/atlas-intake/private/reviewer.dsn",
+    "signer": "/srv/atlas-intake/private/signer.dsn"
+  },
+  "worker": {
+    "validatorImage": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "controllerSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "maxBytes": 2147483648,
+    "minFreeBytes": 2147483648,
+    "timeoutMs": 7200000,
+    "memoryBytes": 3221225472,
+    "cpus": 1.5
+  },
+  "signer": {
+    "binary": "/opt/atlas-tools/cosign-3.1.4",
+    "binarySha256": "424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa",
+    "privateKey": "/srv/atlas-intake/private/source.key",
+    "passwordFile": "/srv/atlas-intake/private/source.password",
+    "publicKey": "/srv/atlas-intake/private/source.pub",
+    "publicKeySha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  }
+}

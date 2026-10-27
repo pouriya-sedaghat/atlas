@@ -1,0 +1,35 @@
+{
+  "schema": "atlas.intake-verification-summary/1",
+  "date": "2026-10-27",
+  "root_build": "passed",
+  "root_typecheck": "passed",
+  "local_node_tests": {
+    "passed": 126,
+    "skipped_environment_dependent": 15
+  },
+  "intake_real_postgresql": {
+    "policy_passed": 5,
+    "integration_passed": 6
+  },
+  "linux_secure_filesystem_tests": {
+    "passed": 5
+  },
+  "real_e2e": {
+    "passed": 11,
+    "fictional_data_only": true
+  },
+  "iran": {
+    "semantic_digests_match_prior_independent_audit": true,
+    "counts_match_prior_independent_audit": true,
+    "missing_references_match_prior_independent_audit": true,
+    "parser_elapsed_s": 868.34,
+    "state": "accepted",
+    "accepted": true,
+    "published": false,
+    "usage_scope": "experimental_source_only",
+    "initial_baseline_pinned": true,
+    "human_anomaly_approval": true
+  },
+  "whole_platform_migration_complete": false,
+  "final_controller_sha256": "56e2a2339fd5190bd50f2dfacc13b3ea6f5415ee6d048bd967ea3a8a74889189"
+}

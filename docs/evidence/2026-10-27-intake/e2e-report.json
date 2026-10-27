@@ -1,0 +1,24 @@
+{
+  "schema": "atlas.intake-e2e/1",
+  "passed": true,
+  "tests": [
+    "ordinary_input_automatically_validated_signed_and_verified",
+    "duplicate_bytes_reuse_receipt_and_delivery_copy_is_consumed",
+    "missing_way_nodes_are_rejected_and_cannot_be_overridden",
+    "malformed_pbf_rejected_without_signing",
+    "anomaly_waits_for_exact_report_and_decision_review",
+    "symlink_escape_refused_and_canary_untouched",
+    "cryptographic_verification_rejects_referenced_payload_tampering",
+    "worker_database_role_cannot_approve_or_forge_receipt_fields",
+    "previous_collector_requires_explicit_trust_and_retains_distinct_signed_lineage",
+    "reconciliation_registers_new_delivery_during_an_active_lease",
+    "expired_container_reaped_while_live_and_unrelated_containers_are_protected"
+  ],
+  "counts": 11,
+  "controller_sha256": "56e2a2339fd5190bd50f2dfacc13b3ea6f5415ee6d048bd967ea3a8a74889189",
+  "validator_image": "sha256:e422aad6876ad15083c0c8118f0a3f3814f98cf5bfa56e39828907acee9fde90",
+  "cosign_binary_sha256": "424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa",
+  "public_key_sha256": "184d5e57ddbd6e607eaa3299e74f08fc9143e94408b28a90e2bfe0ef5f19256d",
+  "fictional_data_only": true,
+  "production_publication_approved": false
+}

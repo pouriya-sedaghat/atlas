@@ -211,12 +211,22 @@ def write_report(path: Path, report: dict):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path)
-    parser.add_argument("--out", type=Path, required=True)
+    output = parser.add_mutually_exclusive_group(required=True)
+    output.add_argument("--out", type=Path)
+    output.add_argument("--stdout", action='store_true', help='emit only the complete JSON report for a bounded sandbox consumer')
     args = parser.parse_args()
     # Do not let the report replace its own input, including through an existing symlink.
-    if args.source.resolve() == args.out.resolve():
+    if args.out is not None and args.source.resolve() == args.out.resolve():
         parser.error("output must differ from source")
-    report = audit(args.source)
+    try:
+        report = audit(args.source)
+    except (ValueError,RuntimeError,OSError) as error:
+        if not args.stdout: raise
+        print(json.dumps({'schema':'atlas.pbf-audit-failure/1','code':'invalid_osm_input','error_type':type(error).__name__,'detail':str(error)[:1000]},ensure_ascii=False))
+        return 2
+    if args.stdout:
+        print(json.dumps(report,ensure_ascii=False,separators=(',',':')))
+        return 2 if report['blockers'] else 3 if report['review_reasons'] else 0
     write_report(args.out, report)
     print(json.dumps({"status": report["structural_status"], "counts": report["counts"],
                       "sha256": report["source"]["sha256"], "report": str(args.out)}))

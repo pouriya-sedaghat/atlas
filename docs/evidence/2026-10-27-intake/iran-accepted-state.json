@@ -1,0 +1,33 @@
+{
+  "schema": "atlas.experimental-source-state/1",
+  "usage_scope": "experimental_source_only",
+  "validation_id": "df5ed7ffabe9108dcf8288770104dabd",
+  "state": "accepted",
+  "source_sha256": "a3c61d35b010d4a474c1eabdef9500339472743423d7bb895b16241c08eb4065",
+  "spec_sha256": "1abd8554f34b88dd011e54ff9003067832addc8ad771e869a7ace67a7abc2af6",
+  "report_sha256": "9ff866f094123cdf807782d56e215fb5ea856a3da6dd3df79827eab623b68bc7",
+  "decision_sha256": "002de966ddff3d4c2c52f15e870bdef21a0554fa9d09fe5bf8c00d7a9c53a0fa",
+  "payload_sha256": "0319ad2dbe82cbad27e83889659b64d059958fa46d6b46ee99b719afa2b607b2",
+  "bundle_sha256": "08861412a11e1edc8035388e8fd9c58e4508d564734b4e2941fc387c61ad3746",
+  "public_key_sha256": "184d5e57ddbd6e607eaa3299e74f08fc9143e94408b28a90e2bfe0ef5f19256d",
+  "accepted_at": "2026-10-27T15:32:26.618Z",
+  "baseline": {
+    "region": "iran",
+    "validation_id": "df5ed7ffabe9108dcf8288770104dabd",
+    "actor": "project-owner-via-chat",
+    "rationale": "Human approved this exact Iran snapshot as the initial experimental baseline only; coverage review remains mandatory before any production publication.",
+    "updated_at": "2026-10-27T15:32:27.526Z"
+  },
+  "reviews": [
+    {
+      "id": "1",
+      "report_sha256": "9ff866f094123cdf807782d56e215fb5ea856a3da6dd3df79827eab623b68bc7",
+      "decision_sha256": "002de966ddff3d4c2c52f15e870bdef21a0554fa9d09fe5bf8c00d7a9c53a0fa",
+      "action": "approve",
+      "actor": "project-owner-via-chat",
+      "rationale": "Human explicitly approved on 2026-10-27: accept only this Iran snapshot as experimental source and initial baseline. Known 40635 absent relation-member references and unverified publisher signature retained. No production publication approval.",
+      "created_at": "2026-10-27T15:32:25.841Z"
+    }
+  ],
+  "production_publication_approved": false
+}

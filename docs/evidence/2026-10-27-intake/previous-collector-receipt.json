@@ -1,0 +1,69 @@
+{
+  "schema": "atlas.source-acceptance/1",
+  "validation_id": "2867ec0498f4c266d0e1652f1334228d",
+  "usage_scope": "experimental_source_only",
+  "subject": {
+    "sha256": "2439d428332282f070fd00fa63dafcc1f2c0d4801d298153d013e151a88090b1",
+    "bytes": 3330
+  },
+  "source": {
+    "url": "https://example.org/fixture.osm.pbf",
+    "region": "fixture",
+    "provider": "fixture",
+    "provenance": "operator_declared",
+    "publisher_signature_verified": false
+  },
+  "spec_sha256": "7039b0b0496a55b3a1cce728fd6582c3867e4abcca403f72ed06d216948698ac",
+  "report_sha256": "dae27645b870ed4e5b6f1ddc936bcdfab65d9014153d76718b4a565d3721b860",
+  "decision_sha256": "05408973a6a6014f75ddf98b28083649d764ee50132389b5de7147e0033b814b",
+  "decision": {
+    "kind": "pass",
+    "reasons": [],
+    "snapshot": null,
+    "counts": {
+      "node": 152,
+      "way": 39,
+      "relation": 5
+    },
+    "baselineId": null
+  },
+  "processing": {
+    "validator_image": "sha256:e422aad6876ad15083c0c8118f0a3f3814f98cf5bfa56e39828907acee9fde90",
+    "collector_build_sha256": "59742130c6c3aad1d87444b6275f9c6e6e32cb375ee43dd17ceef2cee71580dc",
+    "signer_build_sha256": "56e2a2339fd5190bd50f2dfacc13b3ea6f5415ee6d048bd967ea3a8a74889189",
+    "policy": {
+      "schema": "atlas.intake-policy/1",
+      "name": "fictional-intake-test-v1",
+      "region": "fixture",
+      "provider": "fixture",
+      "sourceHost": "example.org",
+      "sourcePathPattern": "^/fixture\\.osm\\.pbf$",
+      "requireBaseline": false,
+      "requireSnapshot": false,
+      "maxSnapshotAgeDays": 14,
+      "maxFutureMinutes": 30,
+      "minCounts": {
+        "node": 1,
+        "way": 0,
+        "relation": 0
+      },
+      "maxCounts": {
+        "node": 10000,
+        "way": 10000,
+        "relation": 10000
+      },
+      "minRelativeRatio": 0.85,
+      "maxRelativeRatio": 1.25,
+      "regionEnvelope": [
+        -180,
+        -90,
+        180,
+        90
+      ]
+    }
+  },
+  "validated_at": "2026-10-27T15:31:40.863Z",
+  "review": null,
+  "signing_profile": "cosign-local-key-offline-v1",
+  "public_key_sha256": "184d5e57ddbd6e607eaa3299e74f08fc9143e94408b28a90e2bfe0ef5f19256d"
+}

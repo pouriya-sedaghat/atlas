@@ -1,0 +1,13 @@
+[Unit]
+Description=Atlas durable incoming-file reconciliation
+
+[Service]
+Type=oneshot
+WorkingDirectory=@SOURCE_ROOT@
+Environment=PATH=@NODE_BIN@:/usr/local/bin:/usr/bin:/bin
+ExecStart=@NODE_BIN@/node @SOURCE_ROOT@/apps/ingest/dist/cli.js reconcile --config @CONFIG@
+TimeoutStartSec=60s
+UMask=0077
+NoNewPrivileges=true
+MemoryMax=256M
+CPUQuota=50%

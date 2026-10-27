@@ -1,0 +1,10 @@
+
+ RUN  v5.0.4 /home/owner/atlas-lab/source/apps/ingest
+
+ ✓ src/contracts.test.ts (5 tests) 7ms
+ ✓ src/queue.integration.test.ts (6 tests) 178ms
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+   Start at  12:01:16
+   Duration  337ms (tests 59%, transform 24%, import 15%, worker 2%)
