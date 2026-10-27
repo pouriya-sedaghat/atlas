@@ -1,0 +1,17 @@
+{
+  "schema":"atlas.intake-policy/1",
+  "name":"iran-geofabrik-initial-v1",
+  "region":"iran",
+  "provider":"geofabrik",
+  "sourceHost":"download.geofabrik.de",
+  "sourcePathPattern":"^/asia/iran-(?:[0-9]{6}|latest)\\.osm\\.pbf$",
+  "requireBaseline":true,
+  "requireSnapshot":true,
+  "maxSnapshotAgeDays":14,
+  "maxFutureMinutes":30,
+  "minCounts":{"node":20000000,"way":2000000,"relation":50000},
+  "maxCounts":{"node":80000000,"way":10000000,"relation":500000},
+  "minRelativeRatio":0.85,
+  "maxRelativeRatio":1.25,
+  "regionEnvelope":[40,20,67,50]
+}

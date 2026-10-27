@@ -3,13 +3,18 @@
 This repository preserves the supplied Seyra demo and develops its versioned map-data replacement.
 The first implementation stage adds a complete primitive archive, an isolated Martin/PostGIS
 comparison lab, and a transactional release/session/retention registry. See
-[the current stage and acceptance evidence](docs/ATLAS-STAGE-1-FA.md),
+[stage one evidence](docs/ATLAS-STAGE-1-FA.md),
 [lab instructions](infra/atlas/lab/README.md), and the
 [architecture](docs/seyra-release-architecture-fa.md).
 
 The legacy runtime below still uses Tegola. The new release registry is not yet connected to
-the public gateway or web client. Automatic intake, signing, all-engine builds and production
-cutover remain subsequent stages; this branch must not be described as the completed migration.
+the public gateway or web client. All-engine builds and production cutover remain subsequent
+stages; this branch must not be described as the completed migration.
+
+Stage two adds [durable private PBF intake and source acceptance](docs/ATLAS-STAGE-2-FA.md),
+with [operator instructions](infra/atlas/intake/README.md). It validates/signs ordinary inputs,
+holds anomalies for exact-report review, and runs independently of the tile services. The Iran
+source remains review-required. All-engine builds and public release cutover are still outstanding.
 
 ## Original Seyra VM demo
 

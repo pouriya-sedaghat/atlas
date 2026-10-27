@@ -1,0 +1,44 @@
+{
+  "schema": "atlas.intake-operation-check/1",
+  "service_manager": "systemd-user",
+  "linger": true,
+  "worker_kill_recovery": {
+    "before": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled",
+      "MainPID": "264218",
+      "NRestarts": "0"
+    },
+    "after": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled",
+      "MainPID": "264743",
+      "NRestarts": "1"
+    }
+  },
+  "units": {
+    "atlas-intake-worker.service": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled",
+      "MainPID": "264743",
+      "NRestarts": "1"
+    },
+    "atlas-intake-signer.service": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled",
+      "MainPID": "264219",
+      "NRestarts": "0"
+    },
+    "atlas-intake-reconcile.timer": {
+      "ActiveState": "active",
+      "SubState": "waiting",
+      "UnitFileState": "enabled"
+    }
+  },
+  "scope": "idle worker process crash recovery; not a VM reboot or publication test",
+  "tile_containers_restarted": false
+}

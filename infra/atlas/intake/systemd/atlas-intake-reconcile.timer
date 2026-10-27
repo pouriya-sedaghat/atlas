@@ -1,0 +1,11 @@
+[Unit]
+Description=Reconcile Atlas deliveries while a long validation is running
+
+[Timer]
+OnBootSec=15s
+OnUnitInactiveSec=5s
+AccuracySec=1s
+Unit=atlas-intake-reconcile.service
+
+[Install]
+WantedBy=timers.target

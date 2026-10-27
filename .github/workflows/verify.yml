@@ -43,3 +43,23 @@ jobs:
           /tmp/atlas-audit/bin/python -m unittest discover -s tools/pbf-audit
           /tmp/atlas-audit/bin/python tools/pbf-audit/build_conformance_fixture.py /tmp/conformance.osm.pbf
           /tmp/atlas-audit/bin/python tools/pbf-audit/audit.py /tmp/conformance.osm.pbf --out /tmp/conformance-audit.json
+          python3 -m unittest discover -s apps/ingest/test
+  audit-sandbox:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - run: docker build -t atlas-audit-ci -f infra/atlas/intake/Dockerfile.audit .
+      - run: |
+          mkdir -p /tmp/atlas-sandbox-fixture
+          docker run --rm --network none --read-only --cap-drop ALL --user "$(id -u):$(id -g)" \
+            -v "$PWD:/src:ro" -v /tmp/atlas-sandbox-fixture:/out --entrypoint python atlas-audit-ci \
+            -I /src/tools/pbf-audit/build_conformance_fixture.py /out/conformance.osm.pbf
+          chmod 444 /tmp/atlas-sandbox-fixture/conformance.osm.pbf
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true \
+            --pids-limit 64 --memory 512m --memory-swap 512m --cpus 1 --log-driver none \
+            --mount type=bind,src=/tmp/atlas-sandbox-fixture/conformance.osm.pbf,dst=/in/input.osm.pbf,readonly \
+            atlas-audit-ci > /tmp/atlas-sandbox-fixture/report.json
+          python3 -c "import json; r=json.load(open('/tmp/atlas-sandbox-fixture/report.json')); assert r['structural_status']=='passed'; assert r['counts']=={'node':152,'way':39,'relation':5}"

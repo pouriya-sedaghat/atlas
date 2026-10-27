@@ -1,0 +1,29 @@
+{
+  "id": "df5ed7ffabe9108dcf8288770104dabd",
+  "source_sha256": "a3c61d35b010d4a474c1eabdef9500339472743423d7bb895b16241c08eb4065",
+  "source_bytes": "229921859",
+  "spec_sha256": "1abd8554f34b88dd011e54ff9003067832addc8ad771e869a7ace67a7abc2af6",
+  "state": "review_required",
+  "report_sha256": "9ff866f094123cdf807782d56e215fb5ea856a3da6dd3df79827eab623b68bc7",
+  "decision_sha256": "002de966ddff3d4c2c52f15e870bdef21a0554fa9d09fe5bf8c00d7a9c53a0fa",
+  "decision": {
+    "kind": "review",
+    "counts": {
+      "way": 3396793,
+      "node": 27005066,
+      "relation": 99073
+    },
+    "reasons": [
+      "incomplete_relation_members",
+      "initial_baseline_required"
+    ],
+    "snapshot": "2026-10-25T21:21:21Z",
+    "baselineId": null
+  },
+  "validated_at": "2026-10-27T11:44:16.820Z",
+  "payload_sha256": null,
+  "bundle_sha256": null,
+  "public_key_sha256": null,
+  "started_at": "2026-10-27T11:29:10.153Z",
+  "ended_at": "2026-10-27T11:44:16.821Z"
+}

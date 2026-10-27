@@ -1,0 +1,8 @@
+**
+!tools/
+!tools/pbf-audit/
+!tools/pbf-audit/audit.py
+!infra/
+!infra/atlas/
+!infra/atlas/intake/
+!infra/atlas/intake/osmium.lock.txt

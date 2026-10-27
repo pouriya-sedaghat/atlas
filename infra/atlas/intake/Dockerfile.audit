@@ -1,0 +1,12 @@
+FROM postgis/postgis@sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095 AS native_runtime
+FROM python@sha256:82abc9f53600280b0757126f83c5a7d47088592d2acb6b4c0b9e97f76865508c
+# Both reviewed images use Debian 13. Pyosmium's wheel needs this system ABI.
+COPY --from=native_runtime /usr/lib/x86_64-linux-gnu/libexpat.so.1* /usr/lib/x86_64-linux-gnu/
+COPY --from=native_runtime /usr/share/doc/libexpat1/copyright /app/licenses/libexpat1
+COPY infra/atlas/intake/osmium.lock.txt /app/requirements.txt
+RUN python -m pip install --no-cache-dir --no-deps --only-binary=:all: --require-hashes -r /app/requirements.txt
+RUN python -I -c "import osmium"
+COPY --chmod=0444 tools/pbf-audit/audit.py /app/audit.py
+USER 1000:1000
+RUN python -I /app/audit.py --help > /dev/null
+ENTRYPOINT ["python","-I","/app/audit.py","/in/input.osm.pbf","--stdout"]
