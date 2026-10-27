@@ -1,0 +1,5 @@
+FROM scratch
+COPY --chmod=0555 martin /martin
+USER 1000:1000
+EXPOSE 3000
+ENTRYPOINT ["/martin"]

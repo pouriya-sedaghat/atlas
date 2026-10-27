@@ -1,0 +1,84 @@
+# Isolated engine/data laboratory. No runtime stack or existing database is modified.
+name: atlas-lab
+networks:
+  backend:
+    internal: true
+volumes:
+  postgres:
+services:
+  db:
+    image: ${ATLAS_IMAGE_POSTGIS:?run prepare.sh first}
+    pull_policy: never
+    environment:
+      POSTGRES_DB: atlas_lab
+      POSTGRES_USER: atlas_admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password]
+    volumes: ["postgres:/var/lib/postgresql/data"]
+    networks: [backend]
+    shm_size: 256m
+    mem_limit: 5g
+    cpus: 2.5
+    pids_limit: 256
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U atlas_admin -d atlas_lab"]
+      interval: 3s
+      timeout: 3s
+      retries: 60
+    logging: {driver: json-file, options: {max-size: 10m, max-file: "3"}}
+  importer:
+    image: ${ATLAS_IMAGE_TOOLS:?run prepare.sh first}
+    user: "1000:1000"
+    pull_policy: never
+    profiles: [jobs]
+    entrypoint: [osm2pgsql]
+    environment:
+      PGPASSFILE: /run/secrets/pgpass
+    secrets: [pgpass]
+    volumes:
+      - ${ATLAS_PBF:?}:/in/input.osm.pbf:ro
+      - ../../catalog/seyra-flex.lua:/config/render.lua:ro
+      - ../raw.lua:/config/raw.lua:ro
+    networks: [backend]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 3g
+    cpus: 2
+    pids_limit: 128
+  martin:
+    image: ${ATLAS_IMAGE_MARTIN:?run prepare.sh first}
+    pull_policy: never
+    command: [--config, /config/martin.yml]
+    user: "1000:1000"
+    volumes: ["${ATLAS_LAB_STATE:?}/martin.yml:/config/martin.yml:ro"]
+    networks: [backend]
+    ports: ["127.0.0.1:3111:3000"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 64
+    depends_on: {db: {condition: service_healthy}}
+  pgtileserv:
+    image: ${ATLAS_IMAGE_PGTILESERV:?run prepare.sh first}
+    pull_policy: never
+    command: [--config, /config/pg_tileserv.toml]
+    user: "1000:1000"
+    volumes: ["${ATLAS_LAB_STATE:?}/pg_tileserv.toml:/config/pg_tileserv.toml:ro"]
+    networks: [backend]
+    ports: ["127.0.0.1:7801:7800"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 64
+    depends_on: {db: {condition: service_healthy}}
+secrets:
+  db_password: {file: "${ATLAS_LAB_STATE:?}/db_password"}
+  pgpass: {file: "${ATLAS_LAB_STATE:?}/pgpass"}

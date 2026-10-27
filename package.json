@@ -2,7 +2,7 @@
   "name": "seyra",
   "private": true,
   "version": "1.0.0",
-  "description": "Seyra internal-network platform \u2014 Map Services phase 1 (backend, ops tooling and web test client)",
+  "description": "Seyra internal-network platform — Map Services phase 1 (backend, ops tooling and web test client)",
   "license": "UNLICENSED",
   "type": "module",
   "engines": {
@@ -11,14 +11,19 @@
   "workspaces": [
     "packages/contracts",
     "packages/map-assets",
+    "packages/releases",
     "apps/api",
     "apps/ops",
     "apps/web"
   ],
   "scripts": {
-    "build": "npm run build -w packages/contracts && npm run build -w packages/map-assets && npm run build -w apps/api -w apps/ops -w apps/web",
+    "build": "npm run build -w packages/contracts && npm run build -w packages/map-assets && npm run build -w packages/releases && npm run build -w apps/api -w apps/ops -w apps/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "openapi": "npm run openapi -w apps/api"
+  },
+  "devDependencies": {
+    "@mapbox/vector-tile": "3.0.0",
+    "pbf": "5.1.2"
   }
 }

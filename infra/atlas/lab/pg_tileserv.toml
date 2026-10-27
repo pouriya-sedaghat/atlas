@@ -1,0 +1,7 @@
+DbConnection = "host=db dbname=atlas_lab user=atlas_tile sslmode=disable"
+DbPoolMaxConns = 4
+HttpHost = "0.0.0.0"
+HttpPort = 7800
+Debug = false
+MaxFeaturesPerTile = -1
+DefaultMaxZoom = 16
