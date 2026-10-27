@@ -14,7 +14,8 @@ stages; this branch must not be described as the completed migration.
 Stage two adds [durable private PBF intake and source acceptance](docs/ATLAS-STAGE-2-FA.md),
 with [operator instructions](infra/atlas/intake/README.md). It validates/signs ordinary inputs,
 holds anomalies for exact-report review, and runs independently of the tile services. The Iran
-source remains review-required. All-engine builds and public release cutover are still outstanding.
+source was accepted only as an experimental source/baseline after explicit human anomaly review;
+receipts enforce `experimental_source_only`. All-engine builds and public release cutover are still outstanding.
 
 ## Original Seyra VM demo
 

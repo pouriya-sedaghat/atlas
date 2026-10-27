@@ -23,9 +23,13 @@
     "counts_match_prior_independent_audit": true,
     "missing_references_match_prior_independent_audit": true,
     "parser_elapsed_s": 868.34,
-    "state": "review_required",
-    "accepted": false,
-    "published": false
+    "state": "accepted",
+    "accepted": true,
+    "published": false,
+    "usage_scope": "experimental_source_only",
+    "initial_baseline_pinned": true,
+    "human_anomaly_approval": true
   },
-  "whole_platform_migration_complete": false
+  "whole_platform_migration_complete": false,
+  "final_controller_sha256": "56e2a2339fd5190bd50f2dfacc13b3ea6f5415ee6d048bd967ea3a8a74889189"
 }

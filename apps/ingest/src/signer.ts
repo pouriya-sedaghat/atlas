@@ -57,6 +57,7 @@ export class SourceSigner {
       if(decision.kind==='review'&&!review){await this.queue.signingFailed(v,'human_review_missing',decision);return true;}
       await this.files.verifyBlob(v.source_sha256,Number(v.source_bytes));
       const payload=Buffer.from(JSON.stringify({schema:'atlas.source-acceptance/1',validation_id:v.id,
+        usage_scope:'experimental_source_only',
         subject:{sha256:v.source_sha256,bytes:Number(v.source_bytes)},source:{...v.manifest.source,provenance:'operator_declared',publisher_signature_verified:false},
         spec_sha256:v.spec_sha256,report_sha256:v.report_sha256,decision_sha256:v.decision_sha256,decision,
         processing:{validator_image:this.processing.validatorImage,collector_build_sha256:this.collectors.get(v.spec_sha256),
@@ -86,7 +87,7 @@ export class SourceSigner {
     const context=parsed.processing,policy=parsePolicy(context?.policy);
     hash(context.signer_build_sha256);
     if(validationSpec(policy,context.validator_image,context.collector_build_sha256)!==v.spec_sha256)throw new IntakeError('receipt_processing_mismatch');
-    if(parsed.schema!=='atlas.source-acceptance/1'||parsed.validation_id!==v.id||parsed.subject.sha256!==v.source_sha256||parsed.subject.bytes!==Number(v.source_bytes)||
+    if(parsed.schema!=='atlas.source-acceptance/1'||parsed.usage_scope!=='experimental_source_only'||parsed.validation_id!==v.id||parsed.subject.sha256!==v.source_sha256||parsed.subject.bytes!==Number(v.source_bytes)||
       parsed.spec_sha256!==v.spec_sha256||parsed.report_sha256!==v.report_sha256||parsed.public_key_sha256!==v.public_key_sha256||
       // PostgreSQL JSONB can reorder object keys. Bind its values to the exact signed representation.
       parsed.decision_sha256!==v.decision_sha256||!isDeepStrictEqual(parsed.decision,v.decision)||sha256(JSON.stringify(parsed.decision))!==v.decision_sha256||

@@ -43,6 +43,7 @@ try{
   await command('verify-receipt',['--validation',row.validation_id]);
   tests.push('ordinary_input_automatically_validated_signed_and_verified');
   const accepted=await queue.validation(row.validation_id);
+  assert.equal(JSON.parse((await files.artifact(accepted.payload_sha256)).toString()).usage_scope,'experimental_source_only');
   for(const[field,name]of [['report_sha256','fixture-audit.json'],['payload_sha256','fixture-receipt.json'],['bundle_sha256','fixture-bundle.sigstore.json']])
     await writeFile(join(evidenceDirectory,name),await files.artifact(accepted[field]));
   await writeFile(join(evidenceDirectory,'fixture-public-key.pub'),await readFile(config.signer.publicKey));

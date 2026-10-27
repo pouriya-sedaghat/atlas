@@ -15,7 +15,7 @@
     "expired_container_reaped_while_live_and_unrelated_containers_are_protected"
   ],
   "counts": 11,
-  "controller_sha256": "deb9812aca22adeeb1fd6853af29856864bfe5ff57222a52385d58df40a94705",
+  "controller_sha256": "56e2a2339fd5190bd50f2dfacc13b3ea6f5415ee6d048bd967ea3a8a74889189",
   "validator_image": "sha256:e422aad6876ad15083c0c8118f0a3f3814f98cf5bfa56e39828907acee9fde90",
   "cosign_binary_sha256": "424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa",
   "public_key_sha256": "184d5e57ddbd6e607eaa3299e74f08fc9143e94408b28a90e2bfe0ef5f19256d",

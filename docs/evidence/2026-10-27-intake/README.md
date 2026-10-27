@@ -4,8 +4,12 @@ These are selected non-secret artifacts from the authorized isolated Ubuntu VM.
 
 - `iran-intake-audit.json`: complete report from the resource-limited parser; its exact bytes
   hash to `9ff866f094123cdf807782d56e215fb5ea856a3da6dd3df79827eab623b68bc7`.
-- `iran-intake-decision.json`: durable validation/attempt identity and `review_required` state.
-  No Iran acceptance receipt or baseline approval exists.
+- `iran-intake-decision.json`: original validation/attempt identity and `review_required` state
+  before human review. `iran-accepted-state.json` records subsequent explicit human approval
+  for the experimental source and initial baseline, including report/decision binding.
+- `iran-source-acceptance.json`, `iran-source-bundle.sigstore.json`: exact signed Iran source
+  receipt and bundle. Its required scope is `experimental_source_only`; production publication
+  was not approved. The source deficiencies and unverified publisher signature remain recorded.
 - `e2e-report.json`: eleven passing real Docker/PostgreSQL/Cosign fault scenarios on fictional
   inputs in a separate disposable database, including a previous collector build.
 - `fixture-audit.json`, `fixture-receipt.json`, `fixture-bundle.sigstore.json`,
@@ -25,6 +29,8 @@ With the pinned Cosign binary from `infra/atlas/intake/tools.lock.json`, this ve
 ```sh
 cosign verify-blob --offline --insecure-ignore-tlog=true \
   --key fixture-public-key.pub --bundle fixture-bundle.sigstore.json fixture-receipt.json
+cosign verify-blob --offline --insecure-ignore-tlog=true \
+  --key fixture-public-key.pub --bundle iran-source-bundle.sigstore.json iran-source-acceptance.json
 ```
 
 The pinned public key is the trust root of this offline local-key lab profile; transparency-log,

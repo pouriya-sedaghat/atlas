@@ -134,6 +134,10 @@ and Sigstore bundle; then commits acceptance under a short signer lease. The loc
 key and offline bundle verification. There is no transparency-log assurance in this profile.
 See [Sigstore blob signing](https://docs.sigstore.dev/cosign/signing/signing_with_blobs/).
 
+All receipts in this lab profile carry `usage_scope=experimental_source_only`; verification
+requires that scope. Production publishers must not accept this lab profile/key as production
+authorization. An accepted source is not an approved map release.
+
 Receipt lineage distinguishes the collector build from the signer build and embeds normalized
 policy and validator image identity. `signer.trustedCollectorBuilds` can explicitly list up to
 10 previously reviewed build hashes. If omitted, only the current controller build is trusted.
