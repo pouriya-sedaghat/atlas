@@ -5,6 +5,7 @@ networks:
     internal: true
 volumes:
   postgres:
+    name: ${ATLAS_LAB_DB_VOLUME:-atlas-lab_postgres}
 services:
   db:
     image: ${ATLAS_IMAGE_POSTGIS:?run prepare.sh first}
@@ -21,7 +22,7 @@ services:
     cpus: 2.5
     pids_limit: 256
     healthcheck:
-      test: [CMD-SHELL, "pg_isready -U atlas_admin -d atlas_lab"]
+      test: [CMD-SHELL, "pg_isready -h 127.0.0.1 -U atlas_admin -d atlas_lab"]
       interval: 3s
       timeout: 3s
       retries: 60
@@ -54,7 +55,6 @@ services:
     user: "1000:1000"
     volumes: ["${ATLAS_LAB_STATE:?}/martin.yml:/config/martin.yml:ro"]
     networks: [backend]
-    ports: ["127.0.0.1:3111:3000"]
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     read_only: true
@@ -70,7 +70,6 @@ services:
     user: "1000:1000"
     volumes: ["${ATLAS_LAB_STATE:?}/pg_tileserv.toml:/config/pg_tileserv.toml:ro"]
     networks: [backend]
-    ports: ["127.0.0.1:7801:7800"]
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     read_only: true

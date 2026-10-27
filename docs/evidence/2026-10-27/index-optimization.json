@@ -1,0 +1,7 @@
+{
+  "schema": "atlas.raw-index-optimization/1",
+  "before_bytes": 6147946163,
+  "after_bytes": 5462808243,
+  "saved_bytes": 685137920,
+  "data_rows_modified": false
+}

@@ -1,6 +1,6 @@
 # Isolated engine laboratory
 
-This lab creates its own Compose project, private network, database and local-only tile endpoints.
+This lab creates its own Compose project, private network, database and internal tile endpoints.
 It does not activate a release in the legacy platform. Run on a dedicated Linux amd64 VM with
 Docker/Compose, Python 3 and an owner with uid 1000. Plan disk/RAM for the full primitive archive,
 temporary import tables and derived catalog, not only the compressed PBF size.
@@ -22,8 +22,9 @@ require review: a regional extract may contain parents whose other members lie o
 Staging import is permitted for investigation; publication is not implied.
 
 The audit normalizes absent metadata (zero/empty values) to null. It rejects history, duplicate
-objects, unordered input, duplicate tag keys and identifiers/references outside the exact Lua
-integer range. Unsupported input is rejected rather than silently rounded or collapsed.
+objects, unordered input, duplicate tag keys and identifiers/references outside the exact importer
+and catalog-MVT number range. Unsupported input is rejected rather than silently rounded or collapsed.
+Use a resource-limited worker for untrusted files; this standalone audit is not an upload service.
 
 ## Prepare and test
 
@@ -34,7 +35,12 @@ to the VM. Compare the expected SHA-256 with the received bytes before invoking 
 python3 tools/atlas-lab.py prepare \
   --source /data/iran.osm.pbf --expected-sha256 FULL_SHA256 \
   --martin-archive /data/martin-1.16.1-linux-musl.tar.gz
-npm ci --ignore-scripts --no-audit --no-fund
+docker run --rm --user 1000:1000 --network host --tmpfs /tmp \
+  -e npm_config_cache=/tmp/npm-cache -v "$PWD:/src" -w /src \
+  node@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 \
+  npm ci --ignore-scripts --no-audit --no-fund
+audit-env/bin/python tools/pbf-audit/build_conformance_fixture.py /data/conformance.osm.pbf
+audit-env/bin/python tools/pbf-audit/audit.py /data/conformance.osm.pbf --out /data/conformance-audit.json
 python3 tools/atlas-lab.py selftest --source /data/conformance.osm.pbf --audit /data/conformance-audit.json
 python3 tools/atlas-lab.py import --audit /data/audit.json
 ```
@@ -48,8 +54,9 @@ The importer archives all tagged and untagged nodes/ways/relations separately fr
 temporary middle tables. The legacy rendering catalog is reused to compare engines with identical
 SQL/data. Its feature coverage is not enlarged by replacing the tile server.
 
-After successful import, Martin listens on `127.0.0.1:3111`, pg_tileserv on `127.0.0.1:7801`.
-Neither endpoint is a public gateway. Martin publishes only the explicit basemap function;
+After successful import, Martin is available internally at `http://martin:3000`, pg_tileserv at
+`http://pgtileserv:7800`. The network is isolated; host/public ports are not published.
+Martin publishes only the explicit basemap function;
 the tile role cannot read the raw archive. Import and tile services run without Linux capabilities
 or a writable root filesystem. Resource quotas bound the experiment.
 
@@ -60,14 +67,22 @@ mount the source audit read-only at `/in/audit.json` and the private admin passw
 at `/run/secrets/db_password`. Passwords are read from files, not passed in command arguments.
 
 ```sh
-node tools/verify-raw.mjs /in/audit.json /src/.lab-state/raw-roundtrip.json
-node tools/verify-tiles.mjs /src/.lab-state/tile-parity.json
-node tools/run-registry-tests.mjs
+lab_node() {
+  docker run --rm --pull never --user 1000:1000 --network atlas-lab_backend \
+    --memory 1g --cpus 1.5 --cap-drop ALL --security-opt no-new-privileges:true \
+    -v "$PWD:/src" -v "$PWD/.lab-state/db_password:/run/secrets/db_password:ro" \
+    -v /data/audit.json:/in/audit.json:ro -w /src \
+    node@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 "$@"
+}
+lab_node node tools/verify-raw.mjs /in/audit.json /src/.lab-state/raw-roundtrip.json
+lab_node node tools/verify-tiles.mjs /src/.lab-state/tile-parity.json
+lab_node node tools/inspect-catalog.mjs /src/.lab-state/catalog-inspection.json
+lab_node node tools/run-registry-tests.mjs
 ```
 
 `verify-raw` reconstructs and hashes every canonical primitive from a repeatable-read database
 snapshot, including tag values, metadata and ordered references; counts alone do not prove retention.
-`verify-tiles` decodes 24 geographic/zoom samples and compares both servers against the SQL function.
+`verify-tiles` decodes 24 geographic/zoom samples in three rounds and compares both servers against the SQL function.
 It compares geometry/property content rather than serialization order. These checks do not prove
 real-world geographic correctness or every possible tile.
 
@@ -77,7 +92,15 @@ python3 tools/atlas-lab.py benchmark --rounds 4 --concurrency 4
 
 The benchmark alternates engine order, disables HTTP application caching, and reports errors,
 p50/p95/max for a fixed sample. PostgreSQL buffers are shared/warm. A single VM sample is not a
-production capacity result or a demonstration of uninterrupted all-engine publication.
+production capacity result or a demonstration of uninterrupted all-engine publication. The same
+bounded Node HTTP client runs inside the private network for both engines; each request opens a
+new connection. Warm-up completes for every sample before timing begins.
+
+The tile profile rejects older GEOS versions that can yield unstable Multi simplification.
+Do not upgrade an existing database volume across OS/collation changes by swapping its image.
+In the recorded experiment, a logical backup was restored into a fresh volume and every raw
+primitive was reverified; the original volume was retained. This is a lab restore check, not a
+production backup/recovery implementation.
 
 Reports/logs stay in `.lab-state`. Export only selected non-secret reports. Keep image digests,
 source hashes, tool versions and report scope with any published numbers. Supply-chain review,

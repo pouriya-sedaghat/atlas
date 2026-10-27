@@ -1,0 +1,18 @@
+{
+  "schema": "atlas.lab-import/1",
+  "source_sha256": "a3c61d35b010d4a474c1eabdef9500339472743423d7bb895b16241c08eb4065",
+  "counts_verified": true,
+  "semantic_roundtrip_verified": false,
+  "summary": {
+    "node": 27005066,
+    "way": 3396793,
+    "relation": 99073,
+    "way_node_references": 31825062,
+    "relation_member_references": 635800,
+    "database_bytes": 6144216211
+  },
+  "input_review_reasons": [
+    "incomplete_relation_members"
+  ],
+  "seconds": 986.377
+}

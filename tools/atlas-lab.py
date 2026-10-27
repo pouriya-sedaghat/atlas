@@ -2,7 +2,6 @@
 """Isolated Linux engine laboratory. Never activates the legacy platform or deletes its data."""
 from __future__ import annotations
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 import math
@@ -11,10 +10,8 @@ import re
 from pathlib import Path
 import secrets
 import shutil
-import statistics
 import subprocess
 import time
-import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 LAB = ROOT / "infra/atlas/lab"
@@ -62,7 +59,12 @@ def sql(text, database="atlas_lab"):
 def initialize_database(passwords):
     compose("up","-d","db")
     for _ in range(90):
-        try: sql("SELECT 1"); break
+        try:
+            # The entrypoint's temporary bootstrap server accepts Unix-socket SQL
+            # before extension initialization has finished. TCP opens only afterward.
+            compose('exec','-T','db','pg_isready','-h','127.0.0.1','-U','atlas_admin','-d','atlas_lab')
+            sql("SELECT 1")
+            break
         except RuntimeError: time.sleep(2)
     else: raise RuntimeError("database did not become ready")
     sql((LAB/"setup.sql").read_text())
@@ -207,41 +209,17 @@ def tile_xy(lon,lat,z):
 
 
 def benchmark(args):
-    # Fixed geographic samples, explicit warm-up, serial engine order alternated by round.
-    sites = {"tehran":(51.389,35.6892),"mashhad":(59.6062,36.2605),"shiraz":(52.5311,29.5918),
-             "tabriz":(46.2919,38.0962),"ahvaz":(48.6692,31.3183),"rural":(58.5,32.4)}
-    paths = [(*tile_xy(lon,lat,z),name) for name,(lon,lat) in sites.items() for z in (6,10,14,16)]
-    engines = {"martin":"http://127.0.0.1:3111/basemap/{z}/{x}/{y}",
-               "pgtileserv":"http://127.0.0.1:7801/tiles.basemap/{z}/{x}/{y}.pbf"}
-    def request(engine,item):
-        z,x,y,name = item; started = time.monotonic()
-        url = engines[engine].format(z=z,x=x,y=y)
-        try:
-            with urllib.request.urlopen(urllib.request.Request(url,headers={"Accept-Encoding":"identity"}),timeout=15) as response:
-                body = response.read(32*1024*1024+1)
-                if len(body)>32*1024*1024: raise ValueError("tile exceeded bound")
-                return {"engine":engine,"site":name,"z":z,"x":x,"y":y,"status":response.status,
-                        "bytes":len(body),"sha256":hashlib.sha256(body).hexdigest(),"ms":round((time.monotonic()-started)*1000,3)}
-        except Exception as error:
-            return {"engine":engine,"site":name,"z":z,"x":x,"y":y,"error":type(error).__name__,"ms":round((time.monotonic()-started)*1000,3)}
-    for engine in engines:
-        request(engine,paths[0])
-    rows = []
-    for round_number in range(args.rounds):
-        for engine in (list(engines) if round_number%2==0 else list(reversed(engines))):
-            with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
-                rows.extend(executor.map(lambda item:request(engine,item),paths))
-    summary = {}
-    for engine in engines:
-        selected = [r for r in rows if r['engine']==engine]; times = sorted(r['ms'] for r in selected)
-        summary[engine] = {"requests":len(selected),"errors":sum('error' in r or r.get('status') not in (200,204) for r in selected),
-                           "p50_ms":statistics.median(times),"p95_ms":times[math.ceil(len(times)*.95)-1],"max_ms":max(times)}
-    report = {"schema":"atlas.engine-comparison/1","concurrency":args.concurrency,"rounds":args.rounds,
-              "cache":"HTTP application caches disabled; shared PostgreSQL buffers are warmed by both engines",
-              "summary":summary,"requests":rows,"production_capacity_established":False}
-    save(STATE/"benchmark.json",report,0o644)
-    print(json.dumps(summary))
-    if any(s['errors'] for s in summary.values()): raise RuntimeError("benchmark contains request failures")
+    # Run the identical client inside the private network. No host publishing or
+    # external proxy is involved, and the database remains inaccessible publicly.
+    output = run(['docker','run','--rm','--pull','never','--user','1000:1000',
+        '--read-only','--cap-drop','ALL','--security-opt','no-new-privileges:true',
+        '--memory','512m','--cpus','1','--network','atlas-lab_backend',
+        '-v',f'{ROOT}:/src:ro','-v',f'{STATE}:/src/.lab-state',
+        '-v',f'{STATE}/db_password:/run/secrets/db_password:ro','-w','/src',
+        'node@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20',
+        'node','tools/benchmark-engines.mjs','/src/.lab-state/benchmark.json',
+        str(args.rounds),str(args.concurrency)])
+    print(output.strip())
 
 
 def main():

@@ -5,8 +5,10 @@ import { VectorTile } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
 import pg from 'pg';
 
-const [output] = process.argv.slice(2);
+const [output,roundText='3'] = process.argv.slice(2);
 if (!output) throw new Error('usage: verify-tiles.mjs REPORT.json');
+const rounds=Number(roundText);
+if (!Number.isInteger(rounds)||rounds<1||rounds>10) throw new Error('rounds must be in 1..10');
 const client = new pg.Client({host:'db',database:'atlas_lab',user:'atlas_admin',
   password:readFileSync('/run/secrets/db_password','utf8').trim(),
   connectionTimeoutMillis:5000,statement_timeout:15000});
@@ -53,7 +55,7 @@ async function fetchTile(url) {
 const rows = [];
 await client.connect();
 try {
-  for (const [site,[lon,lat]] of Object.entries(sites)) for (const z of [6,10,14,16]) {
+  for (let round=1;round<=rounds;round++) for (const [site,[lon,lat]] of Object.entries(sites)) for (const z of [6,10,14,16]) {
     const n=2**z,x=Math.floor((lon+180)/360*n),y=Math.floor((1-Math.asinh(Math.tan(lat*Math.PI/180))/Math.PI)/2*n);
     const sources = {
       database:(await client.query('SELECT tiles.basemap($1,$2,$3) AS tile',[z,x,y])).rows[0].tile,
@@ -62,11 +64,11 @@ try {
     };
     const decoded = Object.fromEntries(Object.entries(sources).map(([engine,bytes])=>[engine,{...decode(bytes),bytes:bytes.length}]));
     const parity = new Set(Object.values(decoded).map(r=>r.sha256)).size === 1;
-    rows.push({site,z,x,y,parity,decoded});
-    process.stdout.write(`${site} z${z}: ${parity?'matched':'MISMATCH'}\n`);
+    rows.push({round,site,z,x,y,parity,decoded});
+    process.stdout.write(`round ${round} ${site} z${z}: ${parity?'matched':'MISMATCH'}\n`);
   }
 } finally { await client.end(); }
-const report = {schema:'atlas.tile-parity/1',passed:rows.every(r=>r.parity)&&rows.some(r=>r.decoded.database.features>0),
+const report = {schema:'atlas.tile-parity/1',rounds,passed:rows.every(r=>r.parity)&&rows.some(r=>r.decoded.database.features>0),
   comparison:'Decoded MVT features, properties and ordered geometry; layer/feature serialization order ignored',
   geographic_truth_verified:false,samples:rows};
 writeFileSync(`${output}.partial`,JSON.stringify(report,null,2)+'\n');

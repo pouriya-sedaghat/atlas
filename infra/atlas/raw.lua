@@ -14,9 +14,11 @@ end
 local function define(name, kind, extra)
     local columns = metadata_columns()
     for _, column in ipairs(extra) do table.insert(columns, column) end
-    return osm2pgsql.define_table({name=name, schema='osm_raw',
-        ids={type=kind, id_column='osm_id', create_index='always'}, columns=columns,
-        indexes={{column='osm_id', method='btree', unique=true}}})
+    -- Raw verification uses OSM identity, not spatial locality. Avoid a complete
+    -- geometry-based table rewrite and its temporary second copy on disk.
+    return osm2pgsql.define_table({name=name, schema='osm_raw', cluster='no',
+        ids={type=kind, id_column='osm_id', create_index='primary_key'}, columns=columns,
+        indexes={}})
 end
 
 local nodes = define('nodes', 'node', {{column='geom', type='point', projection=4326, not_null=true}})
@@ -39,7 +41,9 @@ local function way(object)
     local row = metadata(object)
     -- sql_type alone uses flex's text conversion, so serialize the PostgreSQL array
     -- explicitly. IDs are numeric and validated before this script is executed.
-    row.nodes = '{' .. table.concat(object.nodes, ',') .. '}'
+    local refs = {}
+    for i, ref in ipairs(object.nodes) do refs[i] = string.format('%.0f', ref) end
+    row.nodes = '{' .. table.concat(refs, ',') .. '}'
     ways:insert(row)
 end
 

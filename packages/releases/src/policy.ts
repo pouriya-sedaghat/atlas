@@ -15,7 +15,8 @@ export const DEFAULT_RELEASE_POLICY: Readonly<ReleasePolicy> = Object.freeze({
 });
 
 export function validatePolicy(value: ReleasePolicy): Readonly<ReleasePolicy> {
-  for (const [key, number] of Object.entries(value)) {
+  for (const key of ['idleSessionMs','absoluteSessionMs','requestLeaseMs','retirementGraceMs','keepLatest'] as const) {
+    const number = value[key];
     if (!Number.isSafeInteger(number) || number < 1) throw new Error(`${key} must be a positive safe integer`);
   }
   if (value.idleSessionMs > value.absoluteSessionMs) throw new Error('idle expiry cannot exceed absolute expiry');

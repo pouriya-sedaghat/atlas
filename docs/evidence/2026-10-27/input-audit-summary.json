@@ -1,0 +1,90 @@
+{
+  "schema": "atlas.pbf-audit/1",
+  "generated_at": "2026-10-27T06:41:32.730243+00:00",
+  "tool": {
+    "name": "pyosmium",
+    "version": "4.3.2"
+  },
+  "source": {
+    "filename": "iran-261025.osm.pbf",
+    "bytes": 229921859,
+    "sha256": "a3c61d35b010d4a474c1eabdef9500339472743423d7bb895b16241c08eb4065",
+    "md5_transport_only": "17966325f4ce7e76cdf33376f46f1608",
+    "header": {
+      "generator": "osmium/1.16.0",
+      "osmosis_replication_timestamp": "2026-10-25T21:21:21Z",
+      "osmosis_replication_sequence_number": "4948",
+      "osmosis_replication_base_url": "https://download.geofabrik.de/asia/iran-updates"
+    }
+  },
+  "counts": {
+    "node": 27005066,
+    "way": 3396793,
+    "relation": 99073
+  },
+  "tagged": {
+    "node": 848262,
+    "way": 3189916,
+    "relation": 99056
+  },
+  "untagged": {
+    "node": 26156804,
+    "way": 206877,
+    "relation": 17
+  },
+  "semantic_digest": {
+    "format": "atlas.osm-records/1; uint64be-length + utf8-compact-json per object",
+    "node": "14e00f6e567ab0ce3d3925e10861d3cc88b46cdc1b487588904c28b79fe80c63",
+    "way": "90074f125160b6f29bd1f95794010077c11242c2688e553aac6975b18baba27a",
+    "relation": "ef249a157cc13082ba43fbd952f7e6fa339af128fc66e4d6fb609c324df83d93"
+  },
+  "metadata_coverage": {
+    "version": {
+      "present": 30500932
+    },
+    "timestamp": {
+      "present": 30500932
+    },
+    "changeset": {
+      "absent": 30500932
+    },
+    "uid": {
+      "absent": 30500932
+    },
+    "user": {
+      "absent": 30500932
+    }
+  },
+  "bbox": [
+    43.315691,
+    24.813511,
+    64.3179533,
+    46.9863421
+  ],
+  "object_timestamps": [
+    "2007-04-06T17:00:10Z",
+    "2026-10-25T20:48:01Z"
+  ],
+  "ordered": true,
+  "blockers": [],
+  "review_reasons": [
+    "incomplete_relation_members"
+  ],
+  "structural_status": "review_required",
+  "geographic_truth_verified": false,
+  "publisher_signature_verified": false,
+  "elapsed_s": 3034.531,
+  "references": {
+    "counts": {
+      "way_to_node": 31825062,
+      "relation_to_way": 577186,
+      "relation_to_relation": 8974,
+      "relation_to_node": 49640
+    },
+    "missing": {
+      "relation_to_way": 39453,
+      "relation_to_relation": 899,
+      "relation_to_node": 283
+    }
+  }
+}

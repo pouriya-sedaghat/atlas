@@ -1,0 +1,42 @@
+{
+  "schema": "atlas.lab-context/1",
+  "captured_at": "2026-10-27T08:04:53.162314+00:00",
+  "os": "Ubuntu 26.04 LTS",
+  "architecture": "x86_64",
+  "logical_cpus": 4,
+  "memory_bytes": 12082294784,
+  "disk_total_bytes": 105089261568,
+  "disk_free_at_capture_bytes": 71941402624,
+  "docker": "29.9.2",
+  "compose": "5.6.1",
+  "containers": [
+    {
+      "name": "atlas-lab-db-1",
+      "memory_limit_bytes": 5368709120,
+      "cpu_limit": 2.5,
+      "running": true,
+      "published_ports": {
+        "5432/tcp": null
+      }
+    },
+    {
+      "name": "atlas-lab-martin-1",
+      "memory_limit_bytes": 536870912,
+      "cpu_limit": 1.0,
+      "running": true,
+      "published_ports": {
+        "3000/tcp": null
+      }
+    },
+    {
+      "name": "atlas-lab-pgtileserv-1",
+      "memory_limit_bytes": 536870912,
+      "cpu_limit": 1.0,
+      "running": true,
+      "published_ports": {
+        "7800/tcp": null
+      }
+    }
+  ],
+  "production_capacity_established": false
+}

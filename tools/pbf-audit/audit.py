@@ -22,6 +22,8 @@ import osmium
 
 KINDS = ("node", "way", "relation")
 EXAMPLE_LIMIT = 20
+# Rendering catalog v1 uses id*10 + type (1..3) as a JavaScript-exact MVT ID.
+MAX_OSM_ID = (9007199254740991 - 3) // 10
 
 
 def file_hash(path: Path, algorithm: str = "sha256") -> str:
@@ -66,8 +68,8 @@ class Inventory(osmium.SimpleHandler):
     def observe(self, kind: str, obj):
         if obj.id <= 0 or not obj.visible:
             raise ValueError("only positive-id, visible current snapshots are accepted")
-        if obj.id > 9007199254740991:
-            raise ValueError("object ID exceeds the exact Lua number range; this importer must not round it")
+        if obj.id > MAX_OSM_ID:
+            raise ValueError("object ID exceeds the reviewed importer/MVT exact number range")
         if obj.id in self.ids[kind]:
             raise ValueError(f"duplicate {kind} id {obj.id}; history/multiple versions are unsupported")
         order = KINDS.index(kind)
@@ -83,7 +85,7 @@ class Inventory(osmium.SimpleHandler):
         if len({tag[0] for tag in record[2]}) != len(record[2]):
             raise ValueError('duplicate tag keys cannot be archived faithfully as a JSONB object')
         references = record[3] if kind == 'way' else [m[1] for m in record[3]] if kind == 'relation' else []
-        if any(ref <= 0 or ref > 9007199254740991 for ref in references):
+        if any(ref <= 0 or ref > MAX_OSM_ID for ref in references):
             raise ValueError('reference ID is outside the supported exact positive integer range')
         encoded = json.dumps(record, ensure_ascii=False, separators=(",", ":")).encode("utf8")
         self.digests[kind].update(len(encoded).to_bytes(8, "big"))

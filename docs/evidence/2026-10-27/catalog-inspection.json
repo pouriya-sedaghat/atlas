@@ -1,0 +1,211 @@
+{
+  "schema": "atlas.catalog-inspection/1",
+  "layers": {
+    "water": {
+      "rows": 14056,
+      "empty_geometries": 0,
+      "invalid_geometries": 0
+    },
+    "landcover": {
+      "rows": 183887,
+      "empty_geometries": 0,
+      "invalid_geometries": 0
+    },
+    "waterways": {
+      "rows": 98031,
+      "empty_geometries": 0,
+      "invalid_geometries": 0
+    },
+    "boundaries": {
+      "rows": 30984,
+      "empty_geometries": 0,
+      "invalid_geometries": 0
+    },
+    "transport": {
+      "rows": 2150894,
+      "empty_geometries": 0,
+      "invalid_geometries": 0
+    },
+    "buildings": {
+      "rows": 633856,
+      "empty_geometries": 0,
+      "invalid_geometries": 0
+    },
+    "places": {
+      "rows": 62238,
+      "empty_geometries": 0,
+      "invalid_geometries": 0
+    },
+    "pois": {
+      "rows": 329509,
+      "empty_geometries": 0,
+      "invalid_geometries": 0
+    }
+  },
+  "versions": {
+    "postgres": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+    "postgis": "POSTGIS=\"3.6.4 94d984b\" [EXTENSION] PGSQL=\"170\" GEOS=\"3.14.1-CAPI-1.20.5\" (compiled against GEOS 3.13.1) PROJ=\"9.8.1 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/var/lib/postgresql/.local/share/proj DATABASE_PATH=/usr/share/proj/proj.db\" (compiled against PROJ 9.6.0) LIBXML=\"2.9.14\" LIBJSON=\"0.18\" LIBPROTOBUF=\"1.5.1\" WAGYU=\"0.5.0 (Internal)\" TOPOLOGY"
+  },
+  "uncatalogued": [
+    {
+      "osm_type": "N",
+      "objects": 548755
+    },
+    {
+      "osm_type": "R",
+      "objects": 10107
+    },
+    {
+      "osm_type": "W",
+      "objects": 127011
+    }
+  ],
+  "incomplete_relations": [
+    {
+      "relation_type": "route",
+      "member_type": "w",
+      "missing_references": 25194,
+      "affected_relations": 49
+    },
+    {
+      "relation_type": "boundary",
+      "member_type": "w",
+      "missing_references": 9476,
+      "affected_relations": 158
+    },
+    {
+      "relation_type": "multipolygon",
+      "member_type": "w",
+      "missing_references": 2938,
+      "affected_relations": 9
+    },
+    {
+      "relation_type": "collection",
+      "member_type": "w",
+      "missing_references": 642,
+      "affected_relations": 2
+    },
+    {
+      "relation_type": "waterway",
+      "member_type": "w",
+      "missing_references": 605,
+      "affected_relations": 19
+    },
+    {
+      "relation_type": "boundary",
+      "member_type": "r",
+      "missing_references": 369,
+      "affected_relations": 51
+    },
+    {
+      "relation_type": "watershed",
+      "member_type": "w",
+      "missing_references": 345,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "network",
+      "member_type": "r",
+      "missing_references": 241,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "multilinestring",
+      "member_type": "w",
+      "missing_references": 221,
+      "affected_relations": 2
+    },
+    {
+      "relation_type": "route",
+      "member_type": "r",
+      "missing_references": 213,
+      "affected_relations": 9
+    },
+    {
+      "relation_type": "boundary",
+      "member_type": "n",
+      "missing_references": 126,
+      "affected_relations": 90
+    },
+    {
+      "relation_type": "site",
+      "member_type": "n",
+      "missing_references": 125,
+      "affected_relations": 3
+    },
+    {
+      "relation_type": "treaty",
+      "member_type": "r",
+      "missing_references": 42,
+      "affected_relations": 4
+    },
+    {
+      "relation_type": "route",
+      "member_type": "n",
+      "missing_references": 20,
+      "affected_relations": 4
+    },
+    {
+      "relation_type": "site",
+      "member_type": "w",
+      "missing_references": 16,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "pipeline",
+      "member_type": "w",
+      "missing_references": 15,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "collection",
+      "member_type": "r",
+      "missing_references": 13,
+      "affected_relations": 2
+    },
+    {
+      "relation_type": "route_master",
+      "member_type": "r",
+      "missing_references": 9,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "collection",
+      "member_type": "n",
+      "missing_references": 8,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "superroute",
+      "member_type": "r",
+      "missing_references": 6,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "treaty",
+      "member_type": "n",
+      "missing_references": 4,
+      "affected_relations": 4
+    },
+    {
+      "relation_type": "waterway",
+      "member_type": "r",
+      "missing_references": 4,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "multipolygon",
+      "member_type": "r",
+      "missing_references": 2,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "treaty",
+      "member_type": "w",
+      "missing_references": 1,
+      "affected_relations": 1
+    }
+  ],
+  "database_bytes": 6147946163,
+  "production_publication_approved": false
+}

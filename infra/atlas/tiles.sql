@@ -1,4 +1,9 @@
 -- Same data and SQL for both engines. No client-supplied SQL, schema or relation name.
+DO $$ BEGIN
+    IF string_to_array(split_part(postgis_geos_version(),'-',1),'.')::integer[] < ARRAY[3,13,1] THEN
+        RAISE EXCEPTION 'Atlas tile profile requires the reviewed GEOS 3.13.1+ runtime; older simplifiers can produce unstable Multi geometry';
+    END IF;
+END $$;
 CREATE OR REPLACE FUNCTION tiles.basemap(z integer, x integer, y integer)
 RETURNS bytea LANGUAGE plpgsql STABLE STRICT PARALLEL SAFE SECURITY INVOKER
 SET search_path = pg_catalog, public, render, tiles AS $$

@@ -49,6 +49,8 @@ class AuditTests(unittest.TestCase):
             self.run_audit('<node id="1" lat="0" lon="0"><tag k="name" v="a"/><tag k="name" v="b"/></node>')
         with self.assertRaisesRegex(ValueError, 'reference ID'):
             self.run_audit('<node id="1" lat="0" lon="0"/><way id="2"><nd ref="9007199254740993"/></way>')
+        with self.assertRaisesRegex(ValueError, 'MVT exact'):
+            self.run_audit('<node id="900719925474099" lat="0" lon="0"/>')
 
 
 if __name__ == "__main__":

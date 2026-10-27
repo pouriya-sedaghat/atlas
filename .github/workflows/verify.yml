@@ -12,13 +12,13 @@ jobs:
       image: node@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
     services:
       db:
-        image: postgis/postgis@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
+        image: postgis/postgis@sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095
         env:
           POSTGRES_DB: atlas_test_registry
           POSTGRES_USER: atlas_ci
           POSTGRES_PASSWORD: disposable-ci-only
         options: >-
-          --health-cmd "pg_isready -U atlas_ci -d atlas_test_registry"
+          --health-cmd "pg_isready -h 127.0.0.1 -U atlas_ci -d atlas_test_registry"
           --health-interval 3s --health-timeout 3s --health-retries 30
     env:
       ATLAS_TEST_DATABASE_URL: postgresql://atlas_ci:disposable-ci-only@db:5432/atlas_test_registry
