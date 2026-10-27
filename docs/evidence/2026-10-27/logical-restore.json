@@ -1,0 +1,6 @@
+{
+  "schema": "atlas.lab-logical-restore/1",
+  "complete": true,
+  "backup_sha256": "65d6fd47a3ee5edbc788b129542572c1175671486fe41b57bbc806d0a39f45b3",
+  "original_volume_retained": true
+}

@@ -1,0 +1,15 @@
+listen_addresses: 0.0.0.0:3000
+worker_processes: 2
+keep_alive: 30
+cache_size_mb: 0
+web_ui: disable
+postgres:
+  connection_string: postgresql://atlas_tile@db/atlas_lab
+  pool_size: 4
+  auto_publish: false
+  functions:
+    basemap:
+      schema: tiles
+      function: basemap
+      minzoom: 0
+      maxzoom: 16

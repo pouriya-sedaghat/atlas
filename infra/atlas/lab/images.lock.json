@@ -1,0 +1,15 @@
+{
+  "schema": "atlas.lab-images/1",
+  "purpose": "Engine evaluation only; all execution uses immutable digests, not floating tags.",
+  "images": {
+    "POSTGIS": "postgis/postgis@sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095",
+    "TOOLS": "iboates/osm2pgsql@sha256:6548a1e2492e08fa0d5ce987d382ad57c4b21c8a94ff00017c6109770a061b79",
+    "PGTILESERV": "pramsey/pg_tileserv@sha256:e390325edd16061a4486142f08c18ee12fa22f9c5ab72928c9b36e6f79ed84be"
+  },
+  "versions": {"POSTGIS": "PostgreSQL 17.11, PostGIS 3.6.4, GEOS 3.14.1; inspected running image", "TOOLS": "osm2pgsql 2.3.1; externally maintained image linked by osm2pgsql installation documentation", "PGTILESERV": "binary reports latest; exact image identity above is the comparison provenance"},
+  "martin": {
+    "version": "1.16.1",
+    "url": "https://github.com/maplibre/martin/releases/download/martin-v1.16.1/martin-x86_64-unknown-linux-musl.tar.gz",
+    "sha256": "831df5399bb573a8b6bc01dbb38be5938c0e95501e715403d9eacd9143b33348"
+  }
+}

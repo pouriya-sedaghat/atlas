@@ -1,4 +1,17 @@
-# Seyra VM demo
+# Atlas
+
+This repository preserves the supplied Seyra demo and develops its versioned map-data replacement.
+The first implementation stage adds a complete primitive archive, an isolated Martin/PostGIS
+comparison lab, and a transactional release/session/retention registry. See
+[the current stage and acceptance evidence](docs/ATLAS-STAGE-1-FA.md),
+[lab instructions](infra/atlas/lab/README.md), and the
+[architecture](docs/seyra-release-architecture-fa.md).
+
+The legacy runtime below still uses Tegola. The new release registry is not yet connected to
+the public gateway or web client. Automatic intake, signing, all-engine builds and production
+cutover remain subsequent stages; this branch must not be described as the completed migration.
+
+## Original Seyra VM demo
 
 [راهنمای فارسی اجرا روی VM](docs/README-FA.md)
 

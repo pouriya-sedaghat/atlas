@@ -1,0 +1,45 @@
+name: Verify source and release registry
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  node:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container:
+      image: node@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+    services:
+      db:
+        image: postgis/postgis@sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095
+        env:
+          POSTGRES_DB: atlas_test_registry
+          POSTGRES_USER: atlas_ci
+          POSTGRES_PASSWORD: disposable-ci-only
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U atlas_ci -d atlas_test_registry"
+          --health-interval 3s --health-timeout 3s --health-retries 30
+    env:
+      ATLAS_TEST_DATABASE_URL: postgresql://atlas_ci:disposable-ci-only@db:5432/atlas_test_registry
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npm test
+  pbf-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - run: |
+          python3 -m venv /tmp/atlas-audit
+          /tmp/atlas-audit/bin/pip install --no-deps -r tools/pbf-audit/requirements.txt
+          /tmp/atlas-audit/bin/python -m unittest discover -s tools/pbf-audit
+          /tmp/atlas-audit/bin/python tools/pbf-audit/build_conformance_fixture.py /tmp/conformance.osm.pbf
+          /tmp/atlas-audit/bin/python tools/pbf-audit/audit.py /tmp/conformance.osm.pbf --out /tmp/conformance-audit.json

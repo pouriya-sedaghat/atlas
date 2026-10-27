@@ -1,0 +1,22 @@
+\set ON_ERROR_STOP on
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE SCHEMA IF NOT EXISTS osm_raw;
+CREATE SCHEMA IF NOT EXISTS render;
+CREATE SCHEMA IF NOT EXISTS tiles;
+CREATE SCHEMA IF NOT EXISTS import_work;
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA osm_raw FROM PUBLIC;
+REVOKE ALL ON SCHEMA render FROM PUBLIC;
+REVOKE ALL ON SCHEMA tiles FROM PUBLIC;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'atlas_tile') THEN
+    CREATE ROLE atlas_tile LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'atlas_import') THEN
+    CREATE ROLE atlas_import LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+  END IF;
+END $$;
+ALTER ROLE atlas_tile SET statement_timeout = '10s';
+ALTER ROLE atlas_tile SET default_transaction_read_only = on;
+GRANT CONNECT ON DATABASE atlas_lab TO atlas_tile, atlas_import;
+GRANT USAGE, CREATE ON SCHEMA osm_raw, render, import_work TO atlas_import;
