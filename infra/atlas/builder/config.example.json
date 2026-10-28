@@ -20,8 +20,8 @@
     "memoryBytes": 3221225472,
     "cpus": 1,
     "cpuShares": 256,
-    "readBps": 16777216,
-    "writeBps": 16777216,
+    "readBps": 8388608,
+    "writeBps": 8388608,
     "devices": [
       { "path": "/dev/sda", "majorMinor": "8:0" },
       { "path": "/dev/dm-0", "majorMinor": "252:0" }

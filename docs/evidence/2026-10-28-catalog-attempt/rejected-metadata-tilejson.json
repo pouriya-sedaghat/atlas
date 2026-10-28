@@ -1,0 +1,11 @@
+{
+  "schema": "atlas.rejected-tilejson-metadata/1",
+  "source": "real fictional fixture HTTP response before correction",
+  "fixture_manifest_sha256": "190fd6f5c1f22330c9183391e7498a72b9e5f2ae98f93e51169aa4fd94fc401d",
+  "fixture_pipeline_sha256": "e776d0ff4fa4e1e3b83efda98e4c7d90ba409faa2ed4f26275b205c8cb16d157",
+  "tile_sql_sha256": "981555c803f44d5ed8ddd65c0542c8fdc59eaa5b834c2c620055c94c535c9b25",
+  "http_status": 200,
+  "observed_attribution": "Ã‚Â© OpenStreetMap contributors",
+  "expected_attribution": "© OpenStreetMap contributors",
+  "repair_applied_to_original_fixture": false
+}

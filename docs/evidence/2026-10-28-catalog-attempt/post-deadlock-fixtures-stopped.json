@@ -1,0 +1,48 @@
+{
+  "schema": "atlas.lab-fixture-stop/1",
+  "stopped": [
+    {
+      "name": "atlas-martin-176e450e5991-e498b4d825eacfe7",
+      "id": "e4eea52c05cdb064ff8b4349aebe2cbacf083202f7f8e2c402e2cac5f195473b",
+      "root": "e51bdbfdbb23d8812e560fe5c4da2e8577b581becb1811b852a8e90ea81be1e1",
+      "job": "176e450e5991d1096bb224846106bb6908639bd478e33a810290d7971da4770a",
+      "token": "e498b4d825eacfe7c1f622f1c943f27a",
+      "manifest_sha256": "52e346edb93eb8852f06b9b9525b804d5e8f86dc6c1392cf707b249ebc08db6c",
+      "fixture_folder": "e2e-e53f23c3"
+    },
+    {
+      "name": "atlas-martin-229ae79f6220-5d6d47d580fb44da",
+      "id": "e12dfd0ff3795828817571967ffcb2545ff265d579f9d287f4dc05fd4a7bf543",
+      "root": "e51bdbfdbb23d8812e560fe5c4da2e8577b581becb1811b852a8e90ea81be1e1",
+      "job": "229ae79f62206acd3ee4613d1e482de1c7837596e7d8d516bd6cb139cc116a53",
+      "token": "5d6d47d580fb44da279ffdffeb2eb4ae",
+      "manifest_sha256": "37015ef048a0a629cec8ecb4591bce9a6769ac66b0d0a6e4f7a0b55a2565439d",
+      "fixture_folder": "e2e-e53f23c3"
+    },
+    {
+      "name": "atlas-martin-d3edfc66736a-9e2e9c7ad183c9ff",
+      "id": "27d80841e5a230a924c6e62879607856727123c80cbe89d3efe38fc278f5fbe5",
+      "root": "e51bdbfdbb23d8812e560fe5c4da2e8577b581becb1811b852a8e90ea81be1e1",
+      "job": "d3edfc66736a0932d9718d3396dd93b1355f5ef8dff39b456241031373b62dcc",
+      "token": "9e2e9c7ad183c9ff83fa97e32312ff5e",
+      "manifest_sha256": "2c4670de07d8a7e4503c11180a6901d746166ae5f49682b1bc6219f568493f9a",
+      "fixture_folder": "e2e-e53f23c3"
+    },
+    {
+      "name": "atlas-martin-eef48b267c5e-d762e56bd96355c7",
+      "id": "37af7ef75116f7aaf06528b45f91dc33f0155d3f5bc23f5f0464d2fe505f9d9e",
+      "root": "e51bdbfdbb23d8812e560fe5c4da2e8577b581becb1811b852a8e90ea81be1e1",
+      "job": "eef48b267c5e3579b01d42c2e104d0e5a586630678062ee025c8ae64c5633be3",
+      "token": "d762e56bd96355c7981c19865d174d00",
+      "manifest_sha256": "e613df8e812c19681effae56390cd796f8c279e8725b230c6e5b45826341825f",
+      "fixture_folder": "e2e-e53f23c3"
+    }
+  ],
+  "skipped_unrelated_or_real_candidates": [
+    "atlas-martin-818e2629ee63-461ebf879bd0f9b0",
+    "atlas-martin-d63d62821da1-10f98f01fcb93444",
+    "atlas-martin-19de6e4d63d5-39912aebc505feca"
+  ],
+  "databases_and_volumes_deleted": false,
+  "original_serving_restarted": false
+}

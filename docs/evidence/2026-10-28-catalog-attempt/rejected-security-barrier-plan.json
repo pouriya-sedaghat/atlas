@@ -1,0 +1,51 @@
+{
+  "operator": [
+    {
+      "proname": "geometry_overlaps",
+      "proleakproof": false
+    }
+  ],
+  "render.transport": {
+    "plan": [
+      {
+        "QUERY PLAN": "Bitmap Heap Scan on transport"
+      },
+      {
+        "QUERY PLAN": "  Recheck Cond: (geom && '0103000020110F000001000000050000008C6599CC78D25541D63F8D2E753D50418C6599CC78D25541B66B4F0E0E3E50416C915BAC11D35541B66B4F0E0E3E50416C915BAC11D35541D63F8D2E753D50418C6599CC78D25541D63F8D2E753D5041'::geometry)"
+      },
+      {
+        "QUERY PLAN": "  ->  Bitmap Index Scan on transport_geom_idx"
+      },
+      {
+        "QUERY PLAN": "        Index Cond: (geom && '0103000020110F000001000000050000008C6599CC78D25541D63F8D2E753D50418C6599CC78D25541B66B4F0E0E3E50416C915BAC11D35541B66B4F0E0E3E50416C915BAC11D35541D63F8D2E753D50418C6599CC78D25541D63F8D2E753D5041'::geometry)"
+      }
+    ],
+    "ms": 6108
+  },
+  "tiles.transport": {
+    "plan": [
+      {
+        "QUERY PLAN": "Subquery Scan on transport"
+      },
+      {
+        "QUERY PLAN": "  Filter: (transport.geom && '0103000020110F000001000000050000008C6599CC78D25541D63F8D2E753D50418C6599CC78D25541B66B4F0E0E3E50416C915BAC11D35541B66B4F0E0E3E50416C915BAC11D35541D63F8D2E753D50418C6599CC78D25541D63F8D2E753D5041'::geometry)"
+      },
+      {
+        "QUERY PLAN": "  ->  Seq Scan on transport r"
+      },
+      {
+        "QUERY PLAN": "        Filter: ((osm_type = ANY ('{N,W}'::bpchar[])) OR ((osm_type = 'R'::bpchar) AND (ANY (osm_id = (hashed SubPlan 2).col1))))"
+      },
+      {
+        "QUERY PLAN": "        SubPlan 2"
+      },
+      {
+        "QUERY PLAN": "          ->  Seq Scan on relation_topology t"
+      },
+      {
+        "QUERY PLAN": "                Filter: (NOT blocked)"
+      }
+    ],
+    "ms": 988
+  }
+}

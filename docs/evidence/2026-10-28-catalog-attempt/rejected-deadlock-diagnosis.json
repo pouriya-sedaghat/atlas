@@ -1,0 +1,58 @@
+{
+  "scope": "failed experimental component; no manifest or publication",
+  "pipeline_sha256": "5821ea6ad3bcb12a5d6d7efaebec3b0462d482bd404abb3dd0241372321cb328",
+  "job_id": "f67075415ab7a63fca8b2e4c3f1df8508d01e0a3287bcfcc43add768610483cf",
+  "native_import": {
+    "sha256": "13f76a98306d2703d3416c87ff4119d001da0d92a213fc1ed88e4806a10840ba",
+    "bytes": 49151,
+    "tail": [
+      "2026-10-28 11:25:32  Clustering table 'uncatalogued' by geometry...",
+      "2026-10-28 11:25:40  No indexes to create on table 'uncatalogued'.",
+      "2026-10-28 11:25:40  Analyzing table 'uncatalogued'...",
+      "2026-10-28 11:25:44  All postprocessing on table 'uncatalogued' done in 12s.",
+      "2026-10-28 11:25:45  Clustering table 'detail_points' by geometry...",
+      "2026-10-28 11:26:35  Creating index on table 'detail_points' (\"geom\")...",
+      "2026-10-28 11:26:37  Creating index on table 'detail_points' (\"min_zoom\")...",
+      "2026-10-28 11:26:48  Analyzing table 'detail_points'...",
+      "2026-10-28 11:26:48  All postprocessing on table 'detail_points' done in 63s (1m 3s).",
+      "2026-10-28 11:26:48  Clustering table 'detail_lines' by geometry...",
+      "2026-10-28 11:27:01  Creating index on table 'detail_lines' (\"geom\")...",
+      "2026-10-28 11:27:01  Creating index on table 'detail_lines' (\"min_zoom\")...",
+      "2026-10-28 11:27:02  Analyzing table 'detail_lines'...",
+      "2026-10-28 11:27:02  All postprocessing on table 'detail_lines' done in 13s.",
+      "2026-10-28 11:27:02  Clustering table 'detail_areas' by geometry...",
+      "2026-10-28 11:27:05  Creating index on table 'detail_areas' (\"geom\")...",
+      "2026-10-28 11:27:05  Creating index on table 'detail_areas' (\"min_zoom\")...",
+      "2026-10-28 11:27:05  Analyzing table 'detail_areas'...",
+      "2026-10-28 11:27:05  All postprocessing on table 'detail_areas' done in 3s.",
+      "2026-10-28 11:27:05  Storing properties to table '\"import_work\".\"osm2pgsql_properties\"'.",
+      "2026-10-28 11:27:05  osm2pgsql took 5026s (1h 23m 46s) overall.",
+      ""
+    ]
+  },
+  "postgres_log_witness": [
+    "2026-10-28 11:48:38.149 UTC [15695] ERROR:  deadlock detected",
+    "2026-10-28 11:48:38.149 UTC [15695] DETAIL:  Process 15695 waits for ShareUpdateExclusiveLock on relation 314949 of database 239346; blocked by process 16681.",
+    "\tProcess 16681 waits for ShareLock on transaction 8214; blocked by process 15695.",
+    "\tProcess 15695: -- Same data and SQL for both engines. No client-supplied SQL, schema or relation name.",
+    "\tProcess 16681: autovacuum: VACUUM ANALYZE tiles.water"
+  ],
+  "locked_relation": {
+    "oid": "314949",
+    "relkind": "m",
+    "relname": "water",
+    "schema": "tiles"
+  },
+  "data_container": {
+    "id": "8ad0d89ff4a829a13106c18e3b1c926d3f345886a6e22c2c5e5a5e496d7b2968",
+    "started_at": "2026-10-28T04:19:02.729006343Z",
+    "oom_killed": false,
+    "restart_count": 0
+  },
+  "diagnosis": "The tile DDL/GRANT batch held a pg_class catalog change while its trailing ANALYZE waited for the ShareUpdateExclusiveLock held by autovacuum, which waited for the batch transaction.",
+  "correction": "Commit DDL/GRANT before standalone ANALYZE; retry only implicit metadata batches on SQLSTATE 40P01, at most twice. Exhaustion must not automatically repeat bulk import.",
+  "limitations": [
+    "Native import completed but raw roundtrip/coverage/tile QA did not complete in this attempt.",
+    "The second attempt failed opening a database connection before allocating a data target."
+  ]
+}

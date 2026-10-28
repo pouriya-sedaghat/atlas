@@ -1,0 +1,46 @@
+
+> seyra@1.0.0 typecheck
+> npm run typecheck --workspaces --if-present
+
+
+> @seyra/contracts@1.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @seyra/map-assets@1.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @atlas/releases@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @seyra/api@1.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @seyra/ops@1.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @atlas/ingest@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @atlas/builder@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @seyra/web@1.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+npm notice
+npm notice New major version of npm available! 11.3.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
+npm notice
+npm notice New major version of npm available! 11.3.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

@@ -1,6 +1,12 @@
 import type {Client} from 'pg';
 import {IntakeError,type AuditReport} from '@atlas/ingest/contracts';
 export const layers=['water','landcover','waterways','boundaries','transport','buildings','places','pois','detail_points','detail_lines','detail_areas'] as const;
+/** All layer counters share one scan of the outcome archive; casts retain fail-closed validation. */
+export async function observedLayerInserts(client:Pick<Client,'query'>):Promise<Record<typeof layers[number],number>>{
+  // Identifiers and JSON keys come only from the fixed catalog, never from source tags or config.
+  const columns=layers.map(name=>`coalesce(sum((outputs->>'${name}')::bigint),0)::integer AS ${name}`).join(',');
+  return (await client.query(`SELECT ${columns} FROM render.object_outcomes`)).rows[0];
+}
 const tagged=`SELECT 'N'::char(1) AS osm_type,osm_id FROM osm_raw.nodes WHERE tags<>'{}'::jsonb
   UNION ALL SELECT 'W'::char(1),osm_id FROM osm_raw.ways WHERE tags<>'{}'::jsonb
   UNION ALL SELECT 'R'::char(1),osm_id FROM osm_raw.relations WHERE tags<>'{}'::jsonb`;
@@ -43,16 +49,16 @@ export async function coverage(client:Client,audit:AuditReport):Promise<Coverage
       SELECT count(*) FILTER(WHERE o.osm_id IS NULL)::integer AS missing_outcomes,count(*) FILTER(WHERE r.osm_id IS NULL)::integer AS orphan_outcomes
       FROM raw r FULL JOIN render.object_outcomes o USING(osm_type,osm_id)`)).rows[0];
     const outcomes=(await client.query(`SELECT osm_type,status,count(*)::integer AS objects FROM render.object_outcomes GROUP BY osm_type,status ORDER BY osm_type,status`)).rows;
-    const layerRows:Record<string,any>={};
+    const layerRows:Record<string,any>={},observed=await observedLayerInserts(client);
     for(const name of layers){
       layerRows[name]=(await client.query(`SELECT count(*)::integer AS rows,count(*) FILTER(WHERE ST_IsEmpty(geom))::integer AS empty_geometries,
         count(*) FILTER(WHERE NOT ST_IsValid(geom))::integer AS invalid_geometries,
-        (SELECT coalesce(sum((outputs->>$1)::bigint),0)::integer FROM render.object_outcomes) AS observed_inserts,
         (SELECT count(*)::integer FROM tiles.${name}) AS served_rows,
         count(*) FILTER(WHERE osm_type IN ('N','W') OR (osm_type='R' AND EXISTS
           (SELECT FROM render.relation_topology t WHERE t.osm_id=render.${name}.osm_id AND NOT t.blocked)))::integer AS expected_served_rows,
         (SELECT count(*)::integer FROM tiles.${name} v JOIN render.relation_topology t ON v.osm_type='R' AND t.osm_id=v.osm_id WHERE t.blocked) AS blocked_rows_exposed
-        FROM render.${name}`,[name])).rows[0];
+        FROM render.${name}`)).rows[0];
+      layerRows[name].observed_inserts=observed[name];
       layerRows[name].withheld_rows=layerRows[name].rows-layerRows[name].served_rows;
       if(layerRows[name].withheld_rows<0)throw new IntakeError('serving_topology_integrity_failed');
     }

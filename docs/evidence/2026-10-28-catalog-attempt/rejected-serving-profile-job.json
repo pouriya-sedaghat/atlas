@@ -1,0 +1,157 @@
+{
+  "job": {
+    "id": "60d8775805189b4c9c18065931546200ff2133f01111e4b572391693c0d80182",
+    "source_validation_id": "df5ed7ffabe9108dcf8288770104dabd",
+    "payload_sha256": "0319ad2dbe82cbad27e83889659b64d059958fa46d6b46ee99b719afa2b607b2",
+    "pipeline_sha256": "863eff574c4946f1a6821076c36c28826baa2640b4b1d08a830d2ef7493cd2ee",
+    "specification": {
+      "node": "24.21.0",
+      "files": {
+        "builder/qa.js": "272a6e1c58edd68b5bdb5ced8de7ec3dad15400ee998645bbddeb055b3f2472a",
+        "builder/cli.js": "6560093511bcbe5d02915aeac2cf5814bb829690a6587540d1be049066e3cc88",
+        "builder/data.js": "616a2ea08b996c76b2fda8bdd000b82ba243f4fc81633bd0a9ac02f6b96a94f9",
+        "builder/queue.js": "2898c04b766498aa385a086ac60898150edd7cd45c4bd26353132d2ca7f61886",
+        "builder/config.js": "660a6284261704619837f7bae15d773aef91d3037230cf3eb3a64be7eda6c8ea",
+        "builder/source.js": "f3db1dcdfd30c5ff46846a5e36e83d52e0ede63657e4f6df36af9f798fb8be9e",
+        "builder/worker.js": "8466c8e78217a0c7c7f317e558b62fd42f133631f9954ae453d036dfa8333fda",
+        "package-lock.json": "f090f6aa10a5c2fdc75b3f2712e012eb0355372430906ac652f64b97df4102a2",
+        "builder/schema.sql": "02d9df0f6f34da7adff7af54676de130bc37dda4259264b0870fcb9d8f0fb521",
+        "infra/atlas/raw.lua": "e635fa389f4a810b3ed601995d7979e4dcf750523db7977e41fd90e47fad891d",
+        "tools/verify-raw.mjs": "39dcec119d00d53502238f9b5ac8db0899191ffd96f28bb9e6f3d9b3f7c8cc2b",
+        "tools/verify-tiles.mjs": "87622d1cac6a980dc1115419faebfffac571d0c307aa8d6820e47457830d87dd",
+        "infra/atlas/tiles-v2.sql": "d40ec0aa8671a91d28200655886a0db74ea5352b52070074974b4da5f62772cc",
+        "infra/atlas/raw-finalize.sql": "fb452542a1f2bc6277b91ad769b257d510e00e65c497c154122f13c2bd07c619",
+        "infra/atlas/catalog-core-v2.lua": "426bbdbe0d445559ce9ff750e62435d5b8bc55a1221a9fe824c3edb6a57e2574",
+        "infra/atlas/catalog-details.lua": "53ec1abe3a520ab85cd88c9628e4c23f1cd1cf3cc35329ed65fa56f14c181541",
+        "infra/atlas/catalog-observed.lua": "d1f221aa475fcf068f7bf88613f7eb0d8c3720bfb9c4dbc111900241af3843af",
+        "infra/atlas/catalog-topology.sql": "49437ce13b546c7e4a91c0dc68ba2f7aa8217367a4e6e2ebf41ae53d6175c251"
+      },
+      "scope": "experimental_source_only",
+      "images": {
+        "data": {
+          "id": "sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095",
+          "repository_digests": [
+            "postgis/postgis@sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095"
+          ]
+        },
+        "martin": {
+          "id": "sha256:eee66c92a5cd29318a51359e3527dc9bb86fdd886a709f93886bc7596334794b",
+          "repository_digests": [
+            "atlas-lab/martin@sha256:eee66c92a5cd29318a51359e3527dc9bb86fdd886a709f93886bc7596334794b"
+          ]
+        },
+        "importer": {
+          "id": "sha256:6548a1e2492e08fa0d5ce987d382ad57c4b21c8a94ff00017c6109770a061b79",
+          "repository_digests": [
+            "iboates/osm2pgsql@sha256:6548a1e2492e08fa0d5ce987d382ad57c4b21c8a94ff00017c6109770a061b79"
+          ]
+        }
+      },
+      "schema": "atlas.candidate-spec/1",
+      "component": "postgis_and_martin",
+      "resources": {
+        "isolation": "separate_data_cluster",
+        "heavy_slot": "shared_with_intake",
+        "timeout_ms": 7200000,
+        "data_limits": {
+          "cpus": 1,
+          "devices": [
+            {
+              "path": "/dev/sda",
+              "majorMinor": "8:0"
+            },
+            {
+              "path": "/dev/dm-0",
+              "majorMinor": "252:0"
+            }
+          ],
+          "readBps": 16777216,
+          "writeBps": 16777216,
+          "cpuShares": 256,
+          "memoryBytes": 3221225472
+        },
+        "import_cpus": 1,
+        "min_free_bytes": 21474836480,
+        "import_cpu_shares": 128,
+        "import_memory_bytes": 2147483648,
+        "warmup_sql_timeout_ms": 120000,
+        "postgres_prerequisites": {
+          "fsync": "on",
+          "full_page_writes": "on",
+          "synchronous_commit": "on",
+          "client_connection_check_interval_ms": 1000
+        },
+        "serving_sql_timeout_ms": 10000
+      },
+      "catalog_contract": "atlas-catalog-2.0.0",
+      "trusted_source_key": "184d5e57ddbd6e607eaa3299e74f08fc9143e94408b28a90e2bfe0ef5f19256d",
+      "publication_supported": false,
+      "source_verifier_build": "8df71a4f770b1c37aaa89d05e7592c93956ab0fc370714f1b26e44214b6ec14b"
+    },
+    "state": "failed",
+    "token": null,
+    "lease_until": null,
+    "attempts": 2,
+    "failures": 2,
+    "stage": "import",
+    "next_attempt_at": "2026-10-28T09:42:30.635Z",
+    "manifest_sha256": null,
+    "failure_code": "cancelled",
+    "created_at": "2026-10-28T09:12:11.867Z",
+    "updated_at": "2026-10-28T09:41:30.635Z"
+  },
+  "attempts": [
+    {
+      "token": "1bafc1f933512a29e2d978445a3dbde2",
+      "job_id": "60d8775805189b4c9c18065931546200ff2133f01111e4b572391693c0d80182",
+      "ordinal": 1,
+      "database_name": "atlas_candidate_60d8775805189b4c9c180659_1bafc1f933512a29",
+      "owner_role": "atlas_own_60d8775805189b4c9c180659_1bafc1f933512a29",
+      "import_role": "atlas_imp_60d8775805189b4c9c180659_1bafc1f933512a29",
+      "tile_role": "atlas_tile_60d8775805189b4c9c180659_1bafc1f933512a29",
+      "qa_role": "atlas_qa_60d8775805189b4c9c180659_1bafc1f933512a29",
+      "state": "failed",
+      "started_at": "2026-10-28T09:12:14.301Z",
+      "ended_at": "2026-10-28T09:18:47.177Z",
+      "data_target": {
+        "kind": "postgresql",
+        "image": "sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095",
+        "volumes": [
+          {
+            "name": "atlas-candidate-postgis-v1",
+            "type": "volume",
+            "destination": "/var/lib/postgresql/data"
+          }
+        ],
+        "container": "atlas-candidate-db",
+        "system_identifier": "7701568481236377651"
+      }
+    },
+    {
+      "token": "626d2ae10616b559fa34e0f17cd18be3",
+      "job_id": "60d8775805189b4c9c18065931546200ff2133f01111e4b572391693c0d80182",
+      "ordinal": 2,
+      "database_name": "atlas_candidate_60d8775805189b4c9c180659_626d2ae10616b559",
+      "owner_role": "atlas_own_60d8775805189b4c9c180659_626d2ae10616b559",
+      "import_role": "atlas_imp_60d8775805189b4c9c180659_626d2ae10616b559",
+      "tile_role": "atlas_tile_60d8775805189b4c9c180659_626d2ae10616b559",
+      "qa_role": "atlas_qa_60d8775805189b4c9c180659_626d2ae10616b559",
+      "state": "failed",
+      "started_at": "2026-10-28T09:22:18.935Z",
+      "ended_at": "2026-10-28T09:41:30.635Z",
+      "data_target": {
+        "kind": "postgresql",
+        "image": "sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095",
+        "volumes": [
+          {
+            "name": "atlas-candidate-postgis-v1",
+            "type": "volume",
+            "destination": "/var/lib/postgresql/data"
+          }
+        ],
+        "container": "atlas-candidate-db",
+        "system_identifier": "7701568481236377651"
+      }
+    }
+  ]
+}

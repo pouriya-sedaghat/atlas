@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import pg from 'pg';
 import {beforeAll,beforeEach,afterAll,describe,it,expect} from 'vitest';
-import {layers} from './qa.js';
+import {layers,observedLayerInserts} from './qa.js';
 const connectionString=process.env.ATLAS_TEST_DATABASE_URL;
 describe.skipIf(!connectionString)('serving topology closure on real PostgreSQL',()=>{
   const pool=new pg.Pool({connectionString,connectionTimeoutMillis:5000,statement_timeout:10000});
@@ -34,6 +34,30 @@ describe.skipIf(!connectionString)('serving topology closure on real PostgreSQL'
     await pool.query(readFileSync(new URL('../../../infra/atlas/catalog-topology.sql',import.meta.url),'utf8'));
   });
   afterAll(()=>pool.end());
+  it('counts sparse multi-layer outcomes in one query with the original per-layer results',async()=>{
+    await pool.query(`CREATE TABLE render.object_outcomes(outputs jsonb);
+      INSERT INTO render.object_outcomes VALUES ('{"water":2,"detail_points":1}'),('{}'),
+      ('{"water":3,"detail_points":2,"transport":4}'),('{"landcover":null,"unknown_key":99}')`);
+    let calls=0;
+    const totals=await observedLayerInserts({query:((...args:any[])=>{calls++;return (pool.query as any)(...args);}) as any});
+    expect(calls).toBe(1);
+    expect(totals).toEqual(Object.fromEntries(layers.map(name=>[name,({water:5,detail_points:3,transport:4} as Record<string,number>)[name]??0])));
+    // Independent execution of the former contract, including absent/null JSON values.
+    for(const name of layers){
+      const original=(await pool.query('SELECT coalesce(sum((outputs->>$1)::bigint),0)::integer AS n FROM render.object_outcomes',[name])).rows[0].n;
+      expect(totals[name]).toBe(original);
+    }
+  });
+  it('reports all zero counters for an empty outcome archive',async()=>{
+    await pool.query('CREATE TABLE render.object_outcomes(outputs jsonb)');
+    expect(await observedLayerInserts(pool)).toEqual(Object.fromEntries(layers.map(name=>[name,0])));
+  });
+  it('keeps malformed counts and integer overflow as hard SQL failures',async()=>{
+    await pool.query(`CREATE TABLE render.object_outcomes(outputs jsonb); INSERT INTO render.object_outcomes VALUES ('{"water":"invalid"}')`);
+    await expect(observedLayerInserts(pool)).rejects.toMatchObject({code:'22P02'});
+    await pool.query(`TRUNCATE render.object_outcomes; INSERT INTO render.object_outcomes VALUES ('{"water":2147483648}')`);
+    await expect(observedLayerInserts(pool)).rejects.toMatchObject({code:'22003'});
+  });
   it('blocks direct and transitive missing references while retaining every raw/render row',async()=>{
     expect((await pool.query('SELECT osm_id::text FROM render.relation_topology WHERE blocked ORDER BY osm_id')).rows.map(r=>r.osm_id)).toEqual(['100','101','103','105','106','109']);
     expect((await pool.query('SELECT count(*)::integer n FROM osm_raw.relations')).rows[0].n).toBe(10);

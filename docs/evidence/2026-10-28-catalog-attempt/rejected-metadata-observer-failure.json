@@ -1,0 +1,11 @@
+{
+  "schema": "atlas.observer-failure/1",
+  "pipeline_sha256": "d2a448bf150132cee372503dbfb42da4f1486947a33f58a92427f8f25263a9d4",
+  "job_id": "a8513936e0c6d34d2821242587959b3ce7fda328431ae428b1795b9137a07632",
+  "code": "process_deadline",
+  "complete_report_available": false,
+  "http_request_count": null,
+  "http_error_count": null,
+  "failed_observer_tool_sha256": "0f2cadbeb8fb29fc56ff3d3180b2ae38be967cc4703151525137205683d2dfb8",
+  "diagnostic": "Original observer child-process deadline prevented final report; exact child command unavailable. No complete HTTP totals can be asserted. Corrected observer retains samples on metrics failure."
+}

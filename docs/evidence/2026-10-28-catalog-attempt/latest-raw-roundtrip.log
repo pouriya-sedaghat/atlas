@@ -1,0 +1,33 @@
+node: 1000000 canonical rows verified
+node: 2000000 canonical rows verified
+node: 3000000 canonical rows verified
+node: 4000000 canonical rows verified
+node: 5000000 canonical rows verified
+node: 6000000 canonical rows verified
+node: 7000000 canonical rows verified
+node: 8000000 canonical rows verified
+node: 9000000 canonical rows verified
+node: 10000000 canonical rows verified
+node: 11000000 canonical rows verified
+node: 12000000 canonical rows verified
+node: 13000000 canonical rows verified
+node: 14000000 canonical rows verified
+node: 15000000 canonical rows verified
+node: 16000000 canonical rows verified
+node: 17000000 canonical rows verified
+node: 18000000 canonical rows verified
+node: 19000000 canonical rows verified
+node: 20000000 canonical rows verified
+node: 21000000 canonical rows verified
+node: 22000000 canonical rows verified
+node: 23000000 canonical rows verified
+node: 24000000 canonical rows verified
+node: 25000000 canonical rows verified
+node: 26000000 canonical rows verified
+node: 27000000 canonical rows verified
+node: {"count":27005066,"sha256":"14e00f6e567ab0ce3d3925e10861d3cc88b46cdc1b487588904c28b79fe80c63","count_matches":true,"digest_matches":true}
+way: 1000000 canonical rows verified
+way: 2000000 canonical rows verified
+way: 3000000 canonical rows verified
+way: {"count":3396793,"sha256":"90074f125160b6f29bd1f95794010077c11242c2688e553aac6975b18baba27a","count_matches":true,"digest_matches":true}
+relation: {"count":99073,"sha256":"ef249a157cc13082ba43fbd952f7e6fa339af128fc66e4d6fb609c324df83d93","count_matches":true,"digest_matches":true}

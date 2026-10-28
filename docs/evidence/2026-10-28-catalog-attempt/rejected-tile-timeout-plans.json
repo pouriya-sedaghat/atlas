@@ -1,0 +1,228 @@
+{
+  "pipeline_sha256": "b9df97c35fa085773c9b36a0008695bce0fb83f8bddf83123f2989d6d3fc23f4",
+  "job_id": "eed1511100ff70724022558187223d10c57855ede6c432c47d04b0d6e567f0e4",
+  "tile": {
+    "z": 6,
+    "x": 41,
+    "y": 25
+  },
+  "plans": {
+    "indexes": [
+      {
+        "schemaname": "render",
+        "tablename": "transport",
+        "indexname": "transport_geom_idx",
+        "indexdef": "CREATE INDEX transport_geom_idx ON render.transport USING gist (geom)"
+      },
+      {
+        "schemaname": "render",
+        "tablename": "transport",
+        "indexname": "transport_min_zoom_idx",
+        "indexdef": "CREATE INDEX transport_min_zoom_idx ON render.transport USING btree (min_zoom)"
+      },
+      {
+        "schemaname": "tiles",
+        "tablename": "transport",
+        "indexname": "transport_geom_idx",
+        "indexdef": "CREATE INDEX transport_geom_idx ON tiles.transport USING gist (geom)"
+      }
+    ],
+    "render_force_generic_plan": [
+      {
+        "Plan": {
+          "Node Type": "Sort",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 875.06,
+          "Total Cost": 875.24,
+          "Plan Rows": 72,
+          "Plan Width": 12,
+          "Sort Key": [
+            "z_order",
+            "feature_id"
+          ],
+          "Plans": [
+            {
+              "Node Type": "Index Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Scan Direction": "Forward",
+              "Index Name": "transport_geom_idx",
+              "Relation Name": "transport",
+              "Alias": "transport",
+              "Startup Cost": 0.54,
+              "Total Cost": 872.84,
+              "Plan Rows": 72,
+              "Plan Width": 12,
+              "Index Cond": "(geom && st_tileenvelope($1, $2, $3, '0102000020110F00000200000093107C45F81B73C193107C45F81B73C193107C45F81B734193107C45F81B7341'::geometry, '0.015625'::double precision))",
+              "Filter": "(min_zoom <= $1)"
+            }
+          ]
+        }
+      }
+    ],
+    "render_force_custom_plan": [
+      {
+        "Plan": {
+          "Node Type": "Sort",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 71416.92,
+          "Total Cost": 71471.12,
+          "Plan Rows": 21683,
+          "Plan Width": 12,
+          "Sort Key": [
+            "z_order",
+            "feature_id"
+          ],
+          "Plans": [
+            {
+              "Node Type": "Bitmap Heap Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Relation Name": "transport",
+              "Alias": "transport",
+              "Startup Cost": 20565.29,
+              "Total Cost": 69855.28,
+              "Plan Rows": 21683,
+              "Plan Width": 12,
+              "Recheck Cond": "((min_zoom <= 6) AND (geom && '0103000020110F000001000000050000009CD40852E9755541CC9CF46FD8964C419CD40852E9755541884CEF3807C25041C0D2FD5284EC5741884CEF3807C25041C0D2FD5284EC5741CC9CF46FD8964C419CD40852E9755541CC9CF46FD8964C41'::geometry))",
+              "Plans": [
+                {
+                  "Node Type": "BitmapAnd",
+                  "Parent Relationship": "Outer",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "Startup Cost": 20565.29,
+                  "Total Cost": 20565.29,
+                  "Plan Rows": 21683,
+                  "Plan Width": 0,
+                  "Plans": [
+                    {
+                      "Node Type": "Bitmap Index Scan",
+                      "Parent Relationship": "Member",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Index Name": "transport_min_zoom_idx",
+                      "Startup Cost": 0,
+                      "Total Cost": 745.2,
+                      "Plan Rows": 68370,
+                      "Plan Width": 0,
+                      "Index Cond": "(min_zoom <= 6)"
+                    },
+                    {
+                      "Node Type": "Bitmap Index Scan",
+                      "Parent Relationship": "Member",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Index Name": "transport_geom_idx",
+                      "Startup Cost": 0,
+                      "Total Cost": 19808.99,
+                      "Plan Rows": 683277,
+                      "Plan Width": 0,
+                      "Index Cond": "(geom && '0103000020110F000001000000050000009CD40852E9755541CC9CF46FD8964C419CD40852E9755541884CEF3807C25041C0D2FD5284EC5741884CEF3807C25041C0D2FD5284EC5741CC9CF46FD8964C419CD40852E9755541CC9CF46FD8964C41'::geometry)"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "tiles_force_generic_plan": [
+      {
+        "Plan": {
+          "Node Type": "Sort",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 875.06,
+          "Total Cost": 875.24,
+          "Plan Rows": 72,
+          "Plan Width": 12,
+          "Sort Key": [
+            "z_order",
+            "feature_id"
+          ],
+          "Plans": [
+            {
+              "Node Type": "Index Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Scan Direction": "Forward",
+              "Index Name": "transport_geom_idx",
+              "Relation Name": "transport",
+              "Alias": "transport",
+              "Startup Cost": 0.54,
+              "Total Cost": 872.84,
+              "Plan Rows": 72,
+              "Plan Width": 12,
+              "Index Cond": "(geom && st_tileenvelope($1, $2, $3, '0102000020110F00000200000093107C45F81B73C193107C45F81B73C193107C45F81B734193107C45F81B7341'::geometry, '0.015625'::double precision))",
+              "Filter": "(min_zoom <= $1)"
+            }
+          ]
+        }
+      }
+    ],
+    "tiles_force_custom_plan": [
+      {
+        "Plan": {
+          "Node Type": "Sort",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 113869.42,
+          "Total Cost": 113925.88,
+          "Plan Rows": 22584,
+          "Plan Width": 12,
+          "Sort Key": [
+            "z_order",
+            "feature_id"
+          ],
+          "Plans": [
+            {
+              "Node Type": "Bitmap Heap Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Relation Name": "transport",
+              "Alias": "transport",
+              "Startup Cost": 19520.13,
+              "Total Cost": 112236.26,
+              "Plan Rows": 22584,
+              "Plan Width": 12,
+              "Recheck Cond": "(geom && '0103000020110F000001000000050000009CD40852E9755541CC9CF46FD8964C419CD40852E9755541884CEF3807C25041C0D2FD5284EC5741884CEF3807C25041C0D2FD5284EC5741CC9CF46FD8964C419CD40852E9755541CC9CF46FD8964C41'::geometry)",
+              "Filter": "(min_zoom <= 6)",
+              "Plans": [
+                {
+                  "Node Type": "Bitmap Index Scan",
+                  "Parent Relationship": "Outer",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "Index Name": "transport_geom_idx",
+                  "Startup Cost": 0,
+                  "Total Cost": 19514.48,
+                  "Plan Rows": 672809,
+                  "Plan Width": 0,
+                  "Index Cond": "(geom && '0103000020110F000001000000050000009CD40852E9755541CC9CF46FD8964C419CD40852E9755541884CEF3807C25041C0D2FD5284EC5741884CEF3807C25041C0D2FD5284EC5741CC9CF46FD8964C419CD40852E9755541CC9CF46FD8964C41'::geometry)"
+                }
+              ]
+            }
+          ]
+        },
+        "JIT": {
+          "Functions": 6,
+          "Options": {
+            "Inlining": false,
+            "Optimization": false,
+            "Expressions": true,
+            "Deforming": true
+          }
+        }
+      }
+    ]
+  },
+  "scope": "read-only EXPLAIN, no ANALYZE; original failed snapshots unchanged"
+}

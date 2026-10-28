@@ -1,0 +1,255 @@
+{
+  "schema": "atlas.feature-coverage/2",
+  "source_sha256": "7479ef784a00eab9efc78e7185d5fb10eb84bface54c938b56446b734d94a810",
+  "accounting": {
+    "missing_outcomes": 0,
+    "orphan_outcomes": 0
+  },
+  "outcomes": [
+    {
+      "osm_type": "N",
+      "status": "rendered",
+      "objects": 6
+    },
+    {
+      "osm_type": "N",
+      "status": "uncatalogued",
+      "objects": 1
+    },
+    {
+      "osm_type": "W",
+      "status": "rendered",
+      "objects": 8
+    }
+  ],
+  "layers": {
+    "water": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0,
+      "served_rows": 0,
+      "expected_served_rows": 0,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "landcover": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0,
+      "served_rows": 0,
+      "expected_served_rows": 0,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "waterways": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0,
+      "served_rows": 0,
+      "expected_served_rows": 0,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "boundaries": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0,
+      "served_rows": 0,
+      "expected_served_rows": 0,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "transport": {
+      "rows": 1,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 1,
+      "served_rows": 1,
+      "expected_served_rows": 1,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "buildings": {
+      "rows": 1,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 1,
+      "served_rows": 1,
+      "expected_served_rows": 1,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "places": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0,
+      "served_rows": 0,
+      "expected_served_rows": 0,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "pois": {
+      "rows": 1,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 1,
+      "served_rows": 1,
+      "expected_served_rows": 1,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "detail_points": {
+      "rows": 7,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 7,
+      "served_rows": 7,
+      "expected_served_rows": 7,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "detail_lines": {
+      "rows": 5,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 5,
+      "served_rows": 5,
+      "expected_served_rows": 5,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "detail_areas": {
+      "rows": 3,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 3,
+      "served_rows": 3,
+      "expected_served_rows": 3,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    }
+  },
+  "uncatalogued": [
+    {
+      "osm_type": "N",
+      "primary_key": "power",
+      "objects": 1
+    }
+  ],
+  "serving_integrity": {
+    "missing_topology_rows": 0,
+    "withheld_relations": 0,
+    "nested_geometry_relations": 0,
+    "blocked_rows_exposed": 0,
+    "policy": "withhold incomplete relations, their ancestors and unsupported geometric relation members; raw/render data retained"
+  },
+  "detail_facets": [
+    {
+      "osm_type": "N",
+      "family": "address",
+      "status": "inserted",
+      "objects": 1
+    },
+    {
+      "osm_type": "N",
+      "family": "barrier",
+      "status": "inserted",
+      "objects": 1
+    },
+    {
+      "osm_type": "N",
+      "family": "entrance",
+      "status": "inserted",
+      "objects": 1
+    },
+    {
+      "osm_type": "N",
+      "family": "man_made",
+      "status": "inserted",
+      "objects": 1
+    },
+    {
+      "osm_type": "N",
+      "family": "natural",
+      "status": "inserted",
+      "objects": 1
+    },
+    {
+      "osm_type": "N",
+      "family": "power",
+      "status": "inserted",
+      "objects": 1
+    },
+    {
+      "osm_type": "N",
+      "family": "power",
+      "status": "unknown_value_or_primitive",
+      "objects": 1
+    },
+    {
+      "osm_type": "N",
+      "family": "transport",
+      "status": "inserted",
+      "objects": 1
+    },
+    {
+      "osm_type": "W",
+      "family": "aerialway",
+      "status": "inserted",
+      "objects": 1
+    },
+    {
+      "osm_type": "W",
+      "family": "aeroway",
+      "status": "inserted",
+      "objects": 2
+    },
+    {
+      "osm_type": "W",
+      "family": "barrier",
+      "status": "inserted",
+      "objects": 1
+    },
+    {
+      "osm_type": "W",
+      "family": "natural",
+      "status": "inserted",
+      "objects": 1
+    },
+    {
+      "osm_type": "W",
+      "family": "power",
+      "status": "inserted",
+      "objects": 2
+    },
+    {
+      "osm_type": "W",
+      "family": "transport",
+      "status": "core_layer_or_attribute",
+      "objects": 1
+    },
+    {
+      "osm_type": "W",
+      "family": "transport",
+      "status": "inserted",
+      "objects": 1
+    }
+  ],
+  "incomplete_relations": [],
+  "incomplete_relation_examples": [],
+  "relation_impact": {
+    "directly_incomplete": 0,
+    "including_ancestor_relations": 0,
+    "with_some_rendered_output": 0
+  },
+  "geographic_truth_verified": false,
+  "review_reasons": [
+    "catalog_coverage_incomplete",
+    "detail_family_coverage_incomplete"
+  ]
+}

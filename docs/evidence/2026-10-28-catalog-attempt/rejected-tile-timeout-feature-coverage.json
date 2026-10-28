@@ -1,0 +1,1620 @@
+{
+  "schema": "atlas.feature-coverage/2",
+  "source_sha256": "a3c61d35b010d4a474c1eabdef9500339472743423d7bb895b16241c08eb4065",
+  "accounting": {
+    "missing_outcomes": 0,
+    "orphan_outcomes": 0
+  },
+  "outcomes": [
+    {
+      "osm_type": "N",
+      "status": "metadata_only",
+      "objects": 23675
+    },
+    {
+      "osm_type": "N",
+      "status": "rendered",
+      "objects": 781394
+    },
+    {
+      "osm_type": "N",
+      "status": "uncatalogued",
+      "objects": 43193
+    },
+    {
+      "osm_type": "R",
+      "status": "catalog_policy_excluded",
+      "objects": 297
+    },
+    {
+      "osm_type": "R",
+      "status": "geometry_rejected",
+      "objects": 80
+    },
+    {
+      "osm_type": "R",
+      "status": "rendered",
+      "objects": 89200
+    },
+    {
+      "osm_type": "R",
+      "status": "uncatalogued",
+      "objects": 9479
+    },
+    {
+      "osm_type": "W",
+      "status": "catalog_policy_excluded",
+      "objects": 610
+    },
+    {
+      "osm_type": "W",
+      "status": "geometry_rejected",
+      "objects": 4
+    },
+    {
+      "osm_type": "W",
+      "status": "metadata_only",
+      "objects": 354
+    },
+    {
+      "osm_type": "W",
+      "status": "rendered",
+      "objects": 3172952
+    },
+    {
+      "osm_type": "W",
+      "status": "uncatalogued",
+      "objects": 15996
+    }
+  ],
+  "layers": {
+    "water": {
+      "rows": 14056,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 14056,
+      "served_rows": 14056,
+      "expected_served_rows": 14056,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "landcover": {
+      "rows": 183511,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 183511,
+      "served_rows": 183507,
+      "expected_served_rows": 183507,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 4
+    },
+    "waterways": {
+      "rows": 98031,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 98031,
+      "served_rows": 98031,
+      "expected_served_rows": 98031,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "boundaries": {
+      "rows": 30984,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 30984,
+      "served_rows": 30807,
+      "expected_served_rows": 30807,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 177
+    },
+    "transport": {
+      "rows": 2150894,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 2150894,
+      "served_rows": 2150894,
+      "expected_served_rows": 2150894,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "buildings": {
+      "rows": 633856,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 633856,
+      "served_rows": 633850,
+      "expected_served_rows": 633850,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 6
+    },
+    "places": {
+      "rows": 62238,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 62238,
+      "served_rows": 62238,
+      "expected_served_rows": 62238,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "pois": {
+      "rows": 329509,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 329509,
+      "served_rows": 329502,
+      "expected_served_rows": 329502,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 7
+    },
+    "detail_points": {
+      "rows": 527964,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 527964,
+      "served_rows": 527964,
+      "expected_served_rows": 527964,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "detail_lines": {
+      "rows": 109168,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 109168,
+      "served_rows": 109168,
+      "expected_served_rows": 109168,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    },
+    "detail_areas": {
+      "rows": 15244,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 15244,
+      "served_rows": 15244,
+      "expected_served_rows": 15244,
+      "blocked_rows_exposed": 0,
+      "withheld_rows": 0
+    }
+  },
+  "uncatalogued": [
+    {
+      "osm_type": "N",
+      "primary_key": "ele",
+      "objects": 7506
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "ford",
+      "objects": 6491
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "name",
+      "objects": 4876
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "description",
+      "objects": 4397
+    },
+    {
+      "osm_type": "R",
+      "primary_key": "restriction",
+      "objects": 3808
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "excavation",
+      "objects": 3559
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "man_made",
+      "objects": 2826
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "waterway",
+      "objects": 2410
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "boundary",
+      "objects": 2090
+    },
+    {
+      "osm_type": "R",
+      "primary_key": "name",
+      "objects": 1844
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "building",
+      "objects": 1839
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "man_made",
+      "objects": 1690
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "military",
+      "objects": 1393
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "barrier",
+      "objects": 1300
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "junction",
+      "objects": 1123
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "landuse",
+      "objects": 1093
+    },
+    {
+      "osm_type": "R",
+      "primary_key": "enforcement",
+      "objects": 945
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "aeroway",
+      "objects": 808
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "direction",
+      "objects": 786
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "name",
+      "objects": 786
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "waterway",
+      "objects": 784
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "building:colour",
+      "objects": 737
+    },
+    {
+      "osm_type": "R",
+      "primary_key": "from",
+      "objects": 699
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "addr:city",
+      "objects": 648
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "admin_level",
+      "objects": 580
+    },
+    {
+      "osm_type": "R",
+      "primary_key": "bus",
+      "objects": 578
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "building:part",
+      "objects": 572
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "door",
+      "objects": 369
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "addr:street",
+      "objects": 368
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "extrude",
+      "objects": 363
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "indoor",
+      "objects": 350
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "building:levels",
+      "objects": 325
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "maxspeed",
+      "objects": 323
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "disused:amenity",
+      "objects": 322
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "pipeline",
+      "objects": 320
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "advertising",
+      "objects": 312
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "area:highway",
+      "objects": 310
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "ref",
+      "objects": 281
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "disused:shop",
+      "objects": 248
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "club",
+      "objects": 242
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "cemetery",
+      "objects": 228
+    },
+    {
+      "osm_type": "R",
+      "primary_key": "building:part",
+      "objects": 215
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "access",
+      "objects": 207
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "traffic_calming",
+      "objects": 201
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "building:material",
+      "objects": 190
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "surface",
+      "objects": 174
+    },
+    {
+      "osm_type": "R",
+      "primary_key": "colour",
+      "objects": 173
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "natural",
+      "objects": 155
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "military",
+      "objects": 155
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "abandoned:landuse",
+      "objects": 150
+    },
+    {
+      "osm_type": "R",
+      "primary_key": "fee",
+      "objects": 145
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "addr:city",
+      "objects": 141
+    },
+    {
+      "osm_type": "R",
+      "primary_key": "route",
+      "objects": 135
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "disused",
+      "objects": 127
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "admin_level",
+      "objects": 122
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "attraction",
+      "objects": 118
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "junction",
+      "objects": 117
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "alt_name",
+      "objects": 115
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "bridge:support",
+      "objects": 115
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "height",
+      "objects": 115
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "barrier",
+      "objects": 113
+    },
+    {
+      "osm_type": "R",
+      "primary_key": "admin_level",
+      "objects": 111
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "embankment",
+      "objects": 108
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "access",
+      "objects": 107
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "bench",
+      "objects": 104
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "material",
+      "objects": 104
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "atm",
+      "objects": 93
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "height",
+      "objects": 88
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "natural",
+      "objects": 88
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "location",
+      "objects": 87
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "description",
+      "objects": 87
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "camera:type",
+      "objects": 76
+    },
+    {
+      "osm_type": "R",
+      "primary_key": "description",
+      "objects": 76
+    },
+    {
+      "osm_type": "R",
+      "primary_key": "highway",
+      "objects": 75
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "brand",
+      "objects": 70
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "camera:direction",
+      "objects": 69
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "buildingpart",
+      "objects": 67
+    },
+    {
+      "osm_type": "R",
+      "primary_key": "building",
+      "objects": 66
+    },
+    {
+      "osm_type": "N",
+      "primary_key": "crane:type",
+      "objects": 64
+    },
+    {
+      "osm_type": "W",
+      "primary_key": "was:building",
+      "objects": 63
+    }
+  ],
+  "serving_integrity": {
+    "missing_topology_rows": 0,
+    "withheld_relations": 324,
+    "nested_geometry_relations": 50,
+    "blocked_rows_exposed": 0,
+    "policy": "withhold incomplete relations, their ancestors and unsupported geometric relation members; raw/render data retained"
+  },
+  "detail_facets": [
+    {
+      "osm_type": "N",
+      "family": "address",
+      "status": "inserted",
+      "objects": 10889
+    },
+    {
+      "osm_type": "N",
+      "family": "aerialway",
+      "status": "inserted",
+      "objects": 615
+    },
+    {
+      "osm_type": "N",
+      "family": "aerialway",
+      "status": "unknown_value_or_primitive",
+      "objects": 19
+    },
+    {
+      "osm_type": "N",
+      "family": "aeroway",
+      "status": "inserted",
+      "objects": 522
+    },
+    {
+      "osm_type": "N",
+      "family": "aeroway",
+      "status": "unknown_value_or_primitive",
+      "objects": 15
+    },
+    {
+      "osm_type": "N",
+      "family": "barrier",
+      "status": "inserted",
+      "objects": 22596
+    },
+    {
+      "osm_type": "N",
+      "family": "barrier",
+      "status": "unknown_value_or_primitive",
+      "objects": 137
+    },
+    {
+      "osm_type": "N",
+      "family": "entrance",
+      "status": "inserted",
+      "objects": 5823
+    },
+    {
+      "osm_type": "N",
+      "family": "entrance",
+      "status": "unknown_value_or_primitive",
+      "objects": 75
+    },
+    {
+      "osm_type": "N",
+      "family": "man_made",
+      "status": "inserted",
+      "objects": 12246
+    },
+    {
+      "osm_type": "N",
+      "family": "man_made",
+      "status": "unknown_value_or_primitive",
+      "objects": 5010
+    },
+    {
+      "osm_type": "N",
+      "family": "natural",
+      "status": "inserted",
+      "objects": 25085
+    },
+    {
+      "osm_type": "N",
+      "family": "natural",
+      "status": "unknown_value_or_primitive",
+      "objects": 1466
+    },
+    {
+      "osm_type": "N",
+      "family": "power",
+      "status": "inserted",
+      "objects": 355820
+    },
+    {
+      "osm_type": "N",
+      "family": "power",
+      "status": "unknown_value_or_primitive",
+      "objects": 38
+    },
+    {
+      "osm_type": "N",
+      "family": "transport",
+      "status": "inserted",
+      "objects": 94368
+    },
+    {
+      "osm_type": "N",
+      "family": "transport",
+      "status": "unknown_value_or_primitive",
+      "objects": 744
+    },
+    {
+      "osm_type": "R",
+      "family": "address",
+      "status": "core_layer_or_attribute",
+      "objects": 94
+    },
+    {
+      "osm_type": "R",
+      "family": "address",
+      "status": "unsupported_geometry",
+      "objects": 4
+    },
+    {
+      "osm_type": "R",
+      "family": "aeroway",
+      "status": "inserted",
+      "objects": 13
+    },
+    {
+      "osm_type": "R",
+      "family": "aeroway",
+      "status": "unsupported_geometry",
+      "objects": 4
+    },
+    {
+      "osm_type": "R",
+      "family": "barrier",
+      "status": "unsupported_geometry",
+      "objects": 69
+    },
+    {
+      "osm_type": "R",
+      "family": "man_made",
+      "status": "inserted",
+      "objects": 403
+    },
+    {
+      "osm_type": "R",
+      "family": "man_made",
+      "status": "unsupported_geometry",
+      "objects": 84
+    },
+    {
+      "osm_type": "R",
+      "family": "natural",
+      "status": "core_layer_or_attribute",
+      "objects": 1045
+    },
+    {
+      "osm_type": "R",
+      "family": "natural",
+      "status": "unsupported_geometry",
+      "objects": 23
+    },
+    {
+      "osm_type": "R",
+      "family": "power",
+      "status": "inserted",
+      "objects": 18
+    },
+    {
+      "osm_type": "R",
+      "family": "power",
+      "status": "unsupported_geometry",
+      "objects": 11
+    },
+    {
+      "osm_type": "R",
+      "family": "transport",
+      "status": "geometry_rejected",
+      "objects": 1
+    },
+    {
+      "osm_type": "R",
+      "family": "transport",
+      "status": "inserted",
+      "objects": 164
+    },
+    {
+      "osm_type": "R",
+      "family": "transport",
+      "status": "unsupported_geometry",
+      "objects": 146
+    },
+    {
+      "osm_type": "W",
+      "family": "address",
+      "status": "core_layer_or_attribute",
+      "objects": 8467
+    },
+    {
+      "osm_type": "W",
+      "family": "address",
+      "status": "unsupported_geometry",
+      "objects": 366
+    },
+    {
+      "osm_type": "W",
+      "family": "aerialway",
+      "status": "inserted",
+      "objects": 97
+    },
+    {
+      "osm_type": "W",
+      "family": "aerialway",
+      "status": "unsupported_geometry",
+      "objects": 25
+    },
+    {
+      "osm_type": "W",
+      "family": "aeroway",
+      "status": "inserted",
+      "objects": 4351
+    },
+    {
+      "osm_type": "W",
+      "family": "aeroway",
+      "status": "unsupported_geometry",
+      "objects": 1172
+    },
+    {
+      "osm_type": "W",
+      "family": "barrier",
+      "status": "geometry_rejected",
+      "objects": 2
+    },
+    {
+      "osm_type": "W",
+      "family": "barrier",
+      "status": "inserted",
+      "objects": 70052
+    },
+    {
+      "osm_type": "W",
+      "family": "barrier",
+      "status": "unsupported_geometry",
+      "objects": 1433
+    },
+    {
+      "osm_type": "W",
+      "family": "entrance",
+      "status": "unsupported_geometry",
+      "objects": 9
+    },
+    {
+      "osm_type": "W",
+      "family": "man_made",
+      "status": "inserted",
+      "objects": 21934
+    },
+    {
+      "osm_type": "W",
+      "family": "man_made",
+      "status": "unsupported_geometry",
+      "objects": 4004
+    },
+    {
+      "osm_type": "W",
+      "family": "natural",
+      "status": "core_layer_or_attribute",
+      "objects": 22095
+    },
+    {
+      "osm_type": "W",
+      "family": "natural",
+      "status": "inserted",
+      "objects": 11579
+    },
+    {
+      "osm_type": "W",
+      "family": "natural",
+      "status": "unsupported_geometry",
+      "objects": 2091
+    },
+    {
+      "osm_type": "W",
+      "family": "power",
+      "status": "inserted",
+      "objects": 15281
+    },
+    {
+      "osm_type": "W",
+      "family": "power",
+      "status": "unsupported_geometry",
+      "objects": 36
+    },
+    {
+      "osm_type": "W",
+      "family": "transport",
+      "status": "core_layer_or_attribute",
+      "objects": 2150890
+    },
+    {
+      "osm_type": "W",
+      "family": "transport",
+      "status": "inserted",
+      "objects": 520
+    },
+    {
+      "osm_type": "W",
+      "family": "transport",
+      "status": "unsupported_geometry",
+      "objects": 575
+    }
+  ],
+  "incomplete_relations": [
+    {
+      "relation_type": "route",
+      "member_type": "w",
+      "missing_references": 25194,
+      "affected_relations": 49
+    },
+    {
+      "relation_type": "boundary",
+      "member_type": "w",
+      "missing_references": 9476,
+      "affected_relations": 158
+    },
+    {
+      "relation_type": "multipolygon",
+      "member_type": "w",
+      "missing_references": 2938,
+      "affected_relations": 9
+    },
+    {
+      "relation_type": "collection",
+      "member_type": "w",
+      "missing_references": 642,
+      "affected_relations": 2
+    },
+    {
+      "relation_type": "waterway",
+      "member_type": "w",
+      "missing_references": 605,
+      "affected_relations": 19
+    },
+    {
+      "relation_type": "boundary",
+      "member_type": "r",
+      "missing_references": 369,
+      "affected_relations": 51
+    },
+    {
+      "relation_type": "watershed",
+      "member_type": "w",
+      "missing_references": 345,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "network",
+      "member_type": "r",
+      "missing_references": 241,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "multilinestring",
+      "member_type": "w",
+      "missing_references": 221,
+      "affected_relations": 2
+    },
+    {
+      "relation_type": "route",
+      "member_type": "r",
+      "missing_references": 213,
+      "affected_relations": 9
+    },
+    {
+      "relation_type": "boundary",
+      "member_type": "n",
+      "missing_references": 126,
+      "affected_relations": 90
+    },
+    {
+      "relation_type": "site",
+      "member_type": "n",
+      "missing_references": 125,
+      "affected_relations": 3
+    },
+    {
+      "relation_type": "treaty",
+      "member_type": "r",
+      "missing_references": 42,
+      "affected_relations": 4
+    },
+    {
+      "relation_type": "route",
+      "member_type": "n",
+      "missing_references": 20,
+      "affected_relations": 4
+    },
+    {
+      "relation_type": "site",
+      "member_type": "w",
+      "missing_references": 16,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "pipeline",
+      "member_type": "w",
+      "missing_references": 15,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "collection",
+      "member_type": "r",
+      "missing_references": 13,
+      "affected_relations": 2
+    },
+    {
+      "relation_type": "route_master",
+      "member_type": "r",
+      "missing_references": 9,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "collection",
+      "member_type": "n",
+      "missing_references": 8,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "superroute",
+      "member_type": "r",
+      "missing_references": 6,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "treaty",
+      "member_type": "n",
+      "missing_references": 4,
+      "affected_relations": 4
+    },
+    {
+      "relation_type": "waterway",
+      "member_type": "r",
+      "missing_references": 4,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "multipolygon",
+      "member_type": "r",
+      "missing_references": 2,
+      "affected_relations": 1
+    },
+    {
+      "relation_type": "treaty",
+      "member_type": "w",
+      "missing_references": 1,
+      "affected_relations": 1
+    }
+  ],
+  "incomplete_relation_examples": [
+    {
+      "osm_id": "8904185",
+      "relation_type": "multipolygon",
+      "name": "خلیج گواتر",
+      "admin_level": null,
+      "missing_references": 7,
+      "status": "geometry_rejected",
+      "outputs": {},
+      "issues": {
+        "geometry:multipolygon": {
+          "code": "null_geometry",
+          "operation": "multipolygon"
+        }
+      },
+      "geometry_probes": {
+        "multipolygon": "null"
+      }
+    },
+    {
+      "osm_id": "9326279",
+      "relation_type": "multipolygon",
+      "name": "دریای عمان - بحر عمان",
+      "admin_level": null,
+      "missing_references": 265,
+      "status": "geometry_rejected",
+      "outputs": {},
+      "issues": {
+        "geometry:multipolygon": {
+          "code": "null_geometry",
+          "operation": "multipolygon"
+        }
+      },
+      "geometry_probes": {
+        "multipolygon": "null"
+      }
+    },
+    {
+      "osm_id": "9326283",
+      "relation_type": "multipolygon",
+      "name": "الخليج العربي",
+      "admin_level": null,
+      "missing_references": 2343,
+      "status": "geometry_rejected",
+      "outputs": {},
+      "issues": {
+        "geometry:multipolygon": {
+          "code": "null_geometry",
+          "operation": "multipolygon"
+        }
+      },
+      "geometry_probes": {
+        "multipolygon": "null"
+      }
+    },
+    {
+      "osm_id": "9326284",
+      "relation_type": "multipolygon",
+      "name": "تنگه هرمز",
+      "admin_level": null,
+      "missing_references": 271,
+      "status": "geometry_rejected",
+      "outputs": {},
+      "issues": {
+        "geometry:multipolygon": {
+          "code": "null_geometry",
+          "operation": "multipolygon"
+        }
+      },
+      "geometry_probes": {
+        "multipolygon": "null"
+      }
+    },
+    {
+      "osm_id": "20162382",
+      "relation_type": "multipolygon",
+      "name": null,
+      "admin_level": null,
+      "missing_references": 35,
+      "status": "geometry_rejected",
+      "outputs": {},
+      "issues": {
+        "geometry:multipolygon": {
+          "code": "null_geometry",
+          "operation": "multipolygon"
+        }
+      },
+      "geometry_probes": {
+        "multipolygon": "null"
+      }
+    },
+    {
+      "osm_id": "20290404",
+      "relation_type": "multipolygon",
+      "name": "Bathyz Goraghanasy",
+      "admin_level": null,
+      "missing_references": 5,
+      "status": "geometry_rejected",
+      "outputs": {},
+      "issues": {
+        "geometry:multipolygon": {
+          "code": "null_geometry",
+          "operation": "multipolygon"
+        }
+      },
+      "geometry_probes": {
+        "multipolygon": "null"
+      }
+    },
+    {
+      "osm_id": "20290407",
+      "relation_type": "multipolygon",
+      "name": "Bathyz Döwlet Goraghanasy",
+      "admin_level": null,
+      "missing_references": 8,
+      "status": "geometry_rejected",
+      "outputs": {},
+      "issues": {
+        "geometry:multipolygon": {
+          "code": "null_geometry",
+          "operation": "multipolygon"
+        }
+      },
+      "geometry_probes": {
+        "multipolygon": "null"
+      }
+    },
+    {
+      "osm_id": "20317190",
+      "relation_type": "multipolygon",
+      "name": "Hasorgala",
+      "admin_level": null,
+      "missing_references": 1,
+      "status": "rendered",
+      "outputs": {
+        "pois": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "21701819",
+      "relation_type": "multipolygon",
+      "name": "Jiwani Coastal Wetland",
+      "admin_level": null,
+      "missing_references": 5,
+      "status": "geometry_rejected",
+      "outputs": {},
+      "issues": {
+        "geometry:multipolygon": {
+          "code": "null_geometry",
+          "operation": "multipolygon"
+        }
+      },
+      "geometry_probes": {
+        "multipolygon": "null"
+      }
+    },
+    {
+      "osm_id": "174737",
+      "relation_type": "boundary",
+      "name": "Türkiye",
+      "admin_level": "2",
+      "missing_references": 533,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "174742",
+      "relation_type": "boundary",
+      "name": "Hakkâri",
+      "admin_level": "4",
+      "missing_references": 34,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "186430",
+      "relation_type": "boundary",
+      "name": "Naxçıvan Muxtar Respublikası",
+      "admin_level": "4",
+      "missing_references": 21,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "186433",
+      "relation_type": "boundary",
+      "name": "Ağrı",
+      "admin_level": "4",
+      "missing_references": 30,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "186434",
+      "relation_type": "boundary",
+      "name": "Iğdır",
+      "admin_level": "4",
+      "missing_references": 38,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "223026",
+      "relation_type": "boundary",
+      "name": "Türkmenistan",
+      "admin_level": "2",
+      "missing_references": 154,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "223031",
+      "relation_type": "boundary",
+      "name": "Ahal welaýaty",
+      "admin_level": "4",
+      "missing_references": 51,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "223032",
+      "relation_type": "boundary",
+      "name": "Balkan welaýaty",
+      "admin_level": "4",
+      "missing_references": 22,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "223442",
+      "relation_type": "boundary",
+      "name": "Van",
+      "admin_level": "4",
+      "missing_references": 33,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "269575",
+      "relation_type": "boundary",
+      "name": "استان بوشهر",
+      "admin_level": "4",
+      "missing_references": 3,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "303427",
+      "relation_type": "boundary",
+      "name": "افغانستان",
+      "admin_level": "2",
+      "missing_references": 353,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "304934",
+      "relation_type": "boundary",
+      "name": "العراق",
+      "admin_level": "2",
+      "missing_references": 104,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "304938",
+      "relation_type": "boundary",
+      "name": "ایران",
+      "admin_level": "2",
+      "missing_references": 4,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "305138",
+      "relation_type": "boundary",
+      "name": "عمان",
+      "admin_level": "2",
+      "missing_references": 115,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "307573",
+      "relation_type": "boundary",
+      "name": "پاکستان",
+      "admin_level": "2",
+      "missing_references": 431,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "357968",
+      "relation_type": "boundary",
+      "name": "بلوچستان",
+      "admin_level": "4",
+      "missing_references": 110,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "364066",
+      "relation_type": "boundary",
+      "name": "Հայաստան",
+      "admin_level": "2",
+      "missing_references": 190,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "364082",
+      "relation_type": "boundary",
+      "name": "Սյունիքի մարզ",
+      "admin_level": "4",
+      "missing_references": 48,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "364110",
+      "relation_type": "boundary",
+      "name": "Azərbaycan",
+      "admin_level": "2",
+      "missing_references": 259,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "1251329",
+      "relation_type": "boundary",
+      "name": "Aralık",
+      "admin_level": "6",
+      "missing_references": 18,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "1381573",
+      "relation_type": "boundary",
+      "name": "Yüksekova",
+      "admin_level": "6",
+      "missing_references": 19,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "1381574",
+      "relation_type": "boundary",
+      "name": "Şemdinli",
+      "admin_level": "6",
+      "missing_references": 10,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "1674664",
+      "relation_type": "boundary",
+      "name": "ولایت نیمروز",
+      "admin_level": "4",
+      "missing_references": 18,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "1674802",
+      "relation_type": "boundary",
+      "name": "ولایت فراه",
+      "admin_level": "4",
+      "missing_references": 28,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "1674803",
+      "relation_type": "boundary",
+      "name": "ولایت هرات",
+      "admin_level": "4",
+      "missing_references": 38,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "1778014",
+      "relation_type": "boundary",
+      "name": "Başkale",
+      "admin_level": "6",
+      "missing_references": 3,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "1779034",
+      "relation_type": "boundary",
+      "name": "Saray",
+      "admin_level": "6",
+      "missing_references": 2,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "1779035",
+      "relation_type": "boundary",
+      "name": "Çaldıran",
+      "admin_level": "6",
+      "missing_references": 2,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "1779036",
+      "relation_type": "boundary",
+      "name": "Özalp",
+      "admin_level": "6",
+      "missing_references": 3,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "1837706",
+      "relation_type": "boundary",
+      "name": "Doğubayazıt",
+      "admin_level": "6",
+      "missing_references": 5,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    },
+    {
+      "osm_id": "2094154",
+      "relation_type": "boundary",
+      "name": "Doğu Anadolu Bölgesi",
+      "admin_level": "3",
+      "missing_references": 271,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    }
+  ],
+  "relation_impact": {
+    "directly_incomplete": 259,
+    "including_ancestor_relations": 260,
+    "with_some_rendered_output": 154
+  },
+  "geographic_truth_verified": false,
+  "review_reasons": [
+    "geometry_conversion_issues",
+    "catalog_coverage_incomplete",
+    "incomplete_source_topology",
+    "detail_family_coverage_incomplete",
+    "unsupported_nested_geometry"
+  ]
+}

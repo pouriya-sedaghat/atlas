@@ -1,0 +1,7 @@
+{
+  "job_id": "eed1511100ff70724022558187223d10c57855ede6c432c47d04b0d6e567f0e4",
+  "attempt": "b74a60e80e59ea592847476520f0982c",
+  "coverage_sha256": "1210728c0dd84ac4657250bdd0a5894c90cf547d040240567972c6828783612c",
+  "artifact_mtime": "2026-10-28T15:14:52.207Z",
+  "selection": "unique source-bound v2 coverage artifact written during this attempt before Martin QA; no candidate manifest was produced"
+}

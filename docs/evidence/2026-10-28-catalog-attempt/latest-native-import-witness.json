@@ -1,0 +1,30 @@
+{
+  "job_id": "e5139b4aef800ceecfe9aa5b1bd8c57166737915149c8b4fd0c704da0da5af42",
+  "attempt": "1781c44b7587509c825a84eb9bd62b4e",
+  "sha256": "51fe333cefd2e014172edcc21bdee958256df5dadf349d20bd185114b7f627f5",
+  "bytes": 46353,
+  "tail": [
+    "2026-10-28 17:33:01  Clustering table 'uncatalogued' by geometry...",
+    "2026-10-28 17:33:15  No indexes to create on table 'uncatalogued'.",
+    "2026-10-28 17:33:15  Analyzing table 'uncatalogued'...",
+    "2026-10-28 17:33:15  All postprocessing on table 'uncatalogued' done in 14s.",
+    "2026-10-28 17:33:16  Clustering table 'detail_points' by geometry...",
+    "2026-10-28 17:34:00  Creating index on table 'detail_points' (\"geom\")...",
+    "2026-10-28 17:34:12  Creating index on table 'detail_points' (\"min_zoom\")...",
+    "2026-10-28 17:34:17  Analyzing table 'detail_points'...",
+    "2026-10-28 17:34:17  All postprocessing on table 'detail_points' done in 61s (1m 1s).",
+    "2026-10-28 17:34:17  Clustering table 'detail_lines' by geometry...",
+    "2026-10-28 17:34:30  Creating index on table 'detail_lines' (\"geom\")...",
+    "2026-10-28 17:34:30  Creating index on table 'detail_lines' (\"min_zoom\")...",
+    "2026-10-28 17:34:30  Analyzing table 'detail_lines'...",
+    "2026-10-28 17:34:30  All postprocessing on table 'detail_lines' done in 13s.",
+    "2026-10-28 17:34:31  Clustering table 'detail_areas' by geometry...",
+    "2026-10-28 17:34:34  Creating index on table 'detail_areas' (\"geom\")...",
+    "2026-10-28 17:34:34  Creating index on table 'detail_areas' (\"min_zoom\")...",
+    "2026-10-28 17:34:34  Analyzing table 'detail_areas'...",
+    "2026-10-28 17:34:34  All postprocessing on table 'detail_areas' done in 3s.",
+    "2026-10-28 17:34:34  Storing properties to table '\"import_work\".\"osm2pgsql_properties\"'.",
+    "2026-10-28 17:34:34  osm2pgsql took 4595s (1h 16m 35s) overall.",
+    ""
+  ]
+}

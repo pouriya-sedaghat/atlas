@@ -1,0 +1,65 @@
+{
+  "schema": "atlas.capacity-user-confirmation/1",
+  "recorded_at": "2026-10-28T20:12:57.036170+00:00",
+  "historical_pipeline_sha256": "b9df97c35fa085773c9b36a0008695bce0fb83f8bddf83123f2989d6d3fc23f4",
+  "human_user_reported_performing_resize": true,
+  "source": "Human user message and supplied pvresize/lvextend/resize2fs transcript; command execution time not supplied.",
+  "user_reported_ext4_blocks_after": 78117888,
+  "historical_witness_preserved_unchanged": true,
+  "filesystem_now": {
+    "total_bytes": 314346831872,
+    "used_bytes": 94560985088,
+    "available_bytes": 205875228672
+  },
+  "current_lsblk": {
+    "blockdevices": [
+      {
+        "name": "sda",
+        "size": 322122547200,
+        "type": "disk",
+        "mountpoints": [],
+        "children": [
+          {
+            "name": "sda1",
+            "size": 1048576,
+            "type": "part",
+            "mountpoints": []
+          },
+          {
+            "name": "sda2",
+            "size": 2147483648,
+            "type": "part",
+            "mountpoints": [
+              "/boot"
+            ]
+          },
+          {
+            "name": "sda3",
+            "size": 319971917824,
+            "type": "part",
+            "mountpoints": [],
+            "children": [
+              {
+                "name": "ubuntu--vg-ubuntu--lv",
+                "size": 319970869248,
+                "type": "lvm",
+                "mountpoints": [
+                  "/"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "sr0",
+        "size": 2918598656,
+        "type": "rom",
+        "mountpoints": []
+      }
+    ]
+  },
+  "physical_storage_type_confirmed": false,
+  "latency_issue_resolved": false,
+  "changes_made_by_this_check": false
+}

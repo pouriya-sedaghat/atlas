@@ -1,0 +1,6 @@
+{
+  "code": "candidate_infrastructure_error",
+  "name": "Error",
+  "message": "Connection terminated",
+  "stack": "Error: Connection terminated\n    at /home/owner/atlas-candidate-builds/32590f3516d833ae9a773fb27488d66b4790026d5478a34e7c149621d8406e64/node_modules/pg/lib/client.js:694:17\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async coverage (file:///home/owner/atlas-candidate-builds/32590f3516d833ae9a773fb27488d66b4790026d5478a34e7c149621d8406e64/apps/builder/dist/qa.js:51:32)\n    at async CandidateWorker.once (file:///home/owner/atlas-candidate-builds/32590f3516d833ae9a773fb27488d66b4790026d5478a34e7c149621d8406e64/apps/builder/dist/worker.js:112:33)\n    at async main (file:///home/owner/atlas-candidate-builds/32590f3516d833ae9a773fb27488d66b4790026d5478a34e7c149621d8406e64/apps/builder/dist/cli.js:49:32)"
+}
