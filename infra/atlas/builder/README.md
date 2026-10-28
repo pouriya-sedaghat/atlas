@@ -158,7 +158,10 @@ Stopping the unit alone does not durably quarantine the job: cancellation can le
 `retry_wait`. The latest Iran attempt was explicitly marked failed with an append-only operator
 event after an old-serving HTTP timeout. Keep the worker stopped until that incident is reviewed;
 do not restart it to repeat a full import. Token-fenced, durable guard incidents remain a separate
-implementation task. Separate Docker volumes on one underlying disk do not establish I/O isolation.
+implementation task in that historical runtime. The new [durable serving guard](serving-guard.md)
+adds a transactional incident, a held admission slot and verified exact-attempt recovery. It
+requires a drained upgrade and its documented bindings; it has not been enabled on the old
+Iran runtime. Separate Docker volumes on one underlying disk do not establish I/O isolation.
 
 Coverage totals for all eleven layers now use one aggregate scan of `render.object_outcomes`.
 Per-layer geometry, served-row and topology checks still run; malformed counters and integer

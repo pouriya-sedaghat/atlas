@@ -1,0 +1,58 @@
+{
+  "schema": "atlas.candidate-serving-probe/1",
+  "tool_sha256": "df5b5d8bdf1c2b6611e9e7c71ef4976d57becbf0d88347236f31ca0308ed78d2",
+  "node": "24.21.0",
+  "guard_enabled": true,
+  "guard_incident": "3298ab8c4fffba57de66b528533bd8571be481044949995cc6584515638e8755",
+  "observer_failure": null,
+  "started_at": "2026-10-28T20:50:07.621Z",
+  "ended_at": "2026-10-28T20:50:07.998Z",
+  "job_id": "ae66b99c8c4c23591479749ab4c6d6010c6f996f1730811b3e4436ad1a9f7510",
+  "terminal": {
+    "state": "failed",
+    "stage": "guard_stopped"
+  },
+  "requests": 1,
+  "errors": 1,
+  "byte_change_observations": 0,
+  "latency_ms": {
+    "median": 24.692,
+    "p95": 24.692,
+    "max": 24.692
+  },
+  "old_containers": [
+    {
+      "name": "atlas-lab-db-1",
+      "id": "00feccadfee220561bc68966b1fc2c631943264d97940e48c48241269e4651b3",
+      "started_at": "2026-10-27T07:35:31.114460047Z"
+    },
+    {
+      "name": "atlas-lab-martin-1",
+      "id": "4df9f2fdcaf224270eac55c584f4d5f16267e59edeead4064269fa4cc1b89720",
+      "started_at": "2026-10-27T07:42:20.261905854Z"
+    },
+    {
+      "name": "atlas-lab-pgtileserv-1",
+      "id": "bf548271d9c148c0f01ce91d41b81ff3e280afb299a3cdd4af5b5ad742f41ff8",
+      "started_at": "2026-10-27T07:42:20.478682241Z"
+    }
+  ],
+  "old_container_ids_and_start_times_unchanged": true,
+  "guard_stopped_experimental_builder": true,
+  "scope": "fictional HTTP endpoint for guard fault injection; not old-serving availability",
+  "resource_sampling": "approximately every 15 seconds; observed samples are not exact peaks",
+  "resources": [],
+  "samples": [
+    {
+      "site": "tehran",
+      "z": 6,
+      "x": 41,
+      "y": 25,
+      "status": 503,
+      "bytes": 0,
+      "ms": 24.692,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes_match_first_sample": true
+    }
+  ]
+}

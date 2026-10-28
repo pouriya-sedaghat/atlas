@@ -40,6 +40,8 @@ jobs:
         run: node tools/verify-catalog-attempt-evidence.mjs
       - name: Refuse forged catalog evidence after checksum regeneration
         run: node tools/fault-check-catalog-attempt-evidence.mjs
+      - name: Verify recorded durable guard and bounded I/O evidence
+        run: node tools/verify-serving-guard-evidence.mjs
   pbf-audit:
     runs-on: ubuntu-24.04
     timeout-minutes: 10

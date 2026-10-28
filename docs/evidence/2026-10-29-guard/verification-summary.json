@@ -1,0 +1,16 @@
+{
+  "schema": "atlas.guard-verification-summary/1",
+  "local_build": "passed",
+  "local_typecheck": "passed",
+  "local_tests_passed": 136,
+  "local_environment_dependent_skipped": 40,
+  "builder_tests_in_pg_environment_passed": 30,
+  "new_queue_cases": 7,
+  "fictional_e2e_cases": 10,
+  "guard_runtime_fault_cases": 6,
+  "bounded_io_old_serving_requests": 48,
+  "bounded_io_old_serving_errors": 0,
+  "country_import_repeated": false,
+  "main_runtime_upgraded": false,
+  "production_approved": false
+}

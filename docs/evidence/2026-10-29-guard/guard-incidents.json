@@ -1,0 +1,120 @@
+{
+  "incidents": [
+    {
+      "id": "9003e9ad228ecb85ada847e009150b01ec1636c18dc633e25c652bb77b5c2d92",
+      "job_id": "c9235346cf556033a5068a375de8642eeac1556a8217785450b49614d972cd34",
+      "token": "23fe3e53ca4a6862bc17a452dede8237",
+      "root_sha256": "4d968847328ded1c47ed07e7f62656a0026f8a056bdf1b59699349f03aab3c9e",
+      "pipeline_sha256": "5e85f0a5365b5635bfd7cd315ea90e3302a3c79258e269ecbe3b4672da86baf4",
+      "evidence_sha256": "0ed17df4dac5b29637ec5e8031568fcd92645b4a2bec306859b7577ed2252fd0",
+      "evidence_text": "{\"schema\":\"atlas.serving-guard-evidence/1\",\"root\":\"4d968847328ded1c47ed07e7f62656a0026f8a056bdf1b59699349f03aab3c9e\",\"pipeline\":\"5e85f0a5365b5635bfd7cd315ea90e3302a3c79258e269ecbe3b4672da86baf4\",\"job\":\"c9235346cf556033a5068a375de8642eeac1556a8217785450b49614d972cd34\",\"token\":\"23fe3e53ca4a6862bc17a452dede8237\",\"observation\":{\"at\":\"2026-10-28T20:49:55.295Z\",\"site\":\"fixture\",\"z\":1,\"x\":0,\"y\":0,\"status\":503,\"ms\":2}}",
+      "created_at": "2026-10-28T20:49:55.355Z",
+      "shutdown_confirmed_at": "2026-10-28T20:49:59.332Z",
+      "shutdown_witness": {
+        "unit": "atlas-guard-test-ce7992a2.service",
+        "unit_stopped": true,
+        "data_allocated": true,
+        "roles_disabled": true,
+        "backends_stopped": true,
+        "system_identifier": "7701568481236377651",
+        "containers_stopped": true,
+        "terminated_backends": 0
+      },
+      "state": "failed",
+      "stage": "guard_stopped",
+      "attempts": 1,
+      "failures": 1,
+      "manifest_sha256": null
+    },
+    {
+      "id": "3298ab8c4fffba57de66b528533bd8571be481044949995cc6584515638e8755",
+      "job_id": "ae66b99c8c4c23591479749ab4c6d6010c6f996f1730811b3e4436ad1a9f7510",
+      "token": "473932168ceaa2ace0e9e41199310ef3",
+      "root_sha256": "4d968847328ded1c47ed07e7f62656a0026f8a056bdf1b59699349f03aab3c9e",
+      "pipeline_sha256": "5e85f0a5365b5635bfd7cd315ea90e3302a3c79258e269ecbe3b4672da86baf4",
+      "evidence_sha256": "183b41d29f6972b0079f9c8259318a70bf680dcd7d2d7289259aaf8f4c0c1730",
+      "evidence_text": "{\"schema\":\"atlas.serving-guard-evidence/1\",\"root\":\"4d968847328ded1c47ed07e7f62656a0026f8a056bdf1b59699349f03aab3c9e\",\"pipeline\":\"5e85f0a5365b5635bfd7cd315ea90e3302a3c79258e269ecbe3b4672da86baf4\",\"job\":\"ae66b99c8c4c23591479749ab4c6d6010c6f996f1730811b3e4436ad1a9f7510\",\"token\":\"473932168ceaa2ace0e9e41199310ef3\",\"observation\":{\"at\":\"2026-10-28T20:50:07.667Z\",\"site\":\"tehran\",\"z\":6,\"x\":41,\"y\":25,\"status\":503,\"ms\":24.692}}",
+      "created_at": "2026-10-28T20:50:07.682Z",
+      "shutdown_confirmed_at": "2026-10-28T20:50:07.978Z",
+      "shutdown_witness": {
+        "unit": "atlas-guard-test-ce7992a2.service",
+        "unit_stopped": true,
+        "data_allocated": true,
+        "roles_disabled": true,
+        "backends_stopped": true,
+        "system_identifier": "7701568481236377651",
+        "containers_stopped": true,
+        "terminated_backends": 0
+      },
+      "state": "failed",
+      "stage": "guard_stopped",
+      "attempts": 1,
+      "failures": 1,
+      "manifest_sha256": null
+    }
+  ],
+  "events": [
+    {
+      "job_id": "c9235346cf556033a5068a375de8642eeac1556a8217785450b49614d972cd34",
+      "token": "23fe3e53ca4a6862bc17a452dede8237",
+      "event": "serving_guard_latched",
+      "detail": {
+        "status": 503,
+        "incident": "9003e9ad228ecb85ada847e009150b01ec1636c18dc633e25c652bb77b5c2d92",
+        "evidence_sha256": "0ed17df4dac5b29637ec5e8031568fcd92645b4a2bec306859b7577ed2252fd0"
+      },
+      "created_at": "2026-10-28T20:49:55.358Z"
+    },
+    {
+      "job_id": "c9235346cf556033a5068a375de8642eeac1556a8217785450b49614d972cd34",
+      "token": "23fe3e53ca4a6862bc17a452dede8237",
+      "event": "serving_guard_shutdown_confirmed",
+      "detail": {
+        "witness": {
+          "unit": "atlas-guard-test-ce7992a2.service",
+          "unit_stopped": true,
+          "data_allocated": true,
+          "roles_disabled": true,
+          "backends_stopped": true,
+          "system_identifier": "7701568481236377651",
+          "containers_stopped": true,
+          "terminated_backends": 0
+        },
+        "incident": "9003e9ad228ecb85ada847e009150b01ec1636c18dc633e25c652bb77b5c2d92"
+      },
+      "created_at": "2026-10-28T20:49:59.333Z"
+    },
+    {
+      "job_id": "ae66b99c8c4c23591479749ab4c6d6010c6f996f1730811b3e4436ad1a9f7510",
+      "token": "473932168ceaa2ace0e9e41199310ef3",
+      "event": "serving_guard_latched",
+      "detail": {
+        "status": 503,
+        "incident": "3298ab8c4fffba57de66b528533bd8571be481044949995cc6584515638e8755",
+        "evidence_sha256": "183b41d29f6972b0079f9c8259318a70bf680dcd7d2d7289259aaf8f4c0c1730"
+      },
+      "created_at": "2026-10-28T20:50:07.684Z"
+    },
+    {
+      "job_id": "ae66b99c8c4c23591479749ab4c6d6010c6f996f1730811b3e4436ad1a9f7510",
+      "token": "473932168ceaa2ace0e9e41199310ef3",
+      "event": "serving_guard_shutdown_confirmed",
+      "detail": {
+        "witness": {
+          "unit": "atlas-guard-test-ce7992a2.service",
+          "unit_stopped": true,
+          "data_allocated": true,
+          "roles_disabled": true,
+          "backends_stopped": true,
+          "system_identifier": "7701568481236377651",
+          "containers_stopped": true,
+          "terminated_backends": 0
+        },
+        "incident": "3298ab8c4fffba57de66b528533bd8571be481044949995cc6584515638e8755"
+      },
+      "created_at": "2026-10-28T20:50:07.979Z"
+    }
+  ],
+  "admission_clear_after_verified_recovery": true,
+  "fictional_database_only": true
+}

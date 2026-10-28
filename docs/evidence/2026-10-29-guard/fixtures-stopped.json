@@ -1,0 +1,30 @@
+{
+  "stopped": [
+    {
+      "name": "atlas-martin-b648c3800270-ddc53d7b7735ef69",
+      "id": "fed4ff6c0c6ee6f15618fb9e8d4deb781a4c03e57cbcda5811c63970aaa77a7c",
+      "job_id": "b648c3800270e0f9de7a4399a8c1218d55b3659721e25f9a27193fab78e444bd",
+      "attempt": "ddc53d7b7735ef6960de6fc5572f4413"
+    },
+    {
+      "name": "atlas-martin-f85e40e13eb6-16a0897a98f90992",
+      "id": "bc9d0556df0a3cc0d23216191c677433f8fb147ad55713e2a83bc03c9dc0c6fa",
+      "job_id": "f85e40e13eb6806864078ab57a03d2b146a21eed4fdee1055df416e6ebe08212",
+      "attempt": "16a0897a98f9099240dfd638c45c7bfb"
+    },
+    {
+      "name": "atlas-martin-f4a34ea31842-2aaee4e367e9f146",
+      "id": "e06b61fbf89e6f6dbdf1ec7e2840b5b3571f91293a8b25502728d5f7b6400edc",
+      "job_id": "f4a34ea318425e5a99db4c17088fcbef41885ea2ad19ccf021c0f8929adf207c",
+      "attempt": "2aaee4e367e9f1466730f652016a5f65"
+    },
+    {
+      "name": "atlas-martin-2c79c409f072-c69b6622da2e0a3c",
+      "id": "a7906ac8acb018a787cb79b7872fe300f2e1aad39b5056140dcf4bd6faae00ad",
+      "job_id": "2c79c409f072720956cd6822f88808f21dd9867eeeb811bfe861d723ce1aea42",
+      "attempt": "c69b6622da2e0a3c2e80ef3897148a53"
+    }
+  ],
+  "databases_and_volumes_deleted": false,
+  "original_serving_restarted": false
+}

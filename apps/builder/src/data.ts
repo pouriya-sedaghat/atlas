@@ -49,7 +49,7 @@ export class DataRuntime {
   private async admin(database='postgres'):Promise<pg.Client>{
     if(this.signal?.aborted)throw new IntakeError('cancelled');
     const uri=new URL(await secretFile(this.config.dataAdminDsnFile));uri.pathname='/'+database;
-    const client=new pg.Client({connectionString:uri.toString(),connectionTimeoutMillis:30000,statement_timeout:Math.min(this.config.timeoutMs,1800000),application_name:'atlas-candidate-admin'});
+    const client=new pg.Client({connectionString:uri.toString(),connectionTimeoutMillis:30000,statement_timeout:Math.min(this.config.timeoutMs,1800000),application_name:this.adminApplication()});
     await client.connect();
     const close=()=>void client.end().catch(()=>undefined);
     client.once('end',()=>this.signal?.removeEventListener('abort',close));
@@ -214,6 +214,49 @@ export class DataRuntime {
     if(labels['atlas.candidate.job']!==this.claim.id||labels['atlas.candidate.token']!==this.claim.token||labels['atlas.candidate.root']!==sha256(this.config.root)||labels['atlas.candidate.kind']!==kind)throw new IntakeError('foreign_candidate_container');
     const removed=await execute('docker',['rm','--force',name],{maxOutput:65536});if(removed.code!==0)throw new IntakeError('candidate_container_removal_failed');
   }
+  /** Only after a durable guard has fenced this exact failed attempt and stopped its worker. */
+  async quiesceGuard(target:Record<string,unknown>|null):Promise<Record<string,unknown>>{
+    await this.stop('importer');await this.stop('martin');
+    const profile=await this.verifyDataProfile(),admin=await this.admin();
+    const roles=[this.claim.owner_role,this.claim.import_role,this.claim.tile_role,this.claim.qa_role];
+    try{
+      const identifier=(await admin.query('SELECT system_identifier::text AS id FROM pg_control_system()')).rows[0].id;
+      const found=(await admin.query("SELECT rolname,shobj_description(oid,'pg_authid') AS marker FROM pg_roles WHERE rolname=ANY($1)",[roles])).rows;
+      const exists=Boolean((await admin.query('SELECT 1 FROM pg_database WHERE datname=$1',[this.claim.database_name])).rowCount);
+      if(!target){
+        // Target recording precedes all role/database allocation. Never guess where an unbound target lives.
+        if(exists||found.length)throw new IntakeError('guard_unbound_data_resources');
+        return {containers_stopped:true,backends_stopped:true,roles_disabled:true,data_allocated:false};
+      }
+      const volumeKeys=(v:unknown)=>Array.isArray(v)?v.map(r=>`${r.type}/${r.name}/${r.destination}`).sort().join('|'):null;
+      if(target.kind!=='postgresql'||target.container!==this.config.dataContainer||target.image!==this.config.dataImage||target.system_identifier!==identifier||volumeKeys(target.volumes)!==volumeKeys(profile.volumes))throw new IntakeError('guard_data_target_changed');
+      if(found.some(r=>r.marker!==this.identity()))throw new IntakeError('foreign_candidate_role');
+      if(exists)await this.assertOwned();
+      // A partially provisioned database without a valid identity remains held for explicit investigation.
+      const loginRoles=found.filter(r=>r.rolname!==this.claim.owner_role).map(r=>r.rolname);
+      await admin.query('BEGIN');
+      try{
+        for(const role of loginRoles){
+          await admin.query(`ALTER ROLE ${q(role)} NOLOGIN PASSWORD NULL`);
+          if(exists)await admin.query(`REVOKE CONNECT ON DATABASE ${q(this.claim.database_name)} FROM ${q(role)}`);
+        }
+        await admin.query('COMMIT');
+      }catch(error){await admin.query('ROLLBACK').catch(()=>undefined);throw error;}
+      const me=(await admin.query('SELECT current_user AS name')).rows[0].name;
+      const terminated=(await admin.query(`SELECT pid,pg_terminate_backend(pid) AS signalled FROM pg_stat_activity WHERE pid<>pg_backend_pid()
+        AND ((datname=$1 AND usename=ANY($2)) OR (usename=$3 AND application_name=$4))`,[this.claim.database_name,loginRoles,me,this.adminApplication()])).rows;
+      let remaining=1;
+      for(let i=0;i<30;i++){
+        remaining=(await admin.query("SELECT count(*)::integer AS n FROM pg_stat_activity WHERE pid<>pg_backend_pid() AND backend_type='client backend' AND (datname=$1 OR (usename=$2 AND application_name=$3))",[this.claim.database_name,me,this.adminApplication()])).rows[0].n;
+        if(!remaining)break;await new Promise(resolve=>setTimeout(resolve,100));
+      }
+      if(remaining)throw new IntakeError('guard_backends_remain');
+      const login=(await admin.query('SELECT rolname FROM pg_roles WHERE rolname=ANY($1) AND rolcanlogin',[roles])).rows;
+      if(login.length)throw new IntakeError('guard_roles_remain_enabled');
+      return {containers_stopped:true,backends_stopped:true,roles_disabled:true,data_allocated:exists,system_identifier:identifier,terminated_backends:terminated.length};
+    }finally{await admin.end();}
+  }
+  private adminApplication():string{return 'atlas-build/'+this.claim.id.slice(0,12)+'/'+this.claim.token;}
   endpointName():string{return this.names.martin;}
   dataTarget():Record<string,unknown>{if(!this.target)throw new IntakeError('data_target_not_bound');return this.target;}
 }

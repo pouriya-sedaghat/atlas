@@ -1,0 +1,1495 @@
+{
+  "schema": "atlas.tile-parity/1",
+  "rounds": 2,
+  "passed": true,
+  "failure": null,
+  "warmup": [
+    {
+      "site": "pois",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "ms": 17.635
+    },
+    {
+      "site": "pois",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "ms": 0.963
+    },
+    {
+      "site": "pois",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "ms": 2.029
+    },
+    {
+      "site": "pois",
+      "z": 16,
+      "x": 32769,
+      "y": 32764,
+      "ms": 1.273
+    },
+    {
+      "site": "transport",
+      "z": 6,
+      "x": 32,
+      "y": 32,
+      "ms": 0.711
+    },
+    {
+      "site": "transport",
+      "z": 10,
+      "x": 512,
+      "y": 512,
+      "ms": 0.801
+    },
+    {
+      "site": "transport",
+      "z": 14,
+      "x": 8192,
+      "y": 8192,
+      "ms": 0.895
+    },
+    {
+      "site": "transport",
+      "z": 16,
+      "x": 32768,
+      "y": 32768,
+      "ms": 1.142
+    },
+    {
+      "site": "buildings",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "ms": 0.976
+    },
+    {
+      "site": "buildings",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "ms": 0.67
+    },
+    {
+      "site": "buildings",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "ms": 1.054
+    },
+    {
+      "site": "buildings",
+      "z": 16,
+      "x": 32769,
+      "y": 32765,
+      "ms": 0.751
+    },
+    {
+      "site": "detail_points",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "ms": 0.536
+    },
+    {
+      "site": "detail_points",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "ms": 0.648
+    },
+    {
+      "site": "detail_points",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "ms": 0.842
+    },
+    {
+      "site": "detail_points",
+      "z": 16,
+      "x": 32769,
+      "y": 32764,
+      "ms": 0.997
+    },
+    {
+      "site": "detail_lines",
+      "z": 6,
+      "x": 32,
+      "y": 32,
+      "ms": 0.723
+    },
+    {
+      "site": "detail_lines",
+      "z": 10,
+      "x": 512,
+      "y": 512,
+      "ms": 0.939
+    },
+    {
+      "site": "detail_lines",
+      "z": 14,
+      "x": 8192,
+      "y": 8192,
+      "ms": 0.946
+    },
+    {
+      "site": "detail_lines",
+      "z": 16,
+      "x": 32768,
+      "y": 32768,
+      "ms": 0.884
+    },
+    {
+      "site": "detail_areas",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "ms": 0.501
+    },
+    {
+      "site": "detail_areas",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "ms": 0.446
+    },
+    {
+      "site": "detail_areas",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "ms": 0.69
+    },
+    {
+      "site": "detail_areas",
+      "z": 16,
+      "x": 32769,
+      "y": 32765,
+      "ms": 0.646
+    }
+  ],
+  "warmup_sql_timeout_ms": 120000,
+  "comparison_sql_timeout_ms": 15000,
+  "http_timeout_ms": 15000,
+  "comparison": "Decoded MVT features, properties and ordered geometry; layer/feature serialization order ignored",
+  "geographic_truth_verified": false,
+  "samples": [
+    {
+      "round": 1,
+      "site": "pois",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "pois",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "pois",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        },
+        "martin": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "pois",
+      "z": 16,
+      "x": 32769,
+      "y": 32764,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "ada5dfe2ba376552e50095b204411e19a2b819ed721131428d511e549ce44c1f",
+          "features": 9,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2,
+            "detail_points": 2,
+            "pois": 1
+          },
+          "bytes": 1014
+        },
+        "martin": {
+          "sha256": "ada5dfe2ba376552e50095b204411e19a2b819ed721131428d511e549ce44c1f",
+          "features": 9,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2,
+            "detail_points": 2,
+            "pois": 1
+          },
+          "bytes": 1014
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "transport",
+      "z": 6,
+      "x": 32,
+      "y": 32,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "transport",
+      "z": 10,
+      "x": 512,
+      "y": 512,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "transport",
+      "z": 14,
+      "x": 8192,
+      "y": 8192,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        },
+        "martin": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "transport",
+      "z": 16,
+      "x": 32768,
+      "y": 32768,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        },
+        "martin": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "buildings",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "buildings",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "buildings",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        },
+        "martin": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "buildings",
+      "z": 16,
+      "x": 32769,
+      "y": 32765,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "5c37918c6f0415527caec20956ab733d4b6aeb0a50134499d4f82e93637080b8",
+          "features": 6,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2
+          },
+          "bytes": 630
+        },
+        "martin": {
+          "sha256": "5c37918c6f0415527caec20956ab733d4b6aeb0a50134499d4f82e93637080b8",
+          "features": 6,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2
+          },
+          "bytes": 630
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "detail_points",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "detail_points",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "detail_points",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        },
+        "martin": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "detail_points",
+      "z": 16,
+      "x": 32769,
+      "y": 32764,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "ada5dfe2ba376552e50095b204411e19a2b819ed721131428d511e549ce44c1f",
+          "features": 9,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2,
+            "detail_points": 2,
+            "pois": 1
+          },
+          "bytes": 1014
+        },
+        "martin": {
+          "sha256": "ada5dfe2ba376552e50095b204411e19a2b819ed721131428d511e549ce44c1f",
+          "features": 9,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2,
+            "detail_points": 2,
+            "pois": 1
+          },
+          "bytes": 1014
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "detail_lines",
+      "z": 6,
+      "x": 32,
+      "y": 32,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "detail_lines",
+      "z": 10,
+      "x": 512,
+      "y": 512,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "detail_lines",
+      "z": 14,
+      "x": 8192,
+      "y": 8192,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        },
+        "martin": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "detail_lines",
+      "z": 16,
+      "x": 32768,
+      "y": 32768,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        },
+        "martin": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "detail_areas",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "detail_areas",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "detail_areas",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        },
+        "martin": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "detail_areas",
+      "z": 16,
+      "x": 32769,
+      "y": 32765,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "5c37918c6f0415527caec20956ab733d4b6aeb0a50134499d4f82e93637080b8",
+          "features": 6,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2
+          },
+          "bytes": 630
+        },
+        "martin": {
+          "sha256": "5c37918c6f0415527caec20956ab733d4b6aeb0a50134499d4f82e93637080b8",
+          "features": 6,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2
+          },
+          "bytes": 630
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "pois",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "pois",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "pois",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        },
+        "martin": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "pois",
+      "z": 16,
+      "x": 32769,
+      "y": 32764,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "ada5dfe2ba376552e50095b204411e19a2b819ed721131428d511e549ce44c1f",
+          "features": 9,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2,
+            "detail_points": 2,
+            "pois": 1
+          },
+          "bytes": 1014
+        },
+        "martin": {
+          "sha256": "ada5dfe2ba376552e50095b204411e19a2b819ed721131428d511e549ce44c1f",
+          "features": 9,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2,
+            "detail_points": 2,
+            "pois": 1
+          },
+          "bytes": 1014
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "transport",
+      "z": 6,
+      "x": 32,
+      "y": 32,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "transport",
+      "z": 10,
+      "x": 512,
+      "y": 512,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "transport",
+      "z": 14,
+      "x": 8192,
+      "y": 8192,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        },
+        "martin": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "transport",
+      "z": 16,
+      "x": 32768,
+      "y": 32768,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        },
+        "martin": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "buildings",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "buildings",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "buildings",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        },
+        "martin": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "buildings",
+      "z": 16,
+      "x": 32769,
+      "y": 32765,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "5c37918c6f0415527caec20956ab733d4b6aeb0a50134499d4f82e93637080b8",
+          "features": 6,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2
+          },
+          "bytes": 630
+        },
+        "martin": {
+          "sha256": "5c37918c6f0415527caec20956ab733d4b6aeb0a50134499d4f82e93637080b8",
+          "features": 6,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2
+          },
+          "bytes": 630
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "detail_points",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "detail_points",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "detail_points",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        },
+        "martin": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "detail_points",
+      "z": 16,
+      "x": 32769,
+      "y": 32764,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "ada5dfe2ba376552e50095b204411e19a2b819ed721131428d511e549ce44c1f",
+          "features": 9,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2,
+            "detail_points": 2,
+            "pois": 1
+          },
+          "bytes": 1014
+        },
+        "martin": {
+          "sha256": "ada5dfe2ba376552e50095b204411e19a2b819ed721131428d511e549ce44c1f",
+          "features": 9,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2,
+            "detail_points": 2,
+            "pois": 1
+          },
+          "bytes": 1014
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "detail_lines",
+      "z": 6,
+      "x": 32,
+      "y": 32,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "detail_lines",
+      "z": 10,
+      "x": 512,
+      "y": 512,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "detail_lines",
+      "z": 14,
+      "x": 8192,
+      "y": 8192,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        },
+        "martin": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "detail_lines",
+      "z": 16,
+      "x": 32768,
+      "y": 32768,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        },
+        "martin": {
+          "sha256": "0b6c5cea17a118a508ea932f392573c0ff162b6bc2a26d106d4741f2b0deac0f",
+          "features": 10,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "transport": 1
+          },
+          "bytes": 963
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "detail_areas",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "detail_areas",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "detail_areas",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        },
+        "martin": {
+          "sha256": "69784fbd95a160c1009d8794a4ace5488227fecd2fcc662c78938b0966e7f98d",
+          "features": 11,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 5,
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 1172
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "detail_areas",
+      "z": 16,
+      "x": 32769,
+      "y": 32765,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "5c37918c6f0415527caec20956ab733d4b6aeb0a50134499d4f82e93637080b8",
+          "features": 6,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2
+          },
+          "bytes": 630
+        },
+        "martin": {
+          "sha256": "5c37918c6f0415527caec20956ab733d4b6aeb0a50134499d4f82e93637080b8",
+          "features": 6,
+          "layers": {
+            "buildings": 1,
+            "detail_areas": 3,
+            "detail_lines": 2
+          },
+          "bytes": 630
+        }
+      }
+    }
+  ]
+}
