@@ -84,7 +84,11 @@ export class DataRuntime {
     if(volumes.length!==1||volumes[0].type!=='volume')throw new IntakeError('managed_data_volume_required');
     const volume=await execute('docker',['volume','inspect',volumes[0].name],{maxOutput:65536});
     if(volume.code!==0||JSON.parse(volume.stdout.toString())[0].Labels?.['atlas.role']!=='candidate-data')throw new IntakeError('foreign_data_volume');
-    return {container:this.config.dataContainer,image:data.Image,limits,volumes,io_max:io.stdout.toString().trim(),cpu_max:cpu,memory_max:memory,memory_swap_max:swap,observed_io_devices:observed,public_ports:[]};
+    const database=await this.admin();let settings:Record<string,string>;
+    try{settings=Object.fromEntries((await database.query("SELECT name,setting FROM pg_settings WHERE name IN ('client_connection_check_interval','fsync','synchronous_commit','full_page_writes')")).rows.map(r=>[r.name,r.setting]));}
+    finally{await database.end();}
+    if(settings.client_connection_check_interval!=='1000'||settings.fsync!=='on'||settings.synchronous_commit!=='on'||settings.full_page_writes!=='on')throw new IntakeError('data_server_prerequisites_changed');
+    return {container:this.config.dataContainer,image:data.Image,limits,volumes,io_max:io.stdout.toString().trim(),cpu_max:cpu,memory_max:memory,memory_swap_max:swap,observed_io_devices:observed,postgres_prerequisites:settings,public_ports:[]};
   }
   async provision(source:VerifiedSource):Promise<void>{
     await this.queue.assertLive(this.claim);const c=await this.admin();
@@ -123,7 +127,7 @@ export class DataRuntime {
       const result=await execute('docker',['run',...this.common(this.names.importer,'importer'),'--log-driver','none','--memory',String(this.config.importMemoryBytes),'--memory-swap',String(this.config.importMemoryBytes),'--cpus',String(this.config.importCpus),'--cpu-shares','128',
         '--env','PGPASSFILE=/run/secrets/import.pgpass','--mount',`type=bind,src=${join(this.directory,'import.pgpass')},dst=/run/secrets/import.pgpass,readonly`,
         '--mount',`type=bind,src=${source.path},dst=/in/input.osm.pbf,readonly`,
-        ...[['infra/atlas/raw.lua','raw.lua'],['infra/atlas/catalog-observed.lua','render.lua'],['infra/catalog/seyra-flex.lua','catalog-v1.lua']].flatMap(([src,dst])=>['--mount',`type=bind,src=${join(r,src!)},dst=/config/${dst},readonly`]),
+        ...[['infra/atlas/raw.lua','raw.lua'],['infra/atlas/catalog-observed.lua','render.lua'],['infra/atlas/catalog-details.lua','catalog-details.lua'],['infra/atlas/catalog-core-v2.lua','catalog-core.lua']].flatMap(([src,dst])=>['--mount',`type=bind,src=${join(r,src!)},dst=/config/${dst},readonly`]),
         '--entrypoint','osm2pgsql',this.config.importerImage,'--create','--slim','--drop','--extra-attributes','--middle-schema=import_work','--output=flex','--style=/config/raw.lua','--cache=256','--number-processes=1',
         '-H',this.config.dataHost,'-P',this.adminUri.port||'5432','-U',this.claim.import_role,'-d',this.claim.database_name,'/in/input.osm.pbf'],{signal,timeoutMs:this.config.timeoutMs,maxOutput:4*1024*1024});
       await writeFile(join(this.directory,'import.log'),Buffer.concat([result.stdout,result.stderr]),{flag:'wx',mode:0o600});
@@ -144,11 +148,14 @@ export class DataRuntime {
     await this.queue.assertLive(this.claim);await this.assertOwned();const db=await this.admin(this.claim.database_name);
     try{
       await db.query(await readFile(join(this.config.repo,'infra/atlas/raw-finalize.sql'),'utf8'));
-      await db.query(tileSqlForRole(await readFile(join(this.config.repo,'infra/atlas/tiles.sql'),'utf8'),this.claim.tile_role));
+      await db.query(await readFile(join(this.config.repo,'infra/atlas/catalog-topology.sql'),'utf8'));
+      await db.query(tileSqlForRole(await readFile(join(this.config.repo,'infra/atlas/tiles-v2.sql'),'utf8'),this.claim.tile_role));
       await db.query(`REASSIGN OWNED BY ${q(this.claim.import_role)} TO ${q(this.claim.owner_role)}`);
       await db.query(`REVOKE ALL ON SCHEMA osm_raw,render,import_work FROM ${q(this.claim.import_role)}`);
+      await db.query(`ALTER TABLE render.relation_topology OWNER TO ${q(this.claim.owner_role)}`);
+      for(const layer of layers)await db.query(`ALTER VIEW tiles.${layer} OWNER TO ${q(this.claim.owner_role)}`);
       await db.query(`GRANT USAGE ON SCHEMA osm_raw,render,tiles,atlas_build TO ${q(this.claim.qa_role)}; GRANT SELECT ON ALL TABLES IN SCHEMA osm_raw,render,atlas_build TO ${q(this.claim.qa_role)}`);
-      await db.query(`GRANT USAGE ON SCHEMA render,tiles TO ${q(this.claim.tile_role)}; REVOKE ALL ON ALL TABLES IN SCHEMA render FROM ${q(this.claim.tile_role)}; GRANT SELECT ON ${layers.map(n=>'render.'+n).join(',')} TO ${q(this.claim.tile_role)}`);
+      await db.query(`GRANT SELECT ON ALL TABLES IN SCHEMA tiles TO ${q(this.claim.qa_role)}; REVOKE ALL ON SCHEMA render FROM ${q(this.claim.tile_role)}; REVOKE ALL ON ALL TABLES IN SCHEMA render FROM ${q(this.claim.tile_role)}`);
       await db.query(`REVOKE EXECUTE ON FUNCTION tiles.basemap(integer,integer,integer) FROM PUBLIC; GRANT EXECUTE ON FUNCTION tiles.basemap(integer,integer,integer) TO ${q(this.claim.tile_role)},${q(this.claim.qa_role)}`);
       await db.query('ANALYZE');
       const version=(await db.query('SELECT version() AS postgres,postgis_full_version() AS postgis,pg_database_size(current_database())::text AS bytes')).rows[0];

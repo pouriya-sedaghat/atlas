@@ -13,7 +13,7 @@ const options=process.env.ATLAS_TILE_CHECK_CONFIG_FILE?JSON.parse(readFileSync(p
 const connection=options?{connectionString:readFileSync(options.connectionFile,'utf8').trim()}:{host:'db',database:'atlas_lab',user:'atlas_admin',password:readFileSync('/run/secrets/db_password','utf8').trim()};
 if(options&&!/^atlas_candidate_[0-9a-f]{24}_[0-9a-f]{16}$/.test(new URL(connection.connectionString).pathname.slice(1)))throw new Error('candidate tile check requires a managed candidate database');
 const client = new pg.Client({...connection,connectionTimeoutMillis:5000,statement_timeout:15000});
-const allowed = new Set(['water','landcover','waterways','boundaries','transport','buildings','places','pois']);
+const allowed = new Set(options?.layers??['water','landcover','waterways','boundaries','transport','buildings','places','pois']);
 const sites = options?.sites??{tehran:[51.389,35.6892],mashhad:[59.6062,36.2605],shiraz:[52.5311,29.5918],
   tabriz:[46.2919,38.0962],ahvaz:[48.6692,31.3183],rural:[58.5,32.4]};
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');

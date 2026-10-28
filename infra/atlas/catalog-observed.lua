@@ -1,12 +1,14 @@
--- Observe the reviewed v1 display catalog without changing the legacy runtime.
+-- Observe core display rules plus explicit detail overlays; legacy runtime stays separate.
 -- Each tagged primitive gets exactly one outcome; an attempted INSERT is not a success.
 local native_define = osm2pgsql.define_table
-local layers = {places=true,boundaries=true,water=true,waterways=true,landcover=true,transport=true,buildings=true,pois=true}
+local layers = {places=true,boundaries=true,water=true,waterways=true,landcover=true,transport=true,buildings=true,pois=true,
+    detail_points=true,detail_lines=true,detail_areas=true}
 local outcome = native_define({name='object_outcomes',schema='render',cluster='no',
     ids={type='any',id_column='osm_id',type_column='osm_type',create_index='primary_key'},
     columns={{column='status',type='text',not_null=true},{column='has_content',type='bool',not_null=true},
         {column='outputs',type='jsonb',not_null=true},{column='uncatalogued',type='bool',not_null=true},
-        {column='issues',type='jsonb',not_null=true},{column='geometry_probes',type='jsonb',not_null=true}},indexes={}})
+        {column='issues',type='jsonb',not_null=true},{column='geometry_probes',type='jsonb',not_null=true},
+        {column='detail_facets',type='jsonb',not_null=true}},indexes={}})
 local current
 osm2pgsql.define_table = function(definition)
     local real = native_define(definition)
@@ -14,6 +16,10 @@ osm2pgsql.define_table = function(definition)
     return setmetatable({}, {__index=function(_,method)
         if method ~= 'insert' then return function(_,...) return real[method](real,...) end end
         return function(_,row)
+            if definition.name=='uncatalogued' then
+                current.deferred_uncatalogued={table=real,row=row}
+                return true
+            end
             local inserted,message,column = real:insert(row)
             if not current then error('catalog insert outside an observed callback') end
             local name=definition.name
@@ -27,7 +33,8 @@ osm2pgsql.define_table = function(definition)
         end
     end})
 end
-dofile('/config/catalog-v1.lua')
+dofile('/config/catalog-core.lua')
+local details=dofile('/config/catalog-details.lua')
 osm2pgsql.define_table = native_define
 
 local metadata={created_by=true,source=true,note=true,fixme=true,FIXME=true,['seyra:fixture']=true}
@@ -58,6 +65,16 @@ local function observe(callback,kind)
         if current then error('nested catalog callback') end
         current={outputs={},uncatalogued=false,issues={},geometry_probes={}}
         callback(object)
+        local detail_facets=details(object,kind,current.outputs)
+        for family,facet in pairs(detail_facets) do
+            if facet.status=='geometry_rejected' then current.issues['detail:'..family]={code='detail_geometry_rejected',family=family} end
+        end
+        if not next(current.outputs) and current.deferred_uncatalogued then
+            local pending=current.deferred_uncatalogued
+            local inserted=pending.table:insert(pending.row)
+            if not inserted then error('failed to persist uncatalogued object') end
+            current.uncatalogued=true
+        end
         -- Probe only otherwise unmapped objects for geometry operations implied by catalog tags.
         -- Geometry availability is not a proof of complete relation topology.
         local t=object.tags
@@ -78,7 +95,7 @@ local function observe(callback,kind)
         local status=issue and (mapped and 'partial' or 'geometry_rejected') or mapped and 'rendered' or current.uncatalogued and 'uncatalogued' or
           has_content and (content(t,true) and 'unaccounted' or 'catalog_policy_excluded') or 'metadata_only'
         local ok=outcome:insert({status=status,has_content=has_content,outputs=current.outputs,uncatalogued=current.uncatalogued,
-            issues=current.issues,geometry_probes=current.geometry_probes})
+            issues=current.issues,geometry_probes=current.geometry_probes,detail_facets=detail_facets})
         current=nil
         if not ok then error('failed to persist catalog outcome') end
     end

@@ -8,7 +8,7 @@ import {LeaseWatch} from '@atlas/ingest/lease';
 import {BuildQueue,type BuildClaim} from './queue.js';
 import {SourceGate} from './source.js';
 import {DataRuntime} from './data.js';
-import {coverage,tileSites} from './qa.js';
+import {coverage,tileSites,layers} from './qa.js';
 import {pipeline,type Config,type Pipeline} from './config.js';
 export class CandidateWorker {
   readonly files:IntakeFiles;readonly gate:SourceGate;
@@ -68,7 +68,7 @@ export class CandidateWorker {
       const coverageSha=await this.artifact(featureReport);
       await this.queue.stage(claim,'martin_qa');const endpoint=await data.martin(watch.signal);
       const tileConfig=join(data.directory,'tile-check.json'),tileReport=join(data.directory,'tile-parity.json');
-      await writeFile(tileConfig,JSON.stringify({connectionFile:join(data.directory,'qa.dsn'),martin:endpoint,sites,warmup:true}),{flag:'wx',mode:0o600});
+      await writeFile(tileConfig,JSON.stringify({connectionFile:join(data.directory,'qa.dsn'),martin:endpoint,sites,warmup:true,layers}),{flag:'wx',mode:0o600});
       const tilesRun=await execute(process.execPath,[join(this.config.repo,'tools/verify-tiles.mjs'),tileReport,'2'],{signal:watch.signal,timeoutMs:this.config.timeoutMs,maxOutput:1024*1024,
         env:{PATH:process.env.PATH,HOME:process.env.HOME,LANG:'C.UTF-8',ATLAS_TILE_CHECK_CONFIG_FILE:tileConfig}});
       await writeFile(join(data.directory,'tile-check.log'),Buffer.concat([tilesRun.stdout,tilesRun.stderr]),{flag:'wx',mode:0o600});
@@ -94,7 +94,7 @@ export class CandidateWorker {
       await writeFile(join(data.directory,'failure.json'),JSON.stringify({code,name:cause instanceof Error?cause.name:'unknown',message:cause instanceof Error?cause.message.slice(0,2000):'',stack:cause instanceof Error?cause.stack?.slice(0,6000):''},null,2)+'\n',{flag:'wx',mode:0o600}).catch(()=>undefined);
       if(['lease_lost','control_lease_deadline'].includes(code))throw cause;
       await data.stop('importer');await data.stop('martin');
-      await this.queue.fail(claim,code,!['canonical_roundtrip_failed','outcome_accounting_failed','unexplained_catalog_loss','layer_integrity_failed','candidate_tile_contract_failed','source_receipt_changed'].includes(code));
+      await this.queue.fail(claim,code,!['canonical_roundtrip_failed','outcome_accounting_failed','unexplained_catalog_loss','layer_integrity_failed','serving_topology_integrity_failed','candidate_tile_contract_failed','source_receipt_changed'].includes(code));
       process.stderr.write(JSON.stringify({event:'candidate_attempt_failed',id:claim.id,code})+'\n');throw error;
     }finally{
       watch.stop();

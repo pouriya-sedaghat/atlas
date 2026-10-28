@@ -46,7 +46,7 @@ export async function privateDirectory(path:string,create=false):Promise<void>{
 export async function pipeline(config:Config):Promise<Pipeline>{
   await verifyBuild(config.source.worker.controllerSha256);
   const files:Record<string,string>={};
-  for(const name of ['infra/atlas/raw.lua','infra/atlas/raw-finalize.sql','infra/atlas/tiles.sql','infra/atlas/catalog-observed.lua','infra/catalog/seyra-flex.lua','tools/verify-raw.mjs','tools/verify-tiles.mjs'])
+  for(const name of ['infra/atlas/raw.lua','infra/atlas/raw-finalize.sql','infra/atlas/tiles-v2.sql','infra/atlas/catalog-topology.sql','infra/atlas/catalog-details.lua','infra/atlas/catalog-observed.lua','infra/atlas/catalog-core-v2.lua','tools/verify-raw.mjs','tools/verify-tiles.mjs'])
     files[name]=sha256(await readFile(join(config.repo,name)));
   const dist=fileURLToPath(new URL('.',import.meta.url));
   for(const name of (await readdir(dist)).filter(n=>/\.(js|sql)$/.test(n)).sort())files['builder/'+name]=sha256(await readFile(join(dist,name)));
@@ -59,9 +59,10 @@ export async function pipeline(config:Config):Promise<Pipeline>{
   }
   const specification={schema:'atlas.candidate-spec/1',node:process.versions.node,files,images,
     source_verifier_build:config.source.worker.controllerSha256,trusted_source_key:config.source.signer.publicKeySha256,
-    scope:'experimental_source_only',component:'postgis_and_martin',catalog_contract:'seyra-catalog-1.0.0-observed-1',publication_supported:false,
+    scope:'experimental_source_only',component:'postgis_and_martin',catalog_contract:'atlas-catalog-2.0.0',publication_supported:false,
     resources:{import_cpus:config.importCpus,import_memory_bytes:config.importMemoryBytes,import_cpu_shares:128,min_free_bytes:config.minFreeBytes,timeout_ms:config.timeoutMs,heavy_slot:'shared_with_intake',
-      isolation:'separate_data_cluster',data_limits:config.dataLimits,warmup_sql_timeout_ms:120000,serving_sql_timeout_ms:10000}};
+      isolation:'separate_data_cluster',data_limits:config.dataLimits,warmup_sql_timeout_ms:120000,serving_sql_timeout_ms:10000,
+      postgres_prerequisites:{client_connection_check_interval_ms:1000,fsync:'on',synchronous_commit:'on',full_page_writes:'on'}}};
   const digest=sha256(JSON.stringify(specification));
   if(config.expectedPipelineSha256&&config.expectedPipelineSha256!==digest)throw new IntakeError('candidate_pipeline_changed');
   return {sha256:digest,specification};
