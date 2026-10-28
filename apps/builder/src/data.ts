@@ -153,7 +153,7 @@ export class DataRuntime {
       await db.query(`REASSIGN OWNED BY ${q(this.claim.import_role)} TO ${q(this.claim.owner_role)}`);
       await db.query(`REVOKE ALL ON SCHEMA osm_raw,render,import_work FROM ${q(this.claim.import_role)}`);
       await db.query(`ALTER TABLE render.relation_topology OWNER TO ${q(this.claim.owner_role)}`);
-      for(const layer of layers)await db.query(`ALTER VIEW tiles.${layer} OWNER TO ${q(this.claim.owner_role)}`);
+      for(const layer of layers)await db.query(`ALTER MATERIALIZED VIEW tiles.${layer} OWNER TO ${q(this.claim.owner_role)}`);
       await db.query(`GRANT USAGE ON SCHEMA osm_raw,render,tiles,atlas_build TO ${q(this.claim.qa_role)}; GRANT SELECT ON ALL TABLES IN SCHEMA osm_raw,render,atlas_build TO ${q(this.claim.qa_role)}`);
       await db.query(`GRANT SELECT ON ALL TABLES IN SCHEMA tiles TO ${q(this.claim.qa_role)}; REVOKE ALL ON SCHEMA render FROM ${q(this.claim.tile_role)}; REVOKE ALL ON ALL TABLES IN SCHEMA render FROM ${q(this.claim.tile_role)}`);
       await db.query(`REVOKE EXECUTE ON FUNCTION tiles.basemap(integer,integer,integer) FROM PUBLIC; GRANT EXECUTE ON FUNCTION tiles.basemap(integer,integer,integer) TO ${q(this.claim.tile_role)},${q(this.claim.qa_role)}`);

@@ -1,5 +1,5 @@
 -- A drawable fragment is not proof that a relation is complete.
--- This table and the serving views are built before freezing a fresh candidate.
+-- This table and the serving snapshots are built before freezing a fresh candidate.
 -- Source/archive/render rows are never deleted or repaired by this policy.
 CREATE TABLE render.relation_topology (
   osm_id bigint PRIMARY KEY,
@@ -41,10 +41,15 @@ DO $$
 DECLARE name text;
 BEGIN
   FOREACH name IN ARRAY ARRAY['water','landcover','waterways','boundaries','transport','buildings','places','pois','detail_points','detail_lines','detail_areas'] LOOP
-    EXECUTE format('CREATE VIEW tiles.%I WITH (security_barrier=true) AS SELECT r.* FROM render.%I r
+    -- Persist the filtered rows. A security-barrier view prevents the non-leakproof
+    -- PostGIS && predicate from reaching the base GiST index. A plain view would
+    -- weaken isolation. These immutable snapshots contain no blocked rows at all.
+    EXECUTE format('CREATE MATERIALIZED VIEW tiles.%I AS SELECT r.* FROM render.%I r
       WHERE r.osm_type IN (''N'',''W'') OR (r.osm_type=''R'' AND EXISTS
         (SELECT FROM render.relation_topology t WHERE t.osm_id=r.osm_id AND NOT t.blocked))',name,name);
     EXECUTE format('REVOKE ALL ON tiles.%I FROM PUBLIC',name);
+    EXECUTE format('CREATE INDEX %I ON tiles.%I USING gist(geom)',name||'_geom_idx',name);
+    EXECUTE format('ANALYZE tiles.%I',name);
   END LOOP;
 END $$;
 ANALYZE render.relation_topology;

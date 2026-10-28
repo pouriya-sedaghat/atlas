@@ -30,7 +30,10 @@ export function reviewReasons(report:Omit<Coverage,'review_reasons'>):string[]{
     if(s.missing_topology_rows||s.blocked_rows_exposed)throw new IntakeError('serving_topology_integrity_failed');
     if(s.nested_geometry_relations>0)reasons.push('unsupported_nested_geometry');
   }
-  for(const row of Object.values(report.layers))if(row.invalid_geometries||row.empty_geometries||row.rows!==row.observed_inserts)throw new IntakeError('layer_integrity_failed');
+  for(const row of Object.values(report.layers)){
+    if(row.invalid_geometries||row.empty_geometries||row.rows!==row.observed_inserts)throw new IntakeError('layer_integrity_failed');
+    if(row.expected_served_rows!==undefined&&row.expected_served_rows!==row.served_rows)throw new IntakeError('serving_topology_integrity_failed');
+  }
   return reasons;
 }
 export async function coverage(client:Client,audit:AuditReport):Promise<Coverage>{
@@ -46,6 +49,8 @@ export async function coverage(client:Client,audit:AuditReport):Promise<Coverage
         count(*) FILTER(WHERE NOT ST_IsValid(geom))::integer AS invalid_geometries,
         (SELECT coalesce(sum((outputs->>$1)::bigint),0)::integer FROM render.object_outcomes) AS observed_inserts,
         (SELECT count(*)::integer FROM tiles.${name}) AS served_rows,
+        count(*) FILTER(WHERE osm_type IN ('N','W') OR (osm_type='R' AND EXISTS
+          (SELECT FROM render.relation_topology t WHERE t.osm_id=render.${name}.osm_id AND NOT t.blocked)))::integer AS expected_served_rows,
         (SELECT count(*)::integer FROM tiles.${name} v JOIN render.relation_topology t ON v.osm_type='R' AND t.osm_id=v.osm_id WHERE t.blocked) AS blocked_rows_exposed
         FROM render.${name}`,[name])).rows[0];
       layerRows[name].withheld_rows=layerRows[name].rows-layerRows[name].served_rows;

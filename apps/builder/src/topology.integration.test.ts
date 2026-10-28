@@ -9,6 +9,7 @@ describe.skipIf(!connectionString)('serving topology closure on real PostgreSQL'
   beforeAll(async()=>{
     const db=(await pool.query('SELECT current_database() AS name')).rows[0].name;
     if(!String(db).startsWith('atlas_test'))throw Error('disposable database required');
+    await pool.query('CREATE EXTENSION IF NOT EXISTS postgis');
   });
   beforeEach(async()=>{
     await pool.query('DROP SCHEMA IF EXISTS osm_raw CASCADE; DROP SCHEMA IF EXISTS render CASCADE; DROP SCHEMA IF EXISTS tiles CASCADE; CREATE SCHEMA osm_raw; CREATE SCHEMA render; CREATE SCHEMA tiles');
@@ -27,8 +28,8 @@ describe.skipIf(!connectionString)('serving topology closure on real PostgreSQL'
     ];
     for(const [id,type,members]of relations)await pool.query('INSERT INTO osm_raw.relations VALUES($1,$2,$3)',[id,JSON.stringify({type}),JSON.stringify(members)]);
     for(const layer of layers){
-      await pool.query(`CREATE TABLE render.${layer}(osm_type char(1),osm_id bigint); INSERT INTO render.${layer} VALUES('N',20),('W',10),('R',999)`);
-      await pool.query(`INSERT INTO render.${layer} SELECT 'R',osm_id FROM osm_raw.relations`);
+      await pool.query(`CREATE TABLE render.${layer}(osm_type char(1),osm_id bigint,geom geometry(Point,3857)); INSERT INTO render.${layer} SELECT t, id, ST_SetSRID(ST_Point(1,1),3857) FROM (VALUES('N',20),('W',10),('R',999)) v(t,id)`);
+      await pool.query(`INSERT INTO render.${layer} SELECT 'R',osm_id,ST_SetSRID(ST_Point(1,1),3857) FROM osm_raw.relations`);
     }
     await pool.query(readFileSync(new URL('../../../infra/atlas/catalog-topology.sql',import.meta.url),'utf8'));
   });
@@ -44,8 +45,18 @@ describe.skipIf(!connectionString)('serving topology closure on real PostgreSQL'
     expect(rows.map(r=>[r.osm_id,r.nested_geometry_members,r.blocked])).toEqual([
       ['103',1,true],['104',0,false],['105',1,true],['106',1,true],['107',0,false],['108',0,false]]);
   });
-  it('fails closed for an otherwise drawable relation missing its topology record',async()=>{
+  it('fails closed at snapshot construction for a relation missing its topology record',async()=>{
+    expect((await pool.query("SELECT count(*)::integer n FROM tiles.boundaries WHERE osm_type='R' AND osm_id=999")).rows[0].n).toBe(0);
+    // Test administrator rebuilds a snapshot; serving logins cannot refresh it.
     await pool.query('DELETE FROM render.relation_topology WHERE osm_id=102');
+    await pool.query('REFRESH MATERIALIZED VIEW tiles.boundaries');
     expect((await pool.query("SELECT count(*)::integer n FROM tiles.boundaries WHERE osm_type='R' AND osm_id IN (102,999)")).rows[0].n).toBe(0);
+  });
+  it('uses the spatial index on the filtered snapshot for selective tile requests',async()=>{
+    await pool.query("INSERT INTO render.transport SELECT 'N',1000+i,ST_SetSRID(ST_Point(i*1000,i*1000),3857) FROM generate_series(1,10000) i");
+    await pool.query('REFRESH MATERIALIZED VIEW tiles.transport; ANALYZE tiles.transport');
+    const plan=(await pool.query('EXPLAIN (FORMAT JSON) SELECT osm_id FROM tiles.transport WHERE geom && ST_MakeEnvelope(999900,999900,1000100,1000100,3857)')).rows[0]['QUERY PLAN'];
+    expect(JSON.stringify(plan)).toContain('transport_geom_idx');
+    expect((await pool.query('SELECT osm_id::text FROM tiles.transport WHERE geom && ST_MakeEnvelope(999900,999900,1000100,1000100,3857)')).rows).toEqual([{osm_id:'2000'}]);
   });
 });

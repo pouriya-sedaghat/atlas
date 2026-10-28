@@ -33,5 +33,7 @@ describe('candidate quality barriers',()=>{
     const r=valid();r.serving_integrity={missing_topology_rows:0,blocked_rows_exposed:1,nested_geometry_relations:1};
     expect(()=>reviewReasons(r)).toThrow('serving_topology_integrity_failed');
     r.serving_integrity.blocked_rows_exposed=0;expect(reviewReasons(r)).toContain('unsupported_nested_geometry');
+    r.layers.pois.expected_served_rows=1;r.layers.pois.served_rows=0;
+    expect(()=>reviewReasons(r)).toThrow('serving_topology_integrity_failed');
   });
 });

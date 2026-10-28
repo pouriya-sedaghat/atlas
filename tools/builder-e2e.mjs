@@ -78,7 +78,9 @@ try{
   const tileUri=new URL(qaDsn);tileUri.username=attempt.tile_role;tileUri.password=credentials.tilePassword;
   const tile=new pg.Client({connectionString:tileUri.toString()});await tile.connect();
   try{await assert.rejects(tile.query('SELECT count(*) FROM osm_raw.nodes'));await assert.rejects(tile.query('SELECT count(*) FROM render.transport'));
-    assert.ok((await tile.query('SELECT count(*) FROM tiles.transport')).rows[0]);assert.ok((await tile.query('SELECT tiles.basemap(6,32,31) AS tile')).rows[0].tile.length>=0);}
+    assert.ok((await tile.query('SELECT count(*) FROM tiles.transport')).rows[0]);assert.ok((await tile.query('SELECT tiles.basemap(6,32,31) AS tile')).rows[0].tile.length>=0);
+    await assert.rejects(tile.query('REFRESH MATERIALIZED VIEW tiles.transport'));
+    await assert.rejects(tile.query('DELETE FROM tiles.transport'));}
   finally{await tile.end();}
   const importUri=new URL(qaDsn);importUri.username=attempt.import_role;importUri.password=credentials.importPassword;
   const disabled=new pg.Client({connectionString:importUri.toString()});await assert.rejects(disabled.connect());await disabled.end().catch(()=>{});
@@ -137,7 +139,7 @@ try{
   }finally{await topoQa.end();}
   const topoCoverage=await artifact(topoManifest.qa.feature_coverage);assert.equal(topoCoverage.serving_integrity.blocked_rows_exposed,0);
   assert.equal(topoCoverage.serving_integrity.withheld_relations,3);assert.equal((await artifact(topoManifest.qa.canonical_roundtrip)).passed,true);
-  tests.push('incomplete_and_nested_relation_fragments_are_kept_for_audit_but_withheld_from_serving_views');
+  tests.push('incomplete_and_nested_relation_fragments_are_kept_for_audit_but_withheld_from_serving_snapshots');
   // Changing both the payload and its database hash must still fail before provisioning.
   const changed=JSON.parse((await files.artifact(healthy.validation.payload_sha256)).toString());changed.tampered=true;
   const forgedSha=await files.putArtifact(Buffer.from(JSON.stringify(changed)+'\n'));
