@@ -91,5 +91,5 @@ GRANT USAGE ON SCHEMA tiles TO atlas_tile;
 GRANT SELECT ON ALL TABLES IN SCHEMA tiles TO atlas_tile;
 GRANT EXECUTE ON FUNCTION tiles.basemap(integer,integer,integer) TO atlas_tile;
 COMMENT ON FUNCTION tiles.basemap(integer,integer,integer) IS
-'{"description":"Atlas basemap, catalog v2; incomplete relation geometry withheld; canonical primitives retained","minzoom":0,"maxzoom":16,"attribution":"Ã‚Â© OpenStreetMap contributors"}';
+'{"description":"Atlas basemap, catalog v2; incomplete relation geometry withheld; canonical primitives retained","minzoom":0,"maxzoom":16,"attribution":"\u00a9 OpenStreetMap contributors"}';
 ANALYZE;

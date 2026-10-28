@@ -68,6 +68,8 @@ try{
   const rt=await artifact(manifest.qa.canonical_roundtrip);assert.equal(rt.passed,true);
   tests.push('accepted_signed_source_builds_into_a_separate_verified_readonly_component');
   const firstInfo=await inspect(manifest.serving.container),firstEndpoint='http://'+firstInfo.NetworkSettings.Networks[build.network].IPAddress+':3000';
+  const tilejsonResponse=await fetch(firstEndpoint+'/basemap',{signal:AbortSignal.timeout(5000)});assert.equal(tilejsonResponse.status,200);
+  const tilejson=await tilejsonResponse.json();assert.equal(tilejson.attribution,'\u00a9 OpenStreetMap contributors');
   const attempt=(await pool.query('SELECT * FROM atlas_control.candidate_attempts WHERE job_id=$1 AND token=$2',[first.id,manifest.attempt])).rows[0];
   const dir=join(build.root,'attempts',manifest.attempt),credentials=JSON.parse(await readFile(join(dir,'credentials.json'),'utf8'));
   const qaDsn=await secretFile(join(dir,'qa.dsn')),qa=new pg.Client({connectionString:qaDsn});await qa.connect();
