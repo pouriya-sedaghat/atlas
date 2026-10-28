@@ -1,0 +1,65 @@
+{
+  "schema": "atlas.candidate-operations/1",
+  "at": "2026-10-28T05:44:02.415Z",
+  "node": "24.21.0",
+  "cpu_count": 4,
+  "host_memory_bytes": 12082294784,
+  "filesystem_available_bytes": 52581482496,
+  "postgres_settings": [
+    {
+      "name": "client_connection_check_interval",
+      "setting": "1000",
+      "unit": "ms"
+    },
+    {
+      "name": "fsync",
+      "setting": "on",
+      "unit": null
+    },
+    {
+      "name": "full_page_writes",
+      "setting": "on",
+      "unit": null
+    },
+    {
+      "name": "maintenance_work_mem",
+      "setting": "131072",
+      "unit": "kB"
+    },
+    {
+      "name": "max_parallel_workers",
+      "setting": "1",
+      "unit": null
+    },
+    {
+      "name": "max_parallel_workers_per_gather",
+      "setting": "0",
+      "unit": null
+    },
+    {
+      "name": "max_wal_size",
+      "setting": "1024",
+      "unit": "MB"
+    },
+    {
+      "name": "shared_buffers",
+      "setting": "32768",
+      "unit": "8kB"
+    },
+    {
+      "name": "synchronous_commit",
+      "setting": "on",
+      "unit": null
+    },
+    {
+      "name": "work_mem",
+      "setting": "8192",
+      "unit": "kB"
+    }
+  ],
+  "settings_assurance": "operator prerequisites checked at export; automatic profile guards cover Docker/cgroups, not every PostgreSQL GUC",
+  "source_usage_scope": "experimental_source_only",
+  "whole_platform_migration_complete": false,
+  "public_cutover_performed": false,
+  "actual_database_gc_implemented": false
+}

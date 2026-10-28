@@ -21,12 +21,25 @@ unbounded observed devices cause refusal. Device major/minor numbers must come f
 destination machine. Include both the logical and physical device when both are charged.
 Do not copy the lab's device numbers blindly. I/O ceilings reduce interference; they do not
 reserve latency on a shared host or establish a production capacity envelope.
+The lab's two Docker volumes still share the host filesystem; a named volume is not a
+separate free-space reservation or failure domain. Production disk quotas/reservations,
+continuous capacity protection and safe GC must be addressed before a no-downtime claim.
 
 The tested lab profile is 3 GiB RAM/no swap, one CPU, shares 256, read/write 16 MiB/s on
 8:0 and 252:0 for the data cluster; the importer has 2 GiB/no swap, one CPU/shares 128.
 The original serving PostgreSQL keeps its own 5 GiB budget and shares 2048. Preserve fsync
 and synchronous commit. Keep at least 20 GiB free **before** starting a new real build;
 continuous disk admission/estimated peak usage and cleanup remain future work.
+
+Set `client_connection_check_interval=1s` persistently on the **candidate** PostgreSQL
+cluster and verify `SHOW client_connection_check_interval` before enabling the worker.
+The default is zero: closing a client connection alone does not promptly stop a long query.
+The lab applied `ALTER SYSTEM SET client_connection_check_interval='1s'`, reloaded that
+cluster, and verified that a disconnected 60-second query's backend disappeared in about
+two seconds. This server setting is an operator prerequisite; current automatic Docker
+profile checks do not enforce every PostgreSQL GUC. Pinning the complete server configuration,
+explicit database-backend reaping and partition tests remain production hardening work.
+See [PostgreSQL's connection-check documentation](https://www.postgresql.org/docs/17/runtime-config-connection.html#GUC-CLIENT-CONNECTION-CHECK-INTERVAL).
 
 Create a private config from [config.example.json](config.example.json). Paths must be absolute,
 canonical and private; DSN files are 0600, state roots 0700. Keep all of them outside the repo.

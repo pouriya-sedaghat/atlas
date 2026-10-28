@@ -1,0 +1,124 @@
+{
+  "schema": "atlas.feature-coverage/1",
+  "source_sha256": "08d6efc244a0938c457b973760c5934faee6a1b2108fc7828a5ad3370c36d1f6",
+  "accounting": {
+    "missing_outcomes": 0,
+    "orphan_outcomes": 0
+  },
+  "outcomes": [
+    {
+      "osm_type": "N",
+      "status": "catalog_policy_excluded",
+      "objects": 1
+    },
+    {
+      "osm_type": "N",
+      "status": "metadata_only",
+      "objects": 1
+    },
+    {
+      "osm_type": "N",
+      "status": "rendered",
+      "objects": 1
+    },
+    {
+      "osm_type": "N",
+      "status": "uncatalogued",
+      "objects": 1
+    },
+    {
+      "osm_type": "R",
+      "status": "geometry_rejected",
+      "objects": 1
+    },
+    {
+      "osm_type": "W",
+      "status": "geometry_rejected",
+      "objects": 1
+    },
+    {
+      "osm_type": "W",
+      "status": "partial",
+      "objects": 1
+    },
+    {
+      "osm_type": "W",
+      "status": "rendered",
+      "objects": 1
+    }
+  ],
+  "layers": {
+    "water": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0
+    },
+    "landcover": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0
+    },
+    "waterways": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0
+    },
+    "boundaries": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0
+    },
+    "transport": {
+      "rows": 2,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 2
+    },
+    "buildings": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0
+    },
+    "places": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0
+    },
+    "pois": {
+      "rows": 1,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 1
+    }
+  },
+  "uncatalogued": [
+    {
+      "osm_type": "N",
+      "primary_key": "unknown:feature",
+      "objects": 1
+    },
+    {
+      "osm_type": "R",
+      "primary_key": "building",
+      "objects": 1
+    }
+  ],
+  "incomplete_relations": [],
+  "incomplete_relation_examples": [],
+  "relation_impact": {
+    "directly_incomplete": 0,
+    "including_ancestor_relations": 0,
+    "with_some_rendered_output": 0
+  },
+  "geographic_truth_verified": false,
+  "review_reasons": [
+    "geometry_conversion_issues",
+    "catalog_coverage_incomplete"
+  ]
+}

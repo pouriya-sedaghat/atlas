@@ -1,0 +1,110 @@
+{
+  "schema": "atlas.candidate-verification-summary/1",
+  "date": "2026-10-28",
+  "source_sha256": "a3c61d35b010d4a474c1eabdef9500339472743423d7bb895b16241c08eb4065",
+  "pipeline_sha256": "81a533df3752cb70527a863ff221e5c4720f63e2d6fa6e0387c3d628e1652165",
+  "manifest_sha256": "6df315b82336143feafb3153d65984ec3009f15613a808bbae301863ab766a71",
+  "state": "review_required",
+  "attempts": 1,
+  "failures": 0,
+  "elapsed_s": 3196.123,
+  "raw_primitives": 30500932,
+  "canonical_roundtrip_passed": true,
+  "tagged_outcomes": 4137234,
+  "outcomes": {
+    "rendered": {
+      "N": 275832,
+      "W": 3061941,
+      "R": 88652
+    },
+    "partial": {
+      "N": 0,
+      "W": 0,
+      "R": 0
+    },
+    "geometry_rejected": {
+      "N": 0,
+      "W": 2,
+      "R": 79
+    },
+    "uncatalogued": {
+      "N": 548755,
+      "W": 127009,
+      "R": 10028
+    },
+    "catalog_policy_excluded": {
+      "N": 0,
+      "W": 610,
+      "R": 297
+    },
+    "metadata_only": {
+      "N": 23675,
+      "W": 354,
+      "R": 0
+    },
+    "unaccounted": {
+      "N": 0,
+      "W": 0,
+      "R": 0
+    }
+  },
+  "accounting": {
+    "missing_outcomes": 0,
+    "orphan_outcomes": 0
+  },
+  "review_reasons": [
+    "geometry_conversion_issues",
+    "catalog_coverage_incomplete",
+    "incomplete_source_topology"
+  ],
+  "relation_impact": {
+    "directly_incomplete": 259,
+    "including_ancestor_relations": 260,
+    "with_some_rendered_output": 154
+  },
+  "tile_samples": 48,
+  "same_input_comparison_samples": 48,
+  "serving": {
+    "requests": 2614,
+    "errors": 0,
+    "latency_ms": {
+      "median": 14.446,
+      "p95": 231.265,
+      "max": 418.951
+    },
+    "byte_change_observations": 0,
+    "old_container_ids_and_start_times_unchanged": true,
+    "guard_stopped_experimental_builder": false
+  },
+  "real_postgresql_tests": {
+    "intake": 16,
+    "builder": 10
+  },
+  "real_fixture_e2e": {
+    "intake": 11,
+    "builder": 8,
+    "builder_old_serving_requests": 60
+  },
+  "local_root": {
+    "build": "passed",
+    "typecheck": "passed",
+    "tests_passed": 135,
+    "environment_dependent_skipped": 21
+  },
+  "probe_files": {
+    "isolated-serving-probe.json": {
+      "uncompressed_sha256": "a2f5ae06b67c9f8e4f897f12be213409bf148ef2cfdaa31dd3fab40955003c88",
+      "gzip_sha256": "e70a95f9d9cea970053dbd184229fca34cca066837975222645a2e35a884cbad"
+    },
+    "rejected-shared-cluster-serving-probe.json": {
+      "uncompressed_sha256": "dbeb11bf68633646adc37449a4d18cc021d1a507840c9b4bbe1d49addd6e7715",
+      "gzip_sha256": "51b33685010103123a4b7df1c5c921fabb7060e2d1621afd7ba7f7de63477800"
+    }
+  },
+  "source_usage_scope": "experimental_source_only",
+  "publishable": false,
+  "map_release_ready": false,
+  "whole_platform_migration_complete": false,
+  "actual_data_gc_implemented": false,
+  "ci_code_checks": "https://github.com/pouriya-sedaghat/atlas/actions/runs/40634622593"
+}

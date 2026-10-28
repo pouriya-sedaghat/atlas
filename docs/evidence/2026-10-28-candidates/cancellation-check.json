@@ -1,0 +1,10 @@
+{
+  "schema": "atlas.candidate-cancellation-check/1",
+  "at": "2026-10-28T05:13:16.481Z",
+  "scope": "dedicated candidate PostgreSQL only",
+  "before": "0",
+  "after": "1s",
+  "client_end_checked_after_ms": 2032,
+  "backend_present": false,
+  "passed": true
+}
