@@ -1,0 +1,8 @@
+{
+  "schema": "atlas.observer-guard-negative/1",
+  "passed": true,
+  "refused_before_http": true,
+  "guard_disabled_on_real_control_refused": true,
+  "server_or_worker_configuration_changed": false,
+  "tool_sha256": "7ef5520783fb904a953e1dd401a75c933083b27b6a14bd119d1a4b0535ff06b3"
+}

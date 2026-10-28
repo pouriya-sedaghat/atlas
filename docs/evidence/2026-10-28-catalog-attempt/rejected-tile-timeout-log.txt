@@ -1,0 +1,33 @@
+/home/owner/atlas-candidate-builds/b9df97c35fa085773c9b36a0008695bce0fb83f8bddf83123f2989d6d3fc23f4/node_modules/pg/lib/client.js:694
+          Error.captureStackTrace(err)
+                ^
+
+error: canceling statement due to statement timeout
+    at /home/owner/atlas-candidate-builds/b9df97c35fa085773c9b36a0008695bce0fb83f8bddf83123f2989d6d3fc23f4/node_modules/pg/lib/client.js:694:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///home/owner/atlas-candidate-builds/b9df97c35fa085773c9b36a0008695bce0fb83f8bddf83123f2989d6d3fc23f4/tools/verify-tiles.mjs:71:17 {
+  length: 664,
+  severity: 'ERROR',
+  code: '57014',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: `SQL statement "SELECT ST_AsMVT(t,'transport',4096,'geom','feature_id')                FROM (\n` +
+    '            SELECT ST_AsMVTGeom(CASE WHEN z < 14 THEN ST_Simplify(geom,pixel/2) ELSE geom END,bounds,4096,64) geom,\n' +
+    '                   feature_id,osm_type,osm_id,class,type,ref,bridge,tunnel,layer,oneway,access,motorcycle,motor_vehicle,foot,z_order,name,name_fa,name_en\n' +
+    '            FROM tiles.transport WHERE geom && buffered AND min_zoom <= z ORDER BY z_order,feature_id\n' +
+    '        ) t"\n' +
+    'PL/pgSQL function basemap(integer,integer,integer) line 38 at SQL statement',
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'postgres.c',
+  line: '3406',
+  routine: 'ProcessInterrupts'
+}
+
+Node.js v24.21.0

@@ -1,0 +1,8 @@
+{
+  "passed": false,
+  "job_id": "e5139b4aef800ceecfe9aa5b1bd8c57166737915149c8b4fd0c704da0da5af42",
+  "pipeline_sha256": "32590f3516d833ae9a773fb27488d66b4790026d5478a34e7c149621d8406e64",
+  "code": "Error",
+  "message": "Connection terminated due to connection timeout",
+  "at": "2026-10-28T18:19:23.829Z"
+}

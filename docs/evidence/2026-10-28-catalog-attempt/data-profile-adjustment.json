@@ -1,0 +1,24 @@
+{
+  "schema": "atlas.data-profile-adjustment/1",
+  "docker_api": "1.56",
+  "container_id": "8ad0d89ff4a829a13106c18e3b1c926d3f345886a6e22c2c5e5a5e496d7b2968",
+  "container_started_at": "2026-10-28T04:19:02.729006343Z",
+  "data_container_restarted": false,
+  "original_serving_restarted": false,
+  "previous_read_write_bps": 16777216,
+  "new_read_write_bps": 8388608,
+  "devices": [
+    {
+      "path": "/dev/sda",
+      "majorMinor": "8:0"
+    },
+    {
+      "path": "/dev/dm-0",
+      "majorMinor": "252:0"
+    }
+  ],
+  "kernel_io_max": "8:0 rbps=8388608 wbps=8388608 riops=max wiops=max\n252:0 rbps=8388608 wbps=8388608 riops=max wiops=max",
+  "other_resource_limits_unchanged": true,
+  "response_warnings": null,
+  "reason": "Rejected 16MiB/s experiment recorded old-serving HTTP timeouts; conservative new experiment with fewer unused services and one observer, not an assertion of root cause"
+}

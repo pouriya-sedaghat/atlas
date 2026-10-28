@@ -1,0 +1,27 @@
+
+ RUN  v5.0.4 /home/owner/atlas-lab/source/apps/builder
+
+{"event":"candidate_metadata_transaction_retry","sqlstate":"40P01","retry":1}
+ ✓ src/metadata.integration.test.ts (4 tests) 2247ms
+   ✓ candidate metadata transactions on real PostgreSQL (4)
+     ✓ retries the entire implicit batch after a real deadlock with no duplicate mutation 2049ms
+ ✓ src/qa.test.ts (6 tests) 7ms
+ ✓ src/queue.integration.test.ts (5 tests) 2532ms
+   ✓ candidate transactions and shared admission (5)
+     ✓ holds a builder while intake owns the slot and holds intake while a builder owns it 1999ms
+ ✓ src/topology.integration.test.ts (8 tests) 7135ms
+   ✓ serving topology closure on real PostgreSQL (8)
+     ✓ counts sparse multi-layer outcomes in one query with the original per-layer results 545ms
+     ✓ reports all zero counters for an empty outcome archive 401ms
+     ✓ keeps malformed counts and integer overflow as hard SQL failures 439ms
+     ✓ blocks direct and transitive missing references while retaining every raw/render row 1442ms
+     ✓ treats unknown nested geometry conservatively and terminates relation cycles 364ms
+     ✓ fails closed at snapshot construction for a relation missing its topology record 373ms
+     ✓ uses the spatial index on the filtered snapshot for selective tile requests 826ms
+     ✓ uses the zoom index when a broad viewport excludes dense high-zoom features 439ms
+
+ Test Files  4 passed (4)
+      Tests  23 passed (23)
+   Start at  18:28:30
+   Duration  7.47s (tests 95%, transform 4%, import 1%)
+

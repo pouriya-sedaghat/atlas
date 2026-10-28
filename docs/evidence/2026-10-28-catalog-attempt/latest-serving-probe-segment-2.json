@@ -1,0 +1,799 @@
+{
+  "schema": "atlas.candidate-serving-probe/1",
+  "tool_sha256": "7ef5520783fb904a953e1dd401a75c933083b27b6a14bd119d1a4b0535ff06b3",
+  "node": "24.21.0",
+  "guard_enabled": true,
+  "observer_failure": null,
+  "started_at": "2026-10-28T18:18:05.920Z",
+  "ended_at": "2026-10-28T18:19:24.016Z",
+  "job_id": "e5139b4aef800ceecfe9aa5b1bd8c57166737915149c8b4fd0c704da0da5af42",
+  "terminal": {
+    "state": "running",
+    "stage": "feature_coverage"
+  },
+  "requests": 44,
+  "errors": 1,
+  "byte_change_observations": 0,
+  "latency_ms": {
+    "median": 33.225,
+    "p95": 3667.526,
+    "max": 7923.649
+  },
+  "old_containers": [
+    {
+      "name": "atlas-lab-db-1",
+      "id": "00feccadfee220561bc68966b1fc2c631943264d97940e48c48241269e4651b3",
+      "started_at": "2026-10-27T07:35:31.114460047Z"
+    },
+    {
+      "name": "atlas-lab-martin-1",
+      "id": "4df9f2fdcaf224270eac55c584f4d5f16267e59edeead4064269fa4cc1b89720",
+      "started_at": "2026-10-27T07:42:20.261905854Z"
+    },
+    {
+      "name": "atlas-lab-pgtileserv-1",
+      "id": "bf548271d9c148c0f01ce91d41b81ff3e280afb299a3cdd4af5b5ad742f41ff8",
+      "started_at": "2026-10-27T07:42:20.478682241Z"
+    }
+  ],
+  "old_container_ids_and_start_times_unchanged": true,
+  "guard_stopped_experimental_builder": true,
+  "scope": "existing private laboratory Martin during candidate import and QA; not a public gateway, browser, publication, or capacity proof",
+  "resource_sampling": "approximately every 15 seconds; observed samples are not exact peaks",
+  "resources": [
+    {
+      "at": "2026-10-28T18:18:08.511Z",
+      "elapsed_ms": 2590,
+      "filesystem_available_bytes": 205900337152,
+      "memory_available_bytes": 10106019840,
+      "data_io_stat": "8:0 rbytes=229792681984 wbytes=221670211584 rios=12063373 wios=1218215 dbytes=0 dios=0\n252:0 rbytes=229796458496 wbytes=221670211584 rios=12036053 wios=1171348 dbytes=0 dios=0",
+      "docker": [
+        {
+          "BlockIO": "38GB / 93.6GB",
+          "CPUPerc": "0.67%",
+          "Container": "atlas-lab-db-1",
+          "ID": "00feccadfee2",
+          "MemPerc": "7.14%",
+          "MemUsage": "365.7MiB / 5GiB",
+          "Name": "atlas-lab-db-1",
+          "NetIO": "9.85GB / 10.6GB",
+          "PIDs": "16"
+        },
+        {
+          "BlockIO": "98.8MB / 295kB",
+          "CPUPerc": "0.07%",
+          "Container": "atlas-lab-martin-1",
+          "ID": "4df9f2fdcaf2",
+          "MemPerc": "4.56%",
+          "MemUsage": "23.37MiB / 512MiB",
+          "Name": "atlas-lab-martin-1",
+          "NetIO": "6.96GB / 6.71GB",
+          "PIDs": "5"
+        },
+        {
+          "BlockIO": "38.3MB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "atlas-lab-pgtileserv-1",
+          "ID": "bf548271d9c1",
+          "MemPerc": "2.41%",
+          "MemUsage": "12.32MiB / 512MiB",
+          "Name": "atlas-lab-pgtileserv-1",
+          "NetIO": "43.4MB / 43.3MB",
+          "PIDs": "10"
+        },
+        {
+          "BlockIO": "460GB / 443GB",
+          "CPUPerc": "1.61%",
+          "Container": "atlas-candidate-db",
+          "ID": "8ad0d89ff4a8",
+          "MemPerc": "18.80%",
+          "MemUsage": "577.4MiB / 3GiB",
+          "Name": "atlas-candidate-db",
+          "NetIO": "57.5GB / 14.7GB",
+          "PIDs": "10"
+        }
+      ],
+      "stats_ok": true
+    },
+    {
+      "at": "2026-10-28T18:18:23.551Z",
+      "elapsed_ms": 17629,
+      "filesystem_available_bytes": 205900333056,
+      "memory_available_bytes": 10141409280,
+      "data_io_stat": "8:0 rbytes=229900693504 wbytes=221670318080 rios=12069711 wios=1218241 dbytes=0 dios=0\n252:0 rbytes=229905027072 wbytes=221670318080 rios=12042520 wios=1171374 dbytes=0 dios=0",
+      "docker": [
+        {
+          "BlockIO": "38GB / 93.6GB",
+          "CPUPerc": "1.08%",
+          "Container": "atlas-lab-db-1",
+          "ID": "00feccadfee2",
+          "MemPerc": "7.18%",
+          "MemUsage": "367.4MiB / 5GiB",
+          "Name": "atlas-lab-db-1",
+          "NetIO": "9.85GB / 10.6GB",
+          "PIDs": "15"
+        },
+        {
+          "BlockIO": "98.8MB / 295kB",
+          "CPUPerc": "0.06%",
+          "Container": "atlas-lab-martin-1",
+          "ID": "4df9f2fdcaf2",
+          "MemPerc": "4.66%",
+          "MemUsage": "23.85MiB / 512MiB",
+          "Name": "atlas-lab-martin-1",
+          "NetIO": "6.97GB / 6.71GB",
+          "PIDs": "5"
+        },
+        {
+          "BlockIO": "38.3MB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "atlas-lab-pgtileserv-1",
+          "ID": "bf548271d9c1",
+          "MemPerc": "2.41%",
+          "MemUsage": "12.32MiB / 512MiB",
+          "Name": "atlas-lab-pgtileserv-1",
+          "NetIO": "43.4MB / 43.3MB",
+          "PIDs": "10"
+        },
+        {
+          "BlockIO": "460GB / 443GB",
+          "CPUPerc": "3.53%",
+          "Container": "atlas-candidate-db",
+          "ID": "8ad0d89ff4a8",
+          "MemPerc": "18.81%",
+          "MemUsage": "577.9MiB / 3GiB",
+          "Name": "atlas-candidate-db",
+          "NetIO": "57.5GB / 14.7GB",
+          "PIDs": "10"
+        }
+      ],
+      "stats_ok": true
+    },
+    {
+      "at": "2026-10-28T18:18:39.378Z",
+      "elapsed_ms": 33456,
+      "filesystem_available_bytes": 205900333056,
+      "memory_available_bytes": 10127241216,
+      "data_io_stat": "8:0 rbytes=229974458368 wbytes=221670318080 rios=12073889 wios=1218241 dbytes=0 dios=0\n252:0 rbytes=229976555520 wbytes=221670318080 rios=12046143 wios=1171374 dbytes=0 dios=0",
+      "docker": [
+        {
+          "BlockIO": "38GB / 93.6GB",
+          "CPUPerc": "5.05%",
+          "Container": "atlas-lab-db-1",
+          "ID": "00feccadfee2",
+          "MemPerc": "7.19%",
+          "MemUsage": "368MiB / 5GiB",
+          "Name": "atlas-lab-db-1",
+          "NetIO": "9.85GB / 10.6GB",
+          "PIDs": "15"
+        },
+        {
+          "BlockIO": "98.8MB / 295kB",
+          "CPUPerc": "0.07%",
+          "Container": "atlas-lab-martin-1",
+          "ID": "4df9f2fdcaf2",
+          "MemPerc": "4.77%",
+          "MemUsage": "24.41MiB / 512MiB",
+          "Name": "atlas-lab-martin-1",
+          "NetIO": "6.97GB / 6.71GB",
+          "PIDs": "5"
+        },
+        {
+          "BlockIO": "38.3MB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "atlas-lab-pgtileserv-1",
+          "ID": "bf548271d9c1",
+          "MemPerc": "2.41%",
+          "MemUsage": "12.32MiB / 512MiB",
+          "Name": "atlas-lab-pgtileserv-1",
+          "NetIO": "43.4MB / 43.3MB",
+          "PIDs": "10"
+        },
+        {
+          "BlockIO": "460GB / 443GB",
+          "CPUPerc": "2.56%",
+          "Container": "atlas-candidate-db",
+          "ID": "8ad0d89ff4a8",
+          "MemPerc": "18.83%",
+          "MemUsage": "578.5MiB / 3GiB",
+          "Name": "atlas-candidate-db",
+          "NetIO": "57.5GB / 14.7GB",
+          "PIDs": "10"
+        }
+      ],
+      "stats_ok": true
+    },
+    {
+      "at": "2026-10-28T18:18:54.632Z",
+      "elapsed_ms": 48710,
+      "filesystem_available_bytes": 205900333056,
+      "memory_available_bytes": 10119929856,
+      "data_io_stat": "8:0 rbytes=230058475520 wbytes=221670465536 rios=12074556 wios=1218277 dbytes=0 dios=0\n252:0 rbytes=230061015040 wbytes=221670465536 rios=12046813 wios=1171410 dbytes=0 dios=0",
+      "docker": [
+        {
+          "BlockIO": "38GB / 93.6GB",
+          "CPUPerc": "5.27%",
+          "Container": "atlas-lab-db-1",
+          "ID": "00feccadfee2",
+          "MemPerc": "7.14%",
+          "MemUsage": "365.8MiB / 5GiB",
+          "Name": "atlas-lab-db-1",
+          "NetIO": "9.85GB / 10.6GB",
+          "PIDs": "16"
+        },
+        {
+          "BlockIO": "98.8MB / 295kB",
+          "CPUPerc": "0.05%",
+          "Container": "atlas-lab-martin-1",
+          "ID": "4df9f2fdcaf2",
+          "MemPerc": "4.86%",
+          "MemUsage": "24.91MiB / 512MiB",
+          "Name": "atlas-lab-martin-1",
+          "NetIO": "6.97GB / 6.71GB",
+          "PIDs": "5"
+        },
+        {
+          "BlockIO": "38.3MB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "atlas-lab-pgtileserv-1",
+          "ID": "bf548271d9c1",
+          "MemPerc": "2.41%",
+          "MemUsage": "12.32MiB / 512MiB",
+          "Name": "atlas-lab-pgtileserv-1",
+          "NetIO": "43.4MB / 43.3MB",
+          "PIDs": "10"
+        },
+        {
+          "BlockIO": "460GB / 443GB",
+          "CPUPerc": "0.80%",
+          "Container": "atlas-candidate-db",
+          "ID": "8ad0d89ff4a8",
+          "MemPerc": "18.84%",
+          "MemUsage": "578.7MiB / 3GiB",
+          "Name": "atlas-candidate-db",
+          "NetIO": "57.5GB / 14.7GB",
+          "PIDs": "10"
+        }
+      ],
+      "stats_ok": true
+    },
+    {
+      "at": "2026-10-28T18:19:14.928Z",
+      "elapsed_ms": 69007,
+      "filesystem_available_bytes": 205900328960,
+      "memory_available_bytes": 10112610304,
+      "data_io_stat": "8:0 rbytes=230161698816 wbytes=221670465536 rios=12075540 wios=1218277 dbytes=0 dios=0\n252:0 rbytes=230161698816 wbytes=221670465536 rios=12047701 wios=1171410 dbytes=0 dios=0",
+      "docker": [
+        {
+          "BlockIO": "38GB / 93.6GB",
+          "CPUPerc": "1.06%",
+          "Container": "atlas-lab-db-1",
+          "ID": "00feccadfee2",
+          "MemPerc": "7.18%",
+          "MemUsage": "367.6MiB / 5GiB",
+          "Name": "atlas-lab-db-1",
+          "NetIO": "9.85GB / 10.6GB",
+          "PIDs": "15"
+        },
+        {
+          "BlockIO": "98.8MB / 295kB",
+          "CPUPerc": "0.03%",
+          "Container": "atlas-lab-martin-1",
+          "ID": "4df9f2fdcaf2",
+          "MemPerc": "4.66%",
+          "MemUsage": "23.88MiB / 512MiB",
+          "Name": "atlas-lab-martin-1",
+          "NetIO": "6.97GB / 6.72GB",
+          "PIDs": "5"
+        },
+        {
+          "BlockIO": "38.3MB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "atlas-lab-pgtileserv-1",
+          "ID": "bf548271d9c1",
+          "MemPerc": "2.41%",
+          "MemUsage": "12.32MiB / 512MiB",
+          "Name": "atlas-lab-pgtileserv-1",
+          "NetIO": "43.4MB / 43.3MB",
+          "PIDs": "10"
+        },
+        {
+          "BlockIO": "460GB / 443GB",
+          "CPUPerc": "4.26%",
+          "Container": "atlas-candidate-db",
+          "ID": "8ad0d89ff4a8",
+          "MemPerc": "18.83%",
+          "MemUsage": "578.5MiB / 3GiB",
+          "Name": "atlas-candidate-db",
+          "NetIO": "57.5GB / 14.7GB",
+          "PIDs": "10"
+        }
+      ],
+      "stats_ok": true
+    }
+  ],
+  "samples": [
+    {
+      "site": "tehran",
+      "z": 6,
+      "x": 41,
+      "y": 25,
+      "status": 200,
+      "bytes": 947112,
+      "ms": 374.599,
+      "sha256": "ebb49477ec4a51c0179f4b22777d0dfd526860fcb02f572ed52243307b9a66fe",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tehran",
+      "z": 10,
+      "x": 658,
+      "y": 403,
+      "status": 200,
+      "bytes": 852310,
+      "ms": 86.53,
+      "sha256": "f52449626e948a93e54d3de614a5cb6391c1046d581736afca83d6e91d2f7560",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tehran",
+      "z": 14,
+      "x": 10530,
+      "y": 6451,
+      "status": 200,
+      "bytes": 158748,
+      "ms": 13.278,
+      "sha256": "16d8a7bd5573a5820c54efded54df47e6cd3e7965c015d1f1564f52dabe48be4",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tehran",
+      "z": 16,
+      "x": 42123,
+      "y": 25804,
+      "status": 200,
+      "bytes": 14595,
+      "ms": 10.572,
+      "sha256": "13277ee9d32f6f790a71f38192e147d0e19a68c32d57bd93f94a6681d260a742",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "mashhad",
+      "z": 6,
+      "x": 42,
+      "y": 25,
+      "status": 200,
+      "bytes": 304845,
+      "ms": 171.723,
+      "sha256": "27a01edfe7da1fda4b24e500aadecccd4f28bce47bb6c640da56d7fd65312f5b",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "mashhad",
+      "z": 10,
+      "x": 681,
+      "y": 401,
+      "status": 200,
+      "bytes": 263745,
+      "ms": 50.559,
+      "sha256": "0706dd4b286df3030e67b631c928cc89f84fc81441a7d01d154c9b5fc352b4e6",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "mashhad",
+      "z": 14,
+      "x": 10904,
+      "y": 6419,
+      "status": 200,
+      "bytes": 66736,
+      "ms": 19.645,
+      "sha256": "767415072d363a76d27f4151b8a747cd1c50f08ac2e83c138b316f12544566fb",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "mashhad",
+      "z": 16,
+      "x": 43618,
+      "y": 25676,
+      "status": 200,
+      "bytes": 9759,
+      "ms": 9.608,
+      "sha256": "fe1f56a12dc1cc1bac50d6348a00ecb1a50f61f6f73d8d5fcbf32c31dbf1270f",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "shiraz",
+      "z": 6,
+      "x": 41,
+      "y": 26,
+      "status": 200,
+      "bytes": 525381,
+      "ms": 205.809,
+      "sha256": "fa59ded92225ec6e3b48424aef3d723f8d3f6b34fd43329d4046d61b6f7f941b",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "shiraz",
+      "z": 10,
+      "x": 661,
+      "y": 423,
+      "status": 200,
+      "bytes": 441090,
+      "ms": 68.989,
+      "sha256": "8b4ab3f792735ab04d88a15a2df16ad801ef8bac9d10ef283f55dc51571c9d95",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "shiraz",
+      "z": 14,
+      "x": 10582,
+      "y": 6781,
+      "status": 200,
+      "bytes": 141620,
+      "ms": 10.997,
+      "sha256": "e44754a7a0f11684cb2ca1609ab6d9892622d2bf545d404164ca2040bf920292",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "shiraz",
+      "z": 16,
+      "x": 42330,
+      "y": 27124,
+      "status": 200,
+      "bytes": 16308,
+      "ms": 8.275,
+      "sha256": "244fe4e8bf6c8fc4ccceeae65171ef710f9bc0b89a5f5dfe81146ad032132b87",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tabriz",
+      "z": 6,
+      "x": 40,
+      "y": 24,
+      "status": 200,
+      "bytes": 525058,
+      "ms": 225.136,
+      "sha256": "8a90401461228b66ff15026f68c47d9e61a99af9dd50d19725fd1f8942030679",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tabriz",
+      "z": 10,
+      "x": 643,
+      "y": 394,
+      "status": 200,
+      "bytes": 311631,
+      "ms": 34.435,
+      "sha256": "b6960d7c01607e476393b3713eb0ba55fc5d200b9230e8f3ff6d5fcdedea89f3",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tabriz",
+      "z": 14,
+      "x": 10298,
+      "y": 6314,
+      "status": 200,
+      "bytes": 100171,
+      "ms": 287.977,
+      "sha256": "c9796d5181fd23cf650df50b56c711ec4a6edd0b6b85f5c79a6ec7c647e399aa",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tabriz",
+      "z": 16,
+      "x": 41195,
+      "y": 25256,
+      "status": 200,
+      "bytes": 11650,
+      "ms": 6.177,
+      "sha256": "789dc7c4ef0b4e7afbac0eddda302df2d919e9c8dfa5d0014339d45248f325b6",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "ahvaz",
+      "z": 6,
+      "x": 40,
+      "y": 26,
+      "status": 200,
+      "bytes": 164539,
+      "ms": 3667.526,
+      "sha256": "62acead809323ca79019272371479b05f71aa106b488cb65005f0c096d229119",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "ahvaz",
+      "z": 10,
+      "x": 650,
+      "y": 418,
+      "status": 200,
+      "bytes": 162320,
+      "ms": 28.258,
+      "sha256": "a812f7c455d5840b900d52ee9a404923fbda4968f144baacc3082d849fc51800",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "ahvaz",
+      "z": 14,
+      "x": 10406,
+      "y": 6689,
+      "status": 200,
+      "bytes": 48766,
+      "ms": 7.333,
+      "sha256": "9f100d5b3f228a1efbfc44244d5c06d675b8336a45f34936fcafe0bb057bedbb",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "ahvaz",
+      "z": 16,
+      "x": 41627,
+      "y": 26759,
+      "status": 200,
+      "bytes": 6735,
+      "ms": 7.792,
+      "sha256": "8e36740bb92f3bf8669a3e12f6472475e73470a1dd9160a78d6d1e2ae7d23933",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "rural",
+      "z": 6,
+      "x": 42,
+      "y": 25,
+      "status": 200,
+      "bytes": 304845,
+      "ms": 98.854,
+      "sha256": "27a01edfe7da1fda4b24e500aadecccd4f28bce47bb6c640da56d7fd65312f5b",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "rural",
+      "z": 10,
+      "x": 678,
+      "y": 414,
+      "status": 200,
+      "bytes": 1397,
+      "ms": 6.967,
+      "sha256": "6c6fad4feae9e2e7aad949f25ad0102fde5f56dc66d3b9a67423d46f032f5f52",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "rural",
+      "z": 14,
+      "x": 10854,
+      "y": 6631,
+      "status": 204,
+      "bytes": 0,
+      "ms": 4.814,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "rural",
+      "z": 16,
+      "x": 43417,
+      "y": 26527,
+      "status": 204,
+      "bytes": 0,
+      "ms": 5.298,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tehran",
+      "z": 6,
+      "x": 41,
+      "y": 25,
+      "status": 200,
+      "bytes": 947112,
+      "ms": 349.773,
+      "sha256": "ebb49477ec4a51c0179f4b22777d0dfd526860fcb02f572ed52243307b9a66fe",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tehran",
+      "z": 10,
+      "x": 658,
+      "y": 403,
+      "status": 200,
+      "bytes": 852310,
+      "ms": 82.427,
+      "sha256": "f52449626e948a93e54d3de614a5cb6391c1046d581736afca83d6e91d2f7560",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tehran",
+      "z": 14,
+      "x": 10530,
+      "y": 6451,
+      "status": 200,
+      "bytes": 158748,
+      "ms": 15.793,
+      "sha256": "16d8a7bd5573a5820c54efded54df47e6cd3e7965c015d1f1564f52dabe48be4",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tehran",
+      "z": 16,
+      "x": 42123,
+      "y": 25804,
+      "status": 200,
+      "bytes": 14595,
+      "ms": 9.174,
+      "sha256": "13277ee9d32f6f790a71f38192e147d0e19a68c32d57bd93f94a6681d260a742",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "mashhad",
+      "z": 6,
+      "x": 42,
+      "y": 25,
+      "status": 200,
+      "bytes": 304845,
+      "ms": 90.05,
+      "sha256": "27a01edfe7da1fda4b24e500aadecccd4f28bce47bb6c640da56d7fd65312f5b",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "mashhad",
+      "z": 10,
+      "x": 681,
+      "y": 401,
+      "status": 200,
+      "bytes": 263745,
+      "ms": 38.684,
+      "sha256": "0706dd4b286df3030e67b631c928cc89f84fc81441a7d01d154c9b5fc352b4e6",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "mashhad",
+      "z": 14,
+      "x": 10904,
+      "y": 6419,
+      "status": 200,
+      "bytes": 66736,
+      "ms": 14.702,
+      "sha256": "767415072d363a76d27f4151b8a747cd1c50f08ac2e83c138b316f12544566fb",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "mashhad",
+      "z": 16,
+      "x": 43618,
+      "y": 25676,
+      "status": 200,
+      "bytes": 9759,
+      "ms": 7.05,
+      "sha256": "fe1f56a12dc1cc1bac50d6348a00ecb1a50f61f6f73d8d5fcbf32c31dbf1270f",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "shiraz",
+      "z": 6,
+      "x": 41,
+      "y": 26,
+      "status": 200,
+      "bytes": 525381,
+      "ms": 199.5,
+      "sha256": "fa59ded92225ec6e3b48424aef3d723f8d3f6b34fd43329d4046d61b6f7f941b",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "shiraz",
+      "z": 10,
+      "x": 661,
+      "y": 423,
+      "status": 200,
+      "bytes": 441090,
+      "ms": 64.95,
+      "sha256": "8b4ab3f792735ab04d88a15a2df16ad801ef8bac9d10ef283f55dc51571c9d95",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "shiraz",
+      "z": 14,
+      "x": 10582,
+      "y": 6781,
+      "status": 200,
+      "bytes": 141620,
+      "ms": 632.397,
+      "sha256": "e44754a7a0f11684cb2ca1609ab6d9892622d2bf545d404164ca2040bf920292",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "shiraz",
+      "z": 16,
+      "x": 42330,
+      "y": 27124,
+      "status": 200,
+      "bytes": 16308,
+      "ms": 5.341,
+      "sha256": "244fe4e8bf6c8fc4ccceeae65171ef710f9bc0b89a5f5dfe81146ad032132b87",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tabriz",
+      "z": 6,
+      "x": 40,
+      "y": 24,
+      "status": 200,
+      "bytes": 525058,
+      "ms": 235.422,
+      "sha256": "8a90401461228b66ff15026f68c47d9e61a99af9dd50d19725fd1f8942030679",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tabriz",
+      "z": 10,
+      "x": 643,
+      "y": 394,
+      "status": 200,
+      "bytes": 311631,
+      "ms": 33.225,
+      "sha256": "b6960d7c01607e476393b3713eb0ba55fc5d200b9230e8f3ff6d5fcdedea89f3",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tabriz",
+      "z": 14,
+      "x": 10298,
+      "y": 6314,
+      "status": 200,
+      "bytes": 100171,
+      "ms": 11.001,
+      "sha256": "c9796d5181fd23cf650df50b56c711ec4a6edd0b6b85f5c79a6ec7c647e399aa",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "tabriz",
+      "z": 16,
+      "x": 41195,
+      "y": 25256,
+      "status": 200,
+      "bytes": 11650,
+      "ms": 7.481,
+      "sha256": "789dc7c4ef0b4e7afbac0eddda302df2d919e9c8dfa5d0014339d45248f325b6",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "ahvaz",
+      "z": 6,
+      "x": 40,
+      "y": 26,
+      "status": 200,
+      "bytes": 164539,
+      "ms": 139.078,
+      "sha256": "62acead809323ca79019272371479b05f71aa106b488cb65005f0c096d229119",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "ahvaz",
+      "z": 10,
+      "x": 650,
+      "y": 418,
+      "status": 200,
+      "bytes": 162320,
+      "ms": 30.336,
+      "sha256": "a812f7c455d5840b900d52ee9a404923fbda4968f144baacc3082d849fc51800",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "ahvaz",
+      "z": 14,
+      "x": 10406,
+      "y": 6689,
+      "status": 200,
+      "bytes": 48766,
+      "ms": 4024.397,
+      "sha256": "9f100d5b3f228a1efbfc44244d5c06d675b8336a45f34936fcafe0bb057bedbb",
+      "bytes_match_first_sample": true
+    },
+    {
+      "site": "ahvaz",
+      "z": 16,
+      "x": 41627,
+      "y": 26759,
+      "status": 0,
+      "bytes": 0,
+      "ms": 7923.649
+    }
+  ]
+}

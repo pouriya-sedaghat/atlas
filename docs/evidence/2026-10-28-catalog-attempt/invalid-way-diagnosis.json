@@ -1,0 +1,21 @@
+{
+  "read_only": true,
+  "source_sha256": "a3c61d35b010d4a474c1eabdef9500339472743423d7bb895b16241c08eb4065",
+  "repairs_applied": false,
+  "ways": [
+    {
+      "osm_id": "1208491909",
+      "points": 12,
+      "closed": true,
+      "simple": false,
+      "polygon_validity": "Self-intersection[52.5381883747334 29.6074887576332]"
+    },
+    {
+      "osm_id": "1570027031",
+      "points": 6,
+      "closed": true,
+      "simple": false,
+      "polygon_validity": "Self-intersection[51.3216775121846 35.7271565106769]"
+    }
+  ]
+}

@@ -20,7 +20,7 @@ describe('candidate quality barriers',()=>{
     const r=valid();r.outcomes.push({status:'metadata_only',objects:20});expect(reviewReasons(r)).toEqual([]);
   });
   it('grants the fixed tile function only to the generated role and rejects changed SQL contracts',()=>{
-    const sql=readFileSync(new URL('../../../infra/atlas/tiles.sql',import.meta.url),'utf8');
+    const sql=readFileSync(new URL('../../../infra/atlas/tiles-v2.sql',import.meta.url),'utf8');
     expect(tileSqlForRole(sql,'atlas_tile_example')).not.toContain('TO atlas_tile;');
     expect(()=>tileSqlForRole(sql,'bad;DROP')).toThrow();expect(()=>tileSqlForRole(sql.replaceAll('TO atlas_tile;','TO someone_else;'),'atlas_tile_example')).toThrow('tile_grant_contract_changed');
   });
@@ -28,5 +28,12 @@ describe('candidate quality barriers',()=>{
     const limits={memoryBytes:3*1024**3,cpus:1,cpuShares:256,readBps:16777216,writeBps:16777216,devices:[{path:'/dev/sda',majorMinor:'8:0'},{path:'/dev/dm-0',majorMinor:'252:0'}]};
     expect(()=>verifyIoMax('8:0 rbps=16777216 wbps=16777216\n252:0 rbps=16777216 wbps=16777216',limits)).not.toThrow();
     expect(()=>verifyIoMax('8:0 rbps=max wbps=max',limits)).toThrow('data_io_limits_not_enforced');
+  });
+  it('rejects topology leaks rather than approving plausible partial geometry',()=>{
+    const r=valid();r.serving_integrity={missing_topology_rows:0,blocked_rows_exposed:1,nested_geometry_relations:1};
+    expect(()=>reviewReasons(r)).toThrow('serving_topology_integrity_failed');
+    r.serving_integrity.blocked_rows_exposed=0;expect(reviewReasons(r)).toContain('unsupported_nested_geometry');
+    r.layers.pois.expected_served_rows=1;r.layers.pois.served_rows=0;
+    expect(()=>reviewReasons(r)).toThrow('serving_topology_integrity_failed');
   });
 });

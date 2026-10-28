@@ -32,9 +32,22 @@ async function command(cli,config,name,args=[]){
   assert.equal(r.code,0,`${name}: ${r.stderr.toString()}`);return r;
 }
 const s=(name,args=[])=>command(intakeCli,sourcePath,name,args),b=(name,args=[])=>command(buildCli,buildPath,name,args);
-async function accept(filename){
+async function accept(filename,approveFictionalAnomaly=false){
   const r=await s('submit',['--file',resolve(fixturePath,filename),'--provider','fixture','--region','fixture','--url','https://example.org/fixture.osm.pbf']);
-  const delivery=JSON.parse(r.stdout.toString());await s('work',['--once']);await s('sign',['--once']);
+  const delivery=JSON.parse(r.stdout.toString());
+  // A previous admission test deliberately left an older delivery queued.
+  // A single work invocation may legitimately process that delivery first.
+  for(let i=0;i<10;i++){
+    await s('work',['--once']);const row=(await intake.status()).find(x=>x.id===delivery.id);
+    if(row.validation_id)break;
+    assert.ok(!['rejected','failed'].includes(row.job_state),JSON.stringify(row));
+  }
+  if(approveFictionalAnomaly){
+    const row=(await intake.status()).find(x=>x.id===delivery.id);assert.equal(row.validation_state,'review_required');
+    await s('review',['--validation',row.validation_id,'--report-sha',row.report_sha256,'--decision-sha',row.decision_sha256,
+      '--action','approve','--actor','e2e-fictional-topology-operator','--reason','Only this fictional topology fixture is approved for an experimental test']);
+  }
+  await s('sign',['--once']);
   const row=(await intake.status()).find(x=>x.id===delivery.id);assert.equal(row.validation_state,'accepted');return {delivery,validation:await intake.validation(row.validation_id)};
 }
 async function jobFor(validation){return (await queue.status()).find(x=>x.source_validation_id===validation.id&&x.payload_sha256===validation.payload_sha256);}
@@ -55,16 +68,27 @@ try{
   const rt=await artifact(manifest.qa.canonical_roundtrip);assert.equal(rt.passed,true);
   tests.push('accepted_signed_source_builds_into_a_separate_verified_readonly_component');
   const firstInfo=await inspect(manifest.serving.container),firstEndpoint='http://'+firstInfo.NetworkSettings.Networks[build.network].IPAddress+':3000';
+  const tilejsonResponse=await fetch(firstEndpoint+'/basemap',{signal:AbortSignal.timeout(5000)});assert.equal(tilejsonResponse.status,200);
+  const tilejson=await tilejsonResponse.json();assert.equal(tilejson.attribution,'\u00a9 OpenStreetMap contributors');
   const attempt=(await pool.query('SELECT * FROM atlas_control.candidate_attempts WHERE job_id=$1 AND token=$2',[first.id,manifest.attempt])).rows[0];
   const dir=join(build.root,'attempts',manifest.attempt),credentials=JSON.parse(await readFile(join(dir,'credentials.json'),'utf8'));
   const qaDsn=await secretFile(join(dir,'qa.dsn')),qa=new pg.Client({connectionString:qaDsn});await qa.connect();
   try{
     assert.equal((await qa.query('SHOW default_transaction_read_only')).rows[0].default_transaction_read_only,'on');
+    const settings=(await qa.query("SELECT proconfig FROM pg_proc WHERE pronamespace='tiles'::regnamespace AND proname='basemap'")).rows[0].proconfig;
+    assert.ok(settings.includes('plan_cache_mode=force_custom_plan'));
+    await qa.query('SET plan_cache_mode=force_generic_plan');
+    await qa.query('SELECT tiles.basemap(6,32,31)');
+    assert.equal((await qa.query('SHOW plan_cache_mode')).rows[0].plan_cache_mode,'force_generic_plan');
+    await qa.query('SET plan_cache_mode=auto');
     await assert.rejects(qa.query("INSERT INTO osm_raw.nodes(osm_id,tags,geom) VALUES(999,'{}',ST_SetSRID(ST_Point(0,0),4326))"));
   }finally{await qa.end();}
   const tileUri=new URL(qaDsn);tileUri.username=attempt.tile_role;tileUri.password=credentials.tilePassword;
   const tile=new pg.Client({connectionString:tileUri.toString()});await tile.connect();
-  try{await assert.rejects(tile.query('SELECT count(*) FROM osm_raw.nodes'));assert.ok((await tile.query('SELECT tiles.basemap(6,32,31) AS tile')).rows[0].tile.length>=0);}
+  try{await assert.rejects(tile.query('SELECT count(*) FROM osm_raw.nodes'));await assert.rejects(tile.query('SELECT count(*) FROM render.transport'));
+    assert.ok((await tile.query('SELECT count(*) FROM tiles.transport')).rows[0]);assert.ok((await tile.query('SELECT tiles.basemap(6,32,31) AS tile')).rows[0].tile.length>=0);
+    await assert.rejects(tile.query('REFRESH MATERIALIZED VIEW tiles.transport'));
+    await assert.rejects(tile.query('DELETE FROM tiles.transport'));}
   finally{await tile.end();}
   const importUri=new URL(qaDsn);importUri.username=attempt.import_role;importUri.password=credentials.importPassword;
   const disabled=new pg.Client({connectionString:importUri.toString()});await assert.rejects(disabled.connect());await disabled.end().catch(()=>{});
@@ -98,6 +122,32 @@ try{
   assert.ok(reviewed.qa.review_reasons.includes('geometry_conversion_issues'));
   assert.equal((await artifact(reviewed.qa.canonical_roundtrip)).passed,true);
   tests.push('partial_null_unsupported_and_metadata_outcomes_are_accounted_without_raw_data_loss');
+  const detailsSource=await accept('candidate-details.osm.pbf');await b('work',['--once']);
+  const detailsJob=await jobFor(detailsSource.validation);assert.equal(detailsJob.state,'review_required');const detailsManifest=await readManifest(detailsJob);
+  const detailsQa=new pg.Client({connectionString:await secretFile(join(build.root,'attempts',detailsManifest.attempt,'qa.dsn'))});await detailsQa.connect();
+  try{
+    assert.deepEqual((await detailsQa.query("SELECT family FROM render.detail_points WHERE osm_type='N' AND osm_id=3 ORDER BY family")).rows.map(r=>r.family),['barrier','power']);
+    assert.equal((await detailsQa.query("SELECT count(*)::integer n FROM render.detail_lines WHERE osm_type='W' AND osm_id=10 AND family='power'")).rows[0].n,1);
+    assert.equal((await detailsQa.query("SELECT count(*)::integer n FROM render.transport WHERE osm_type='W' AND osm_id=10")).rows[0].n,1);
+    assert.equal((await detailsQa.query("SELECT count(*)::integer n FROM render.detail_areas WHERE osm_id=16 AND family='transport'")).rows[0].n,1);
+    assert.equal((await detailsQa.query("SELECT count(*)::integer n FROM render.landcover WHERE osm_id=17")).rows[0].n,0);
+    assert.equal((await detailsQa.query("SELECT count(*)::integer n FROM render.detail_lines WHERE osm_id=17 AND family='natural'")).rows[0].n,1);
+    assert.equal((await detailsQa.query("SELECT count(*)::integer n FROM render.detail_points WHERE osm_id=9")).rows[0].n,0);
+    assert.equal((await detailsQa.query("SELECT detail_facets->'power'->>'status' AS status FROM render.object_outcomes WHERE osm_type='N' AND osm_id=9")).rows[0].status,'unknown_value_or_primitive');
+    assert.equal((await detailsQa.query('SELECT count(*)::integer n FROM (SELECT feature_id FROM render.detail_points GROUP BY feature_id HAVING count(*)>1) d')).rows[0].n,0);
+  }finally{await detailsQa.end();}
+  tests.push('independent_detail_families_preserve_overlapping_features_and_reject_unknown_values_without_false_areas');
+  const topoSource=await accept('candidate-topology.osm.pbf',true);await b('work',['--once']);
+  const topoJob=await jobFor(topoSource.validation);assert.equal(topoJob.state,'review_required');const topoManifest=await readManifest(topoJob);
+  const topoQa=new pg.Client({connectionString:await secretFile(join(build.root,'attempts',topoManifest.attempt,'qa.dsn'))});await topoQa.connect();
+  try{
+    assert.deepEqual((await topoQa.query('SELECT osm_id::text FROM render.boundaries ORDER BY osm_id')).rows.map(r=>r.osm_id),['31','32','33','34','35']);
+    assert.deepEqual((await topoQa.query('SELECT osm_id::text FROM tiles.boundaries ORDER BY osm_id')).rows.map(r=>r.osm_id),['34','35']);
+    assert.equal((await topoQa.query('SELECT count(*)::integer n FROM osm_raw.relations')).rows[0].n,5);
+  }finally{await topoQa.end();}
+  const topoCoverage=await artifact(topoManifest.qa.feature_coverage);assert.equal(topoCoverage.serving_integrity.blocked_rows_exposed,0);
+  assert.equal(topoCoverage.serving_integrity.withheld_relations,3);assert.equal((await artifact(topoManifest.qa.canonical_roundtrip)).passed,true);
+  tests.push('incomplete_and_nested_relation_fragments_are_kept_for_audit_but_withheld_from_serving_snapshots');
   // Changing both the payload and its database hash must still fail before provisioning.
   const changed=JSON.parse((await files.artifact(healthy.validation.payload_sha256)).toString());changed.tampered=true;
   const forgedSha=await files.putArtifact(Buffer.from(JSON.stringify(changed)+'\n'));
@@ -124,7 +174,7 @@ try{
   assert.deepEqual((await pool.query('SELECT * FROM atlas_control.defaults WHERE singleton')).rows[0],initialDefault);
   assert.equal((await pool.query('SELECT count(*)::integer AS n FROM atlas_control.releases')).rows[0].n,0);
   tests.push('component_success_or_review_never_registers_or_publishes_a_map_release');
-  for(const [name,data]of [['healthy-manifest.json',manifest],['geometry-manifest.json',reviewed],['geometry-coverage.json',coverage],['serving-probe.json',{requests:probes.length,errors:probes.filter(s=>s!==200&&s!==204).length,statuses:probes}],
+  for(const [name,data]of [['healthy-manifest.json',manifest],['geometry-manifest.json',reviewed],['geometry-coverage.json',coverage],['details-manifest.json',detailsManifest],['topology-manifest.json',topoManifest],['topology-coverage.json',topoCoverage],['serving-probe.json',{requests:probes.length,errors:probes.filter(s=>s!==200&&s!==204).length,statuses:probes}],
     ['e2e-report.json',{schema:'atlas.candidate-e2e/1',passed:true,tests,count:tests.length,pipeline_sha256:build.expectedPipelineSha256,tool_sha256:sha256(await readFile(new URL(import.meta.url))),fictional_data_only:true,production_publication_approved:false}]])
     await writeFile(join(evidencePath,name),JSON.stringify(data,null,2)+'\n');
   console.log(JSON.stringify({passed:true,tests,count:tests.length,serving_probe_requests:probes.length}));

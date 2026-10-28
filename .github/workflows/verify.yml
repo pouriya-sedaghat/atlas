@@ -30,8 +30,16 @@ jobs:
       - run: npm run build
       - run: npm run typecheck
       - run: npm test
+      - name: Refuse cleanup when the metadata integration test rejects a database
+        run: node tools/check-metadata-test-guard.mjs
+      - name: Preserve SQL and HTTP verification failures
+        run: node tools/check-tile-check-failure.mjs
       - name: Verify published experimental candidate evidence
         run: node tools/verify-candidate-evidence.mjs
+      - name: Verify recorded rejected catalog attempt
+        run: node tools/verify-catalog-attempt-evidence.mjs
+      - name: Refuse forged catalog evidence after checksum regeneration
+        run: node tools/fault-check-catalog-attempt-evidence.mjs
   pbf-audit:
     runs-on: ubuntu-24.04
     timeout-minutes: 10

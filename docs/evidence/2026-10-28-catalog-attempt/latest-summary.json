@@ -1,0 +1,50 @@
+{
+  "schema": "atlas.rejected-catalog-attempt/1",
+  "pipeline_sha256": "32590f3516d833ae9a773fb27488d66b4790026d5478a34e7c149621d8406e64",
+  "job_id": "e5139b4aef800ceecfe9aa5b1bd8c57166737915149c8b4fd0c704da0da5af42",
+  "scope": "experimental_source_only",
+  "publishable": false,
+  "map_release_ready": false,
+  "native_import_completed": true,
+  "raw_roundtrip_passed": true,
+  "feature_coverage_completed": false,
+  "tile_qa_completed": false,
+  "manifest_created": false,
+  "requests": 5881,
+  "errors": 1,
+  "failures": [
+    {
+      "site": "ahvaz",
+      "z": 16,
+      "x": 41627,
+      "y": 26759,
+      "status": 0,
+      "bytes": 0,
+      "ms": 7923.649
+    }
+  ],
+  "segments": [
+    {
+      "file": "serving-probe-segment-1.json",
+      "sha256": "9012c32e428fad7a4e62b3c20d51f253e648d81be6cc610e9726a9e86879dd93",
+      "requests": 5837,
+      "errors": 0,
+      "started_at": "2026-10-28T16:17:49.925Z",
+      "ended_at": "2026-10-28T18:18:03.190Z"
+    },
+    {
+      "file": "serving-probe-segment-2.json",
+      "sha256": "f1764901f01855102cc8c39115f86206ac9acc00d39e45dae0ff5f96271182a7",
+      "requests": 44,
+      "errors": 1,
+      "started_at": "2026-10-28T18:18:05.920Z",
+      "ended_at": "2026-10-28T18:19:24.016Z"
+    }
+  ],
+  "original_worker_failure": "candidate_infrastructure_error",
+  "terminal_reason": "old_serving_http_timeout",
+  "automatic_reimport_disabled": true,
+  "candidate_data_modified_by_archive": false,
+  "root_cause": "not established; build and old serving share the underlying storage; high I/O pressure was observed",
+  "next_gate": "independent build storage or a separately verified resource-isolation solution; do not relax HTTP deadlines or declare this run successful"
+}

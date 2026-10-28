@@ -1,0 +1,15 @@
+{
+  "schema": "atlas.lab-dependency-permissions/1",
+  "pipeline_sha256": "32590f3516d833ae9a773fb27488d66b4790026d5478a34e7c149621d8406e64",
+  "regular_files": 7686,
+  "shared_by_hardlink": 0,
+  "permissions_changed": 0,
+  "writable_regular_files": 0,
+  "file_contents_modified": false,
+  "data_cluster_modified": false,
+  "workspace_symlinks_followed": false,
+  "limitations": [
+    "Shared Unix owner can restore write permissions; this is accidental-write protection, not independent identities.",
+    "Do not install or edit dependencies in a sealed runtime; future upgrades need separate dependency contents."
+  ]
+}

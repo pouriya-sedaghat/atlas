@@ -1,0 +1,13 @@
+{
+  "schema": "atlas.qa-optimization-tests/1",
+  "passed": true,
+  "builder_tests_passed": 23,
+  "new_real_postgresql_regressions": 3,
+  "production_import_repeated": false,
+  "owned_fixture_removed": true,
+  "qa_source_sha256": "e8d0312a4f30f925319078adfcdb2fd5b3f2a27ec3449434e52bbc65278dd102",
+  "qa_compiled_sha256": "46d547c799fe914e9df3e15a23c1e6b44fb71fd00c1d8eaa97c49e6fc9987aca",
+  "integration_test_sha256": "3b66fa2e2970728b0e32154fb4a74d22ecc3b026bd2b910f09214e98b4420410",
+  "test_log_sha256": "e3903b4bfe09b2952514ec6d3ffffc639774c1dcf7b5e0dd9720d08b1dda21cf",
+  "scope": "disposable PostgreSQL tests of single-scan outcome totals; no performance or old-serving availability claim"
+}

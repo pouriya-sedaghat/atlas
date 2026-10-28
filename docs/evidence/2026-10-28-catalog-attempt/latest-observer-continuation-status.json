@@ -1,0 +1,10 @@
+{
+  "schema": "atlas.observer-continuation/1",
+  "job_id": "e5139b4aef800ceecfe9aa5b1bd8c57166737915149c8b4fd0c704da0da5af42",
+  "pipeline_sha256": "32590f3516d833ae9a773fb27488d66b4790026d5478a34e7c149621d8406e64",
+  "reason": "continued_after_completed_observation_segment",
+  "at": "2026-10-28T18:18:05.673800+00:00",
+  "pid": 1615413,
+  "collector_tool_sha256": "7ef5520783fb904a953e1dd401a75c933083b27b6a14bd119d1a4b0535ff06b3",
+  "first_report_sha256": "9012c32e428fad7a4e62b3c20d51f253e648d81be6cc610e9726a9e86879dd93"
+}

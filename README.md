@@ -23,6 +23,14 @@ attempt, canonical raw verification, explicit catalog outcomes and decoded tile 
 manifests remain non-publishable while required engines and release/session integration are missing.
 The rejected shared-cluster experiment and the isolated profile's results are retained in the evidence.
 
+Stage four adds [independent feature families and filtered serving snapshots](docs/ATLAS-STAGE-4-FA.md)
+under [catalog 2.0.0](infra/atlas/catalog-v2.md). The retained raw/render data and physically
+filtered, spatially indexed tile snapshots have separate roles. Real-source diagnostics,
+unsupported semantics and incomplete relation geometry remain reviewable. These changes do
+not publish a release or connect the legacy web client. The latest Iran attempt was rejected
+after one old-serving timeout; a later single-scan QA improvement passed separate PostgreSQL
+and fictional-data tests, but has not repeated the full-country acceptance test.
+
 ## Original Seyra VM demo
 
 [راهنمای فارسی اجرا روی VM](docs/README-FA.md)

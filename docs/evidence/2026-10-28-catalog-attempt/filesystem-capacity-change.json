@@ -1,0 +1,102 @@
+{
+  "schema": "atlas.lab-filesystem-capacity-change/1",
+  "pipeline_sha256": "b9df97c35fa085773c9b36a0008695bce0fb83f8bddf83123f2989d6d3fc23f4",
+  "recorded_at": "2026-10-28T14:08:02.829197+00:00",
+  "online_resize_observed": true,
+  "kernel_resize_at": "2026-10-28T14:02:08Z",
+  "kernel_log": [
+    "2026-10-28T14:02:08+00:00 atlas kernel: EXT4-fs (dm-0): resized filesystem to 78117888",
+    "2026-10-28T14:02:08+00:00 atlas kernel: EXT4-fs (dm-0): resizing filesystem from 26214400 to 78117888 blocks"
+  ],
+  "previous_ext4_blocks": 26214400,
+  "new_ext4_blocks": 78117888,
+  "block_size_bytes": 4096,
+  "filesystem_after": {
+    "total_bytes": 314346831872,
+    "available_bytes": 215780790272
+  },
+  "block_devices_after": [
+    {
+      "name": "sda",
+      "size": 322122547200,
+      "type": "disk",
+      "mountpoints": [],
+      "children": [
+        {
+          "name": "sda1",
+          "size": 1048576,
+          "type": "part",
+          "mountpoints": []
+        },
+        {
+          "name": "sda2",
+          "size": 2147483648,
+          "type": "part",
+          "mountpoints": [
+            "/boot"
+          ]
+        },
+        {
+          "name": "sda3",
+          "size": 319971917824,
+          "type": "part",
+          "mountpoints": [],
+          "children": [
+            {
+              "name": "ubuntu--vg-ubuntu--lv",
+              "size": 319970869248,
+              "type": "lvm",
+              "mountpoints": [
+                "/"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "sr0",
+      "size": 2918598656,
+      "type": "rom",
+      "mountpoints": []
+    }
+  ],
+  "data_container": {
+    "id": "8ad0d89ff4a829a13106c18e3b1c926d3f345886a6e22c2c5e5a5e496d7b2968",
+    "started_at": "2026-10-28T04:19:02.729006343Z",
+    "restart_count": 0,
+    "oom_killed": false
+  },
+  "data_limits_after": {
+    "read_bps": 8388608,
+    "write_bps": 8388608,
+    "memory_bytes": 3221225472,
+    "nano_cpus": 1000000000,
+    "device_rates": {
+      "BlkioDeviceReadBps": [
+        {
+          "Path": "/dev/sda",
+          "Rate": 8388608
+        },
+        {
+          "Path": "/dev/dm-0",
+          "Rate": 8388608
+        }
+      ],
+      "BlkioDeviceWriteBps": [
+        {
+          "Path": "/dev/sda",
+          "Rate": 8388608
+        },
+        {
+          "Path": "/dev/dm-0",
+          "Rate": 8388608
+        }
+      ]
+    },
+    "kernel_io_max": "8:0 rbps=8388608 wbps=8388608 riops=max wiops=max\n252:0 rbps=8388608 wbps=8388608 riops=max wiops=max"
+  },
+  "actor_attribution": "not established",
+  "resize_issued_by_this_recorder": false,
+  "interpretation": "Filesystem capacity changed during import. Preserve the transition when interpreting disk minima and performance; this run is not a controlled fixed-capacity benchmark. Data-container identity/start and pinned CPU/memory/I/O limits remained unchanged."
+}

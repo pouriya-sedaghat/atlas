@@ -1,9 +1,13 @@
 # Experimental PostGIS/Martin component builder
 
+The current builder uses [Atlas catalog 2.0.0](../catalog-v2.md). Historical stage-three evidence
+uses catalog 1 and remains immutable. Version 2 adds three detail overlays and indexed materialized serving
+snapshots; it does not change the legacy platform's active source, gateway or client.
+
 This stage consumes a cryptographically verified `experimental_source_only` receipt. It builds
 a private candidate component and **cannot publish a map release**. The existing API, Tegola,
 gateway and web client are not switched. Search, routing, POI and assets are missing components
-in every manifest, regardless of whether tile QA passes. See the [stage report](../../../docs/ATLAS-STAGE-3-FA.md).
+in every manifest, regardless of whether tile QA passes. See the [current stage report](../../../docs/ATLAS-STAGE-4-FA.md).
 
 ## Deployment boundary
 
@@ -25,8 +29,12 @@ The lab's two Docker volumes still share the host filesystem; a named volume is 
 separate free-space reservation or failure domain. Production disk quotas/reservations,
 continuous capacity protection and safe GC must be addressed before a no-downtime claim.
 
-The tested lab profile is 3 GiB RAM/no swap, one CPU, shares 256, read/write 16 MiB/s on
-8:0 and 252:0 for the data cluster; the importer has 2 GiB/no swap, one CPU/shares 128.
+The stage-three historical lab profile used 3 GiB RAM/no swap, one CPU, shares 256 and
+read/write 16 MiB/s on 8:0 and 252:0. A later catalog build recorded old-serving timeouts
+and that experiment was rejected. Stage four evaluates an 8 MiB/s profile on both devices,
+with 24 unused fictional Martin services stopped and one observer; see the stage report for
+its measured result. This is a combined intervention, not proof of one root cause.
+The importer has 2 GiB/no swap, one CPU/shares 128.
 The original serving PostgreSQL keeps its own 5 GiB budget and shares 2048. Preserve fsync
 and synchronous commit. Keep at least 20 GiB free **before** starting a new real build;
 continuous disk admission/estimated peak usage and cleanup remain future work.
@@ -36,8 +44,8 @@ cluster and verify `SHOW client_connection_check_interval` before enabling the w
 The default is zero: closing a client connection alone does not promptly stop a long query.
 The lab applied `ALTER SYSTEM SET client_connection_check_interval='1s'`, reloaded that
 cluster, and verified that a disconnected 60-second query's backend disappeared in about
-two seconds. This server setting is an operator prerequisite; current automatic Docker
-profile checks do not enforce every PostgreSQL GUC. Pinning the complete server configuration,
+two seconds. The current builder enforces this setting and fsync/synchronous_commit/full_page_writes
+at allocation and sealing. Automatic profile checks do not enforce every PostgreSQL GUC. Pinning the complete server configuration,
 explicit database-backend reaping and partition tests remain production hardening work.
 See [PostgreSQL's connection-check documentation](https://www.postgresql.org/docs/17/runtime-config-connection.html#GUC-CLIENT-CONNECTION-CHECK-INTERVAL).
 
@@ -85,8 +93,11 @@ Trusting an older report does not permit running an old worker against a new adm
 Each attempt gets a fresh database and unique owner/import/tile/QA roles. The owner is NOLOGIN;
 the importer cannot write serving/control data. After import, ownership moves to the owner,
 import login/connect are revoked, and the database and serving/QA roles become read-only.
-The tile role can read only eight display tables and call the pinned tile function; it cannot
-read the raw archive or build outcomes. No candidate container publishes a host port.
+The tile role can read only eleven filtered, indexed materialized snapshots and call the pinned tile function;
+it cannot bypass relation withholding by reading render tables, the raw archive or build outcomes.
+The snapshots are built once before QA; the serving login cannot refresh them. They physically
+exclude withheld rows, preserving isolation without a per-request security-barrier scan. Their
+extra disk space is part of candidate capacity. No candidate container publishes a host port.
 
 The full raw roundtrip checks every primitive, ordered reference/member, tag and available
 metadata against the source audit. Every tagged primitive has one outcome: rendered, partial,
@@ -95,6 +106,10 @@ Insert refusal is recorded, not counted as success. Missing/orphan outcomes, une
 catalog loss, invalid/empty stored layer geometry and row/insertion mismatch fail the build.
 Missing relation references must match the audit; direct and ancestor impact is reported.
 Available geometry is not proof of geographic truth or complete relation topology.
+
+QA additionally counts served/withheld rows, checks complete topology coverage, and fails on
+any blocked-row exposure. Independent detail-family outcomes remain visible even on objects
+that already had a core output. Unknown or unsupported family values require review.
 
 QA decodes SQL and HTTP MVT for identical sites/zooms twice, with an explicitly recorded
 cold SQL warmup before strict checks. The final manifest references hashed raw/coverage/tile
@@ -117,10 +132,38 @@ uses a different database. The reaper removes only registered containers matchin
 root/job/token/kind labels and protects live and completed resources. Docker/control uncertainty
 fails closed. Capacity waits do not consume input-failure allowance; infrastructure retries are bounded.
 
+Finalize commits metadata DDL/GRANT before running standalone ANALYZE. Combining those phases
+can deadlock against autovacuum through a catalog-row/relation-lock cycle. Only an entire implicit
+metadata batch rolled back by PostgreSQL SQLSTATE `40P01` is retried, at most twice, with a fresh
+lease check before each attempt. Other SQL errors propagate immediately. Exhausted metadata
+deadlocks fail the job without automatically repeating bulk import. The builder's admin and
+direct feature-QA clients allow 30 seconds to connect. The separate `verify-raw.mjs` and
+`verify-tiles.mjs` tools retain their existing five-second connection deadline. Serving query
+and lab HTTP deadlines are unchanged.
+
+Serving snapshots retain both geometry GiST and minimum-zoom B-tree indexes. The fixed tile
+function uses a custom plan for its actual zoom/bounds; otherwise a generic spatial plan can
+scan dense high-zoom roads in a low-zoom viewport. This is a function-local setting, not a
+server-wide optimizer override. SQL/HTTP verification exceptions persist their phase, tile,
+SQLSTATE and partial observations. A missing or technically failed verifier report fails the
+candidate without automatically repeating bulk import; valid empty tiles remain a quality
+review case. The prior timeout and full-source diagnostic comparison are retained as evidence.
+
 Stop only the builder via `systemctl --user stop atlas-candidate-worker.service`. Existing
 serving containers continue independently. The lab observer stops the experimental builder
 on its first serving failure; it is a test tool, not a production monitoring system. A successful
 private tile probe does not establish browser, gateway, session, release-switch or load behavior.
+
+Stopping the unit alone does not durably quarantine the job: cancellation can leave it in
+`retry_wait`. The latest Iran attempt was explicitly marked failed with an append-only operator
+event after an old-serving HTTP timeout. Keep the worker stopped until that incident is reviewed;
+do not restart it to repeat a full import. Token-fenced, durable guard incidents remain a separate
+implementation task. Separate Docker volumes on one underlying disk do not establish I/O isolation.
+
+Coverage totals for all eleven layers now use one aggregate scan of `render.object_outcomes`.
+Per-layer geometry, served-row and topology checks still run; malformed counters and integer
+overflow still fail. This optimization passed disposable PostgreSQL and fresh fictional PBF tests
+after the rejected Iran run. It has not passed a new full-country availability experiment.
 
 Failed/abandoned databases and role identities are deliberately retained for investigation.
 **No actual database/source GC is implemented.** Do not delete by prefix or age alone.
@@ -137,3 +180,15 @@ uses only fictional PBFs and disposable PostGIS to verify actual osm2pgsql inser
 partial output and ordered references. `tools/builder-e2e.mjs` additionally exercises real
 intake/Cosign/import/Martin and fault injection; it refuses configs outside a fresh fixture
 `atlas_test_ingest_e2e_<nonce>` control DB. Do not point a fault harness at live control data.
+
+## Laboratory serving observer
+
+`tools/candidate-serving-probe.mjs` is an independent lab witness, outside the candidate data
+specification. Each report records its own tool hash. It observes the original private Martin
+and can stop only the experimental worker after an HTTP failure while the configured job is
+running. The operator must bind it to that worker's current control job; it is not a production
+availability controller. A terminal fixture job must never trigger a stop of the real worker.
+`guard: false` is permitted only against an `atlas_test_ingest_e2e_<nonce>` control database for
+isolated observer tests; it is refused against the real control database before HTTP sampling.
+Metrics deadlines are recorded without discarding HTTP samples. Unexpected observer failure
+is reported explicitly, and missing observation windows must not be presented as zero errors.

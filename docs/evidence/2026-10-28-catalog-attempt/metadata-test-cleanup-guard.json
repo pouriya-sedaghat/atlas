@@ -1,0 +1,13 @@
+{
+  "schema": "atlas.metadata-test-cleanup-guard/1",
+  "passed": true,
+  "misnamed_disposable_fixture": true,
+  "fixture_database": "atlas_guard_cleanup_486d69baa8463580",
+  "expected_integration_exit": 1,
+  "original_table_oid_unchanged": true,
+  "original_rows_unchanged": true,
+  "metadata_test_sha256": "5555f1c97f9fcae596c9f18b1d1dc6835660f5aa10375580171edb5b4d78ea39",
+  "tool_sha256": "1405ae10d10447f974474f9b1b6269161b57f850067a8b53b5611d1575c594c4",
+  "scope": "test-hook refusal and cleanup regression on an owned disposable fixture; no production database targeted",
+  "owned_fixture_removed": true
+}

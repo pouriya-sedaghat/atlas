@@ -1,0 +1,228 @@
+{
+  "schema": "atlas.lab-fixture-stop/1",
+  "stopped": [
+    {
+      "name": "atlas-martin-f13fd73c0926-d119164876bcc5ea",
+      "id": "8ed7dfea7dbf52ad0a26d65c9b04f4d57cdace406444d4ebe5f86c987c7487ef",
+      "root": "106e9a6065d5bc176a2a7fbef32a9abdc2b0852592cb8f41a2cf5a255303417f",
+      "job": "f13fd73c0926562a973f21cac07eb66459fba3fe329765797d3ffd5a1fdc37f2",
+      "token": "d119164876bcc5eaec885bccc5044381",
+      "manifest_sha256": "abf47b349b8ca844d5643b28e97b88fb8dfa12c4e6a1221d7bb01cd00353a2aa",
+      "fixture_folder": "e2e-d165e23c"
+    },
+    {
+      "name": "atlas-martin-f80756959141-e870f410bd282c0b",
+      "id": "3f2a2053652e04b6474d3561f702f0f6c2a85947eb7c49fd3f3f44c3af3d0da5",
+      "root": "106e9a6065d5bc176a2a7fbef32a9abdc2b0852592cb8f41a2cf5a255303417f",
+      "job": "f807569591418635a3a4c3e22b7e0a1c7895d19c33f21d1db178e0e5d09e088b",
+      "token": "e870f410bd282c0ba6c5b0692963e3c5",
+      "manifest_sha256": "b9c8bbd42e59143808db1fcfe7f6c04806798089a90f02128d9488a58e843e51",
+      "fixture_folder": "e2e-d165e23c"
+    },
+    {
+      "name": "atlas-martin-6b9010e646cf-03123cfecb4592e6",
+      "id": "3bc1cc08e622582f33a48ed2af06b036005a2cb25338b2316e39a5e446ebf648",
+      "root": "106e9a6065d5bc176a2a7fbef32a9abdc2b0852592cb8f41a2cf5a255303417f",
+      "job": "6b9010e646cf6d3e96982ab621fe37fb610a0320209978b6aacaaa62fdb14f20",
+      "token": "03123cfecb4592e6ce2f2152ec069ab2",
+      "manifest_sha256": "64f214cb7f4d5e0234bff515208098544a79e27ede03b1744e3dcbb4d0aeee56",
+      "fixture_folder": "e2e-d165e23c"
+    },
+    {
+      "name": "atlas-martin-4934d5b9df2c-7e23699e24e65d0c",
+      "id": "03ada206ba4c41f6013ab2781b875bdf55826a7446ef92f50c90d8a9bfba82f3",
+      "root": "106e9a6065d5bc176a2a7fbef32a9abdc2b0852592cb8f41a2cf5a255303417f",
+      "job": "4934d5b9df2c739f558da9d4f3c8b99b9e9e808b05c285f0bdbb6c0a8f64ac2c",
+      "token": "7e23699e24e65d0c49952eacd36f8695",
+      "manifest_sha256": "79139e8ebe027d97877b1130db660d70300fd766565d2fc196a0bff0197aae68",
+      "fixture_folder": "e2e-d165e23c"
+    },
+    {
+      "name": "atlas-martin-6d799bf5c5f8-a3f0c775cf01ccb7",
+      "id": "d566a3119cbc0105267932e680c535175da6af872cddebb96499c017f5b6e906",
+      "root": "4bcdb8fa12caeff4cc2d0d139049d60fc3552be5f96e5b4dd6e9b78f74bc55d4",
+      "job": "6d799bf5c5f8eee0619b67e43696ec3d2cf5c863fd12275969b106b93ea2d946",
+      "token": "a3f0c775cf01ccb70a84cfb584be8480",
+      "manifest_sha256": "26ef754e172114d968f44d8875916ec8feaf9812ccda310ef059080f6138cd17",
+      "fixture_folder": "e2e-c2f22322"
+    },
+    {
+      "name": "atlas-martin-9cbc079d2ff6-3ef049761a3ce5cf",
+      "id": "cf0a5a3f8a8b022d821244ce789c34e164099b9bb4ddef5702ccda68738bd5f9",
+      "root": "4bcdb8fa12caeff4cc2d0d139049d60fc3552be5f96e5b4dd6e9b78f74bc55d4",
+      "job": "9cbc079d2ff6cb54fbaf745f65530e961ebe9f6c3e3db54e8e6cb97b3eba901e",
+      "token": "3ef049761a3ce5cf3a54001b4ba20b9f",
+      "manifest_sha256": "eb37320d4f8140ce728a33e67b173527ab4039db6162553b4048d86412770397",
+      "fixture_folder": "e2e-c2f22322"
+    },
+    {
+      "name": "atlas-martin-94784489bdb9-6fe3eddf531ffb37",
+      "id": "18cc05934f465d2ad40c44ed82f333a00b3ff26eaf2698a265524faec71140ac",
+      "root": "4bcdb8fa12caeff4cc2d0d139049d60fc3552be5f96e5b4dd6e9b78f74bc55d4",
+      "job": "94784489bdb91147f7ed820edb658b590593d1b47a6bfa7b80a3bd35dde5593e",
+      "token": "6fe3eddf531ffb37a6a299002e9cb78a",
+      "manifest_sha256": "3c3d825eb756eabb84b4616e0b4659250bf431e6289cb47da7a3c8c61bf17823",
+      "fixture_folder": "e2e-c2f22322"
+    },
+    {
+      "name": "atlas-martin-62f5ca237ee9-22e106162a067d67",
+      "id": "eda0077c27f02edf966f2fb59b6dfed43aacd67f7e709497981214df1268906d",
+      "root": "4bcdb8fa12caeff4cc2d0d139049d60fc3552be5f96e5b4dd6e9b78f74bc55d4",
+      "job": "62f5ca237ee9d156b80dbf5a8b404393718406a822b19b4f7ee3c71433a367eb",
+      "token": "22e106162a067d67b52fe732f4ad8c9a",
+      "manifest_sha256": "190fd6f5c1f22330c9183391e7498a72b9e5f2ae98f93e51169aa4fd94fc401d",
+      "fixture_folder": "e2e-c2f22322"
+    },
+    {
+      "name": "atlas-martin-8310fbe76699-bac261e943245b33",
+      "id": "c360b75f387e03d8a1b8db2f98fcaba4f8d3c7366d0c50791221058aea99e402",
+      "root": "99e9d60d349aaa5d6263f0061d6b2775da199056ee8577547a8d9bf238e94fd4",
+      "job": "8310fbe766998c8f9e3fa52ae96d963ac24015b4bc85614eae46538404394d28",
+      "token": "bac261e943245b336dbb7be779d7b0e0",
+      "manifest_sha256": "84348f1dce2f363d278ddaca55bc2466fea91d1f5732d5b585c324194ed89790",
+      "fixture_folder": "e2e-e73fc0aa"
+    },
+    {
+      "name": "atlas-martin-a533dcfbeb3e-abf5e4f7ad2b3d9d",
+      "id": "75a9d9f9197b7bc5e53f8963feb31d239a526cdde7d9783f048eefa1a0fec580",
+      "root": "99e9d60d349aaa5d6263f0061d6b2775da199056ee8577547a8d9bf238e94fd4",
+      "job": "a533dcfbeb3e7a01d7b79ac842fbba7d34a818d6bdf0c5bd0d9de57e27bde267",
+      "token": "abf5e4f7ad2b3d9d46d5b55d06b76916",
+      "manifest_sha256": "787faf907fb707f96c2ae5960345b247917680941c7f2c6567e0d7773fbae9f6",
+      "fixture_folder": "e2e-e73fc0aa"
+    },
+    {
+      "name": "atlas-martin-42610d46cdf8-fc3101b9864f86ed",
+      "id": "87ab043ce3bd94a260115004cd7d80d3cb72105c0803dcf62ed826d10610f32d",
+      "root": "99e9d60d349aaa5d6263f0061d6b2775da199056ee8577547a8d9bf238e94fd4",
+      "job": "42610d46cdf81dcc955b36439558f794e896ef44f55dac4fe7505f356e9d4689",
+      "token": "fc3101b9864f86ed767226a904c55660",
+      "manifest_sha256": "876c2a1637377aef0285d56016d4afd50ce26f5fa30f5427bfba40ca60fa92f0",
+      "fixture_folder": "e2e-e73fc0aa"
+    },
+    {
+      "name": "atlas-martin-126bcd891179-653f87693f1bcce8",
+      "id": "a02363d7d166508b14bdc8b51c7c09c908e5d33fd1334efea6c7da0da0ef8e73",
+      "root": "99e9d60d349aaa5d6263f0061d6b2775da199056ee8577547a8d9bf238e94fd4",
+      "job": "126bcd8911798889e5e8933cf80962740f5745dc0c9622b68acee9e2888af4bf",
+      "token": "653f87693f1bcce8e33def2c19bcf98d",
+      "manifest_sha256": "927d9e715582599001db00203d67ab66bbf0468c2fabc3a51ff7442c7269ab4d",
+      "fixture_folder": "e2e-e73fc0aa"
+    },
+    {
+      "name": "atlas-martin-9a7a36d44e26-4a6c47406aea9d77",
+      "id": "78f216a0cd2f6048eeea14bcdc4ee3b9696df5b1c68bf911067a67d080e0c31c",
+      "root": "1588c91ba5adea90a22dae9186c634e2e2993c16c9ef37f264a3d1d3a4df29b7",
+      "job": "9a7a36d44e269faf3fb970321485bea3d2e7574024a44a62245dfbd3e01c073c",
+      "token": "4a6c47406aea9d773c331d57fb0f95ba",
+      "manifest_sha256": "4355a77d992aa826f68ee436d2759b76ffbfbc9b70316fdcb929aa00a3c5fe0a",
+      "fixture_folder": "e2e-e179b5b7"
+    },
+    {
+      "name": "atlas-martin-30725455baf2-044b523588fbc9af",
+      "id": "0b5b2896bd2b5f8b52c50f426561b95ab19aca9b2ea688e81a982681c468fb37",
+      "root": "1588c91ba5adea90a22dae9186c634e2e2993c16c9ef37f264a3d1d3a4df29b7",
+      "job": "30725455baf2ad4ccac43666c17b64eb30e5d4dd9e9230755ab7d5358514ff48",
+      "token": "044b523588fbc9afb8d11a6cd3799605",
+      "manifest_sha256": "d5654e1db9c4278465abaf9ece40ef68b4413a5f66931ea29190ff95b1d19b6b",
+      "fixture_folder": "e2e-e179b5b7"
+    },
+    {
+      "name": "atlas-martin-a47d76677c87-757f3f3d2466a1df",
+      "id": "7b9daf149fe1f61a545df7bd243859852eaaaf2dd7a6b88d0ced88743f0162e6",
+      "root": "254beb1a7ee62469f049e090623fc01fff4ccf956c5cb8951c524b1cfdd366c9",
+      "job": "a47d76677c872848f9707a5904ec780170abc9c66265e133de88293130fe59d5",
+      "token": "757f3f3d2466a1df1a5b5b327b19745c",
+      "manifest_sha256": "260c1a7f6a5f8fcf74e12278bcbed630cc6be48009486f86911da9e089fe907b",
+      "fixture_folder": "e2e-fa0ca871"
+    },
+    {
+      "name": "atlas-martin-284a110c64f3-68040b08b0041775",
+      "id": "758f66ae8741ee45616a3c153cc6baa801a82d392366efa6c9b01c34a2bf5f90",
+      "root": "254beb1a7ee62469f049e090623fc01fff4ccf956c5cb8951c524b1cfdd366c9",
+      "job": "284a110c64f34437db2317b83ece260408301a95c844d939372d25548e7492da",
+      "token": "68040b08b00417758b205e125ab560ba",
+      "manifest_sha256": "ab6079e0126b764423ac5853f36023c051c3bb6eb831a56fa75a1e62921dd443",
+      "fixture_folder": "e2e-fa0ca871"
+    },
+    {
+      "name": "atlas-martin-5ed9ed225854-7c13583624356640",
+      "id": "3fa616cc8a0f42a8c8e3799138bc9b636f7d57100129a75b07f89d2d6020c0ea",
+      "root": "5c29c3f32cf1c9c74326fa96137c38d1dd3ee5d1c68a62d0efd46254b489e7f4",
+      "job": "5ed9ed225854ff9fa5370cb956000ac6d2276ecbc305e8501ea0835fd0e2574a",
+      "token": "7c135836243566401a581b0bb596a933",
+      "manifest_sha256": "af7b441979f434c4bf122878300a76dfcf9ac57d29eb1210493b7fa9b2ee24be",
+      "fixture_folder": "e2e-4cd01701"
+    },
+    {
+      "name": "atlas-martin-da17fd028118-b112afd742ce4b0d",
+      "id": "aca01daa20d422dfc3e9b2dc49a1f33b8c1acc1600235598d1bfe57f65d55ae1",
+      "root": "5c29c3f32cf1c9c74326fa96137c38d1dd3ee5d1c68a62d0efd46254b489e7f4",
+      "job": "da17fd02811874d4926ccb50c12197289f65f13fe71406d86d7a548853dd6e27",
+      "token": "b112afd742ce4b0da8fe0bddb4ea75c9",
+      "manifest_sha256": "05953bbe9f84fd58e802f5f8ea9e01eb5006cc85e8257110af6f9d35d71f8b17",
+      "fixture_folder": "e2e-4cd01701"
+    },
+    {
+      "name": "atlas-martin-35c75550a4df-4368b79189aea7a0",
+      "id": "32b48bb149047d0a5d5e8d37f1f702952be6f1771d73e01d1a55563d1d532845",
+      "root": "d72a0d6acb1641485bf8f53d52942ae1a01999303fa700f6751ae1a82efce4af",
+      "job": "35c75550a4df1d3944db5e9d88455e6c2d5838ea288f2bf8460b4d35dbd10948",
+      "token": "4368b79189aea7a0c8d24da1dfb21557",
+      "manifest_sha256": "ea623afb86e10fd8345bec36f225c2632f8e1b31b268217655a3d9bd811aba6c",
+      "fixture_folder": "e2e-7d82a6d4"
+    },
+    {
+      "name": "atlas-martin-9ab857f51bb3-3c5f9d2d2a43bba7",
+      "id": "24bfa77dfdb380fcb8310101b309dd0aed5d8322556700114cfd9511882dfa8f",
+      "root": "d72a0d6acb1641485bf8f53d52942ae1a01999303fa700f6751ae1a82efce4af",
+      "job": "9ab857f51bb3ca10fa174d7c08b9ea83c4066c6f38f738a0b30b66f3f358f177",
+      "token": "3c5f9d2d2a43bba7a1115c30e5aeaf23",
+      "manifest_sha256": "c03f0f6654e680feef609c801f49afd5866f01345591da9ae783a73e064e2cf1",
+      "fixture_folder": "e2e-7d82a6d4"
+    },
+    {
+      "name": "atlas-martin-9ccf80be181b-34f68299ed72cabd",
+      "id": "64514d1648215fe82b63a386b06afb156af78bceb9ae7ddb4eb16fab872ae068",
+      "root": "7e16169bfed28f668444563c35c4ff3555d96c48b065e22703587c1260534c63",
+      "job": "9ccf80be181bb7446b222be1649c4823a8b29ce4b7b2373abfbcdda86df23d01",
+      "token": "34f68299ed72cabd12c04a1bf10aab76",
+      "manifest_sha256": "4df6ab7b039b46962cd20cc17b5d997213793704d5124d2846114640da99e0ab",
+      "fixture_folder": "e2e-5e2b8af0"
+    },
+    {
+      "name": "atlas-martin-96fd7ef60d9c-096452f51c9ebbe5",
+      "id": "ca6693eb01eaae74963ce583f54830e251fada6390fbf2c9569028a7b072bf94",
+      "root": "7e16169bfed28f668444563c35c4ff3555d96c48b065e22703587c1260534c63",
+      "job": "96fd7ef60d9c4049db4b2ca9a7f6efa41e9cd53d10099c27d6d6029a2a68231f",
+      "token": "096452f51c9ebbe57d5240aef766d4d2",
+      "manifest_sha256": "15e5e2d126a17d2ee820fadc59e0e00445310b22b3c3553d36c6a8fdcd28488c",
+      "fixture_folder": "e2e-5e2b8af0"
+    },
+    {
+      "name": "atlas-martin-bfe9fd1b79a8-fa9f0929d73c2272",
+      "id": "e99b96644f9da547d554bbdeee3fb6532edbe3e6ac23f8d649c15cbd4588e069",
+      "root": "2a08f200739873347097508c0e3796f9440fd254b3994534896e1051be93fd43",
+      "job": "bfe9fd1b79a8ef0420c40f72785bba786b09fb1fdaddf0c9766574ea513c5308",
+      "token": "fa9f0929d73c2272bcdd36bcab454acb",
+      "manifest_sha256": "8929d1621d4136d0e8e437d0b5e5a8bbc51e7d3b9c5ccaa6bda07830e3b80b5f",
+      "fixture_folder": "e2e-4400d24b"
+    },
+    {
+      "name": "atlas-martin-5a9f66521171-c895293f0aa2ca7c",
+      "id": "708d5cbd95627f39b24ab95218bdd83b6e71cd85fe6e6bdf08bb184c7382aa2d",
+      "root": "2a08f200739873347097508c0e3796f9440fd254b3994534896e1051be93fd43",
+      "job": "5a9f665211715d1c924e592d496f793c331c16c8cca2d730511885054bc5abe8",
+      "token": "c895293f0aa2ca7c8df35f4425cd8215",
+      "manifest_sha256": "0c30bac043fd9ce63bfe035ce92537f769d070795ab421ad494927a61a538224",
+      "fixture_folder": "e2e-4400d24b"
+    }
+  ],
+  "skipped_unrelated_or_real_candidates": [
+    "atlas-martin-818e2629ee63-461ebf879bd0f9b0",
+    "atlas-martin-d63d62821da1-10f98f01fcb93444",
+    "atlas-martin-19de6e4d63d5-39912aebc505feca"
+  ],
+  "databases_and_volumes_deleted": false,
+  "original_serving_restarted": false
+}

@@ -61,7 +61,8 @@ def main():
                     '-e', 'PGPASSWORD=' + password, '-v', f'{folder}:/in:ro']
             for source, target in [('infra/atlas/raw.lua', 'raw.lua'),
                                    ('infra/atlas/catalog-observed.lua', 'render.lua'),
-                                   ('infra/catalog/seyra-flex.lua', 'catalog-v1.lua')]:
+                                   ('infra/atlas/catalog-details.lua', 'catalog-details.lua'),
+                                   ('infra/atlas/catalog-core-v2.lua', 'catalog-core.lua')]:
                 args += ['-v', f'{ROOT / source}:/config/{target}:ro']
             run(*args, '--entrypoint', 'osm2pgsql', IMPORTER, '--create', '--slim', '--drop',
                 '--extra-attributes', '--middle-schema=import_work', '--output=flex',

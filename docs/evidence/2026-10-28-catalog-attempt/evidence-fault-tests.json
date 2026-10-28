@@ -1,0 +1,27 @@
+{
+  "schema": "atlas.catalog-attempt-evidence-fault-tests/1",
+  "passed": true,
+  "positive_control_passed": true,
+  "source_evidence_changed": false,
+  "checker_sha256": "e7e3d38a59186087d269c36e4309153b63c75d67d63d4d250456cbb1b3213202",
+  "cases": [
+    {
+      "name": "publication_flag_forged",
+      "refused": true,
+      "checksum_inventory_recomputed": true
+    },
+    {
+      "name": "serving_failure_erased",
+      "refused": true,
+      "checksum_inventory_recomputed": true
+    },
+    {
+      "name": "raw_count_changed",
+      "refused": true,
+      "checksum_inventory_recomputed": true
+    }
+  ],
+  "count": 3,
+  "fault_harness_sha256": "7773b07541f508e3d0efdcd38f83b7faebd05de3940243405c3ffda763a6bd57",
+  "scope": "local synthetic evidence corruption tests; no database, source approval or publication"
+}

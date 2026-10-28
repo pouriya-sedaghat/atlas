@@ -1,0 +1,11 @@
+{
+  "schema": "atlas.server-prerequisite-negative/1",
+  "passed": true,
+  "code": "data_server_prerequisites_changed",
+  "pipeline_sha256": "32590f3516d833ae9a773fb27488d66b4790026d5478a34e7c149621d8406e64",
+  "expected_data_rate_bytes": 8388608,
+  "server_configuration_changed": false,
+  "temporary_dsn_removed": true,
+  "database_allocation_attempted": false,
+  "scope": "connection-only override of disconnect interval; actual data cluster defaults unchanged"
+}
