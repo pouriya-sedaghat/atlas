@@ -28,8 +28,8 @@ describe.skipIf(!connectionString)('serving topology closure on real PostgreSQL'
     ];
     for(const [id,type,members]of relations)await pool.query('INSERT INTO osm_raw.relations VALUES($1,$2,$3)',[id,JSON.stringify({type}),JSON.stringify(members)]);
     for(const layer of layers){
-      await pool.query(`CREATE TABLE render.${layer}(osm_type char(1),osm_id bigint,geom geometry(Point,3857)); INSERT INTO render.${layer} SELECT t, id, ST_SetSRID(ST_Point(1,1),3857) FROM (VALUES('N',20),('W',10),('R',999)) v(t,id)`);
-      await pool.query(`INSERT INTO render.${layer} SELECT 'R',osm_id,ST_SetSRID(ST_Point(1,1),3857) FROM osm_raw.relations`);
+      await pool.query(`CREATE TABLE render.${layer}(osm_type char(1),osm_id bigint,geom geometry(Point,3857),min_zoom smallint NOT NULL DEFAULT 16); INSERT INTO render.${layer}(osm_type,osm_id,geom) SELECT t, id, ST_SetSRID(ST_Point(1,1),3857) FROM (VALUES('N',20),('W',10),('R',999)) v(t,id)`);
+      await pool.query(`INSERT INTO render.${layer}(osm_type,osm_id,geom) SELECT 'R',osm_id,ST_SetSRID(ST_Point(1,1),3857) FROM osm_raw.relations`);
     }
     await pool.query(readFileSync(new URL('../../../infra/atlas/catalog-topology.sql',import.meta.url),'utf8'));
   });
@@ -53,10 +53,17 @@ describe.skipIf(!connectionString)('serving topology closure on real PostgreSQL'
     expect((await pool.query("SELECT count(*)::integer n FROM tiles.boundaries WHERE osm_type='R' AND osm_id IN (102,999)")).rows[0].n).toBe(0);
   });
   it('uses the spatial index on the filtered snapshot for selective tile requests',async()=>{
-    await pool.query("INSERT INTO render.transport SELECT 'N',1000+i,ST_SetSRID(ST_Point(i*1000,i*1000),3857) FROM generate_series(1,10000) i");
+    await pool.query("INSERT INTO render.transport(osm_type,osm_id,geom) SELECT 'N',1000+i,ST_SetSRID(ST_Point(i*1000,i*1000),3857) FROM generate_series(1,10000) i");
     await pool.query('REFRESH MATERIALIZED VIEW tiles.transport; ANALYZE tiles.transport');
     const plan=(await pool.query('EXPLAIN (FORMAT JSON) SELECT osm_id FROM tiles.transport WHERE geom && ST_MakeEnvelope(999900,999900,1000100,1000100,3857)')).rows[0]['QUERY PLAN'];
     expect(JSON.stringify(plan)).toContain('transport_geom_idx');
     expect((await pool.query('SELECT osm_id::text FROM tiles.transport WHERE geom && ST_MakeEnvelope(999900,999900,1000100,1000100,3857)')).rows).toEqual([{osm_id:'2000'}]);
+  });
+  it('uses the zoom index when a broad viewport excludes dense high-zoom features',async()=>{
+    await pool.query("INSERT INTO render.transport(osm_type,osm_id,geom,min_zoom) SELECT 'N',1000+i,ST_SetSRID(ST_Point(i,i),3857),CASE WHEN i<=10 THEN 4 ELSE 16 END FROM generate_series(1,10000) i");
+    await pool.query('REFRESH MATERIALIZED VIEW tiles.transport; ANALYZE tiles.transport');
+    const sql='SELECT osm_id FROM tiles.transport WHERE min_zoom<=6 AND geom && ST_MakeEnvelope(-1,-1,20000,20000,3857)';
+    expect(JSON.stringify((await pool.query('EXPLAIN (FORMAT JSON) '+sql)).rows[0]['QUERY PLAN'])).toContain('transport_min_zoom_idx');
+    expect((await pool.query(sql)).rowCount).toBe(10);
   });
 });

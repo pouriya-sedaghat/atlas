@@ -55,31 +55,39 @@ async function fetchTile(url) {
 }
 const rows = [];
 const warmup=[];
-await client.connect();
+let failure=null,context={phase:'connect'};
 try {
+  await client.connect();
   if(options?.warmup){
     await client.query("SET statement_timeout='120s'");
     for(const [site,[lon,lat]]of Object.entries(sites))for(const z of [6,10,14,16]){
       const n=2**z,x=Math.floor((lon+180)/360*n),y=Math.floor((1-Math.asinh(Math.tan(lat*Math.PI/180))/Math.PI)/2*n),started=performance.now();
+      context={phase:'warmup_sql',site,z,x,y};
       await client.query('SELECT octet_length(tiles.basemap($1,$2,$3))',[z,x,y]);warmup.push({site,z,x,y,ms:Math.round((performance.now()-started)*1000)/1000});
     }
     await client.query("SET statement_timeout='15s'");
   }
   for (let round=1;round<=rounds;round++) for (const [site,[lon,lat]] of Object.entries(sites)) for (const z of [6,10,14,16]) {
     const n=2**z,x=Math.floor((lon+180)/360*n),y=Math.floor((1-Math.asinh(Math.tan(lat*Math.PI/180))/Math.PI)/2*n);
+    context={phase:'comparison_sql',round,site,z,x,y};
+    const database=(await client.query('SELECT tiles.basemap($1,$2,$3) AS tile',[z,x,y])).rows[0].tile;
+    context={phase:'comparison_http',round,site,z,x,y};
     const sources = {
-      database:(await client.query('SELECT tiles.basemap($1,$2,$3) AS tile',[z,x,y])).rows[0].tile,
+      database,
       martin:await fetchTile(`${options?.martin??'http://martin:3000'}/basemap/${z}/${x}/${y}`),
       ...(options?.baseline?{baseline:await fetchTile(`${options.baseline}/basemap/${z}/${x}/${y}`)}:{}),
       ...(!options?{pgtileserv:await fetchTile(`http://pgtileserv:7800/tiles.basemap/${z}/${x}/${y}.pbf`)}:{}),
     };
+    context={phase:'decode',round,site,z,x,y};
     const decoded = Object.fromEntries(Object.entries(sources).map(([engine,bytes])=>[engine,{...decode(bytes),bytes:bytes.length}]));
     const parity = new Set(Object.values(decoded).map(r=>r.sha256)).size === 1;
     rows.push({round,site,z,x,y,parity,decoded});
     process.stdout.write(`round ${round} ${site} z${z}: ${parity?'matched':'MISMATCH'}\n`);
   }
-} finally { await client.end(); }
-const report = {schema:'atlas.tile-parity/1',rounds,passed:rows.every(r=>r.parity)&&rows.some(r=>r.decoded.database.features>0),
+} catch(error) {
+  failure={...context,code:typeof error.code==='string'?error.code:error.name,message:String(error.message).slice(0,1000)};
+} finally { await client.end().catch(()=>{}); }
+const report = {schema:'atlas.tile-parity/1',rounds,passed:!failure&&rows.every(r=>r.parity)&&rows.some(r=>r.decoded.database.features>0),failure,
   warmup,warmup_sql_timeout_ms:options?.warmup?120000:null,comparison_sql_timeout_ms:15000,http_timeout_ms:15000,
   comparison:'Decoded MVT features, properties and ordered geometry; layer/feature serialization order ignored',
   geographic_truth_verified:false,samples:rows};

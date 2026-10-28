@@ -30,6 +30,10 @@ jobs:
       - run: npm run build
       - run: npm run typecheck
       - run: npm test
+      - name: Refuse cleanup when the metadata integration test rejects a database
+        run: node tools/check-metadata-test-guard.mjs
+      - name: Preserve SQL and HTTP verification failures
+        run: node tools/check-tile-check-failure.mjs
       - name: Verify published experimental candidate evidence
         run: node tools/verify-candidate-evidence.mjs
   pbf-audit:

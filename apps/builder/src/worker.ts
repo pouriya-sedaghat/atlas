@@ -72,7 +72,9 @@ export class CandidateWorker {
       const tilesRun=await execute(process.execPath,[join(this.config.repo,'tools/verify-tiles.mjs'),tileReport,'2'],{signal:watch.signal,timeoutMs:this.config.timeoutMs,maxOutput:1024*1024,
         env:{PATH:process.env.PATH,HOME:process.env.HOME,LANG:'C.UTF-8',ATLAS_TILE_CHECK_CONFIG_FILE:tileConfig}});
       await writeFile(join(data.directory,'tile-check.log'),Buffer.concat([tilesRun.stdout,tilesRun.stderr]),{flag:'wx',mode:0o600});
-      const tiles=JSON.parse(await readFile(tileReport,'utf8'));
+      let tiles;
+      try{tiles=JSON.parse(await readFile(tileReport,'utf8'));}catch{throw new IntakeError('candidate_tile_check_failed');}
+      if(tiles.failure)throw new IntakeError('candidate_tile_check_failed');
       if(!Array.isArray(tiles.samples)||!tiles.samples.length||!tiles.samples.every((s:any)=>s.parity===true))throw new IntakeError('candidate_tile_contract_failed');
       if(tilesRun.code!==0&&tiles.passed!==false)throw new IntakeError('candidate_tile_check_failed');
       const tileSha=await this.artifact(tiles),review=[...featureReport.review_reasons];if(!tiles.passed)review.push('no_rendered_features');
@@ -94,7 +96,7 @@ export class CandidateWorker {
       await writeFile(join(data.directory,'failure.json'),JSON.stringify({code,name:cause instanceof Error?cause.name:'unknown',message:cause instanceof Error?cause.message.slice(0,2000):'',stack:cause instanceof Error?cause.stack?.slice(0,6000):''},null,2)+'\n',{flag:'wx',mode:0o600}).catch(()=>undefined);
       if(['lease_lost','control_lease_deadline'].includes(code))throw cause;
       await data.stop('importer');await data.stop('martin');
-      await this.queue.fail(claim,code,!['canonical_roundtrip_failed','outcome_accounting_failed','unexplained_catalog_loss','layer_integrity_failed','serving_topology_integrity_failed','candidate_tile_contract_failed','source_receipt_changed','candidate_metadata_deadlock'].includes(code));
+      await this.queue.fail(claim,code,!['canonical_roundtrip_failed','outcome_accounting_failed','unexplained_catalog_loss','layer_integrity_failed','serving_topology_integrity_failed','candidate_tile_contract_failed','candidate_tile_check_failed','source_receipt_changed','candidate_metadata_deadlock'].includes(code));
       process.stderr.write(JSON.stringify({event:'candidate_attempt_failed',id:claim.id,code})+'\n');throw error;
     }finally{
       watch.stop();

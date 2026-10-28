@@ -6,12 +6,14 @@ const connectionString=process.env.ATLAS_TEST_DATABASE_URL;
 describe.skipIf(!connectionString)('candidate metadata transactions on real PostgreSQL',()=>{
   const pool=new pg.Pool({connectionString,connectionTimeoutMillis:30000,statement_timeout:10000});
   const schema='metadata_regression';
+  let ownsSchema=false;
   beforeAll(async()=>{
     const name=(await pool.query('SELECT current_database() AS name')).rows[0].name;
     if(!String(name).startsWith('atlas_test'))throw Error('disposable database required');
     await pool.query(`CREATE SCHEMA ${schema}; CREATE MATERIALIZED VIEW ${schema}.snapshot AS SELECT 1 AS n; CREATE TABLE ${schema}.counter(n integer PRIMARY KEY); INSERT INTO ${schema}.counter VALUES(0)`);
+    ownsSchema=true;
   });
-  afterAll(async()=>{await pool.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);await pool.end();});
+  afterAll(async()=>{try{if(ownsSchema)await pool.query(`DROP SCHEMA ${schema} CASCADE`);}finally{await pool.end();}});
   async function waiting(pid:number):Promise<void>{
     for(let i=0;i<100;i++){
       const row=(await pool.query("SELECT wait_event_type FROM pg_stat_activity WHERE pid=$1",[pid])).rows[0];

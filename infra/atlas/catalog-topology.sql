@@ -49,6 +49,7 @@ BEGIN
         (SELECT FROM render.relation_topology t WHERE t.osm_id=r.osm_id AND NOT t.blocked))',name,name);
     EXECUTE format('REVOKE ALL ON tiles.%I FROM PUBLIC',name);
     EXECUTE format('CREATE INDEX %I ON tiles.%I USING gist(geom)',name||'_geom_idx',name);
+    EXECUTE format('CREATE INDEX %I ON tiles.%I(min_zoom)',name||'_min_zoom_idx',name);
     EXECUTE format('ANALYZE tiles.%I',name);
   END LOOP;
 END $$;

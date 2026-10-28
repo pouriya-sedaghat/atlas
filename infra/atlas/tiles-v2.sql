@@ -6,7 +6,8 @@ DO $$ BEGIN
 END $$;
 CREATE OR REPLACE FUNCTION tiles.basemap(z integer, x integer, y integer)
 RETURNS bytea LANGUAGE plpgsql STABLE STRICT PARALLEL SAFE SECURITY INVOKER
-SET search_path = pg_catalog, public, tiles AS $$
+SET search_path = pg_catalog, public, tiles
+SET plan_cache_mode = force_custom_plan AS $$
 DECLARE
     bounds geometry;
     buffered geometry;

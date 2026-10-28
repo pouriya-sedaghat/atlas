@@ -75,6 +75,12 @@ try{
   const qaDsn=await secretFile(join(dir,'qa.dsn')),qa=new pg.Client({connectionString:qaDsn});await qa.connect();
   try{
     assert.equal((await qa.query('SHOW default_transaction_read_only')).rows[0].default_transaction_read_only,'on');
+    const settings=(await qa.query("SELECT proconfig FROM pg_proc WHERE pronamespace='tiles'::regnamespace AND proname='basemap'")).rows[0].proconfig;
+    assert.ok(settings.includes('plan_cache_mode=force_custom_plan'));
+    await qa.query('SET plan_cache_mode=force_generic_plan');
+    await qa.query('SELECT tiles.basemap(6,32,31)');
+    assert.equal((await qa.query('SHOW plan_cache_mode')).rows[0].plan_cache_mode,'force_generic_plan');
+    await qa.query('SET plan_cache_mode=auto');
     await assert.rejects(qa.query("INSERT INTO osm_raw.nodes(osm_id,tags,geom) VALUES(999,'{}',ST_SetSRID(ST_Point(0,0),4326))"));
   }finally{await qa.end();}
   const tileUri=new URL(qaDsn);tileUri.username=attempt.tile_role;tileUri.password=credentials.tilePassword;
