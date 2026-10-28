@@ -27,6 +27,8 @@ export class IntakeQueue {
   private async live(c:PoolClient,claim:Claim):Promise<void>{
     const r=await c.query("SELECT id FROM atlas_control.intake_jobs WHERE id=$1 AND lease_token=$2 AND state='running' AND lease_until>clock_timestamp() FOR UPDATE",[claim.id,claim.token]);
     if(!r.rowCount)throw new LeaseLost();
+    const slot=await c.query("SELECT 1 FROM atlas_control.processing_slot WHERE singleton AND holder_kind='intake' AND job_id=$1 AND token=$2 AND lease_until>clock_timestamp() FOR UPDATE",[claim.id,claim.token]);
+    if(!slot.rowCount)throw new LeaseLost();
   }
   async bindRoot(rootSha:string):Promise<string>{
     hash(rootSha);return this.tx(async c=>{
@@ -40,8 +42,15 @@ export class IntakeQueue {
     if(!row||row.root_sha256!==rootSha)throw new IntakeError('control_root_binding_mismatch');return row.id;
   }
   async tokenLive(jobId:string,token:string):Promise<boolean>{
-    return Boolean((await this.pool.query("SELECT 1 FROM atlas_control.intake_jobs WHERE id=$1 AND lease_token=$2 AND state='running' AND lease_until>clock_timestamp()",[jobId,token])).rowCount);
+    return Boolean((await this.pool.query(`SELECT 1 FROM atlas_control.intake_jobs j JOIN atlas_control.processing_slot s ON s.singleton AND s.holder_kind='intake' AND s.job_id=j.id AND s.token=j.lease_token
+      WHERE j.id=$1 AND j.lease_token=$2 AND j.state='running' AND j.lease_until>clock_timestamp() AND s.lease_until>clock_timestamp()`,[jobId,token])).rowCount);
   }
+  /** Called only after the intake reaper has stopped expired managed containers. */
+  async releaseExpiredSlot():Promise<void>{await this.tx(async c=>{
+    await c.query(`UPDATE atlas_control.processing_slot s SET holder_kind=NULL,job_id=NULL,token=NULL,lease_until=NULL
+      WHERE s.singleton AND s.holder_kind='intake' AND s.lease_until<=clock_timestamp()
+      AND NOT EXISTS(SELECT FROM atlas_control.intake_jobs j WHERE j.id=s.job_id AND j.lease_token=s.token AND j.state='running' AND j.lease_until>clock_timestamp())`);
+  });}
   async register(manifest:Submission,manifestSha256:string,specSha256:string):Promise<boolean>{
     hash(manifestSha256);hash(specSha256);id(manifest.id);
     return this.tx(async c=>{
@@ -75,11 +84,13 @@ export class IntakeQueue {
       }
       // One bounded heavy worker across all coordinators sharing this database.
       if((await c.query("SELECT 1 FROM atlas_control.intake_jobs WHERE state='running' AND lease_until>clock_timestamp() LIMIT 1")).rowCount)return null;
+      if((await c.query('SELECT 1 FROM atlas_control.processing_slot WHERE singleton AND holder_kind IS NOT NULL FOR UPDATE')).rowCount)return null;
       const r=await c.query(`SELECT id,manifest_sha256,manifest,spec_sha256,attempts,blob_verified FROM atlas_control.intake_jobs
         WHERE state IN ('queued','retry_wait') AND spec_sha256=$1 AND next_attempt_at<=clock_timestamp()
         ORDER BY created_at,id LIMIT 1 FOR UPDATE SKIP LOCKED`,[specSha256]);
       const row=r.rows[0];if(!row)return null;
       const token=nonce();
+      await c.query("UPDATE atlas_control.processing_slot SET holder_kind='intake',job_id=$1,token=$2,lease_until=clock_timestamp()+$3*interval '1 millisecond' WHERE singleton",[row.id,token,this.leaseMs]);
       await c.query(`UPDATE atlas_control.intake_jobs SET state='running',attempts=attempts+1,lease_token=$2,
         lease_until=clock_timestamp()+$3*interval '1 millisecond',updated_at=clock_timestamp() WHERE id=$1`,[row.id,token,this.leaseMs]);
       await c.query("INSERT INTO atlas_control.intake_attempts(token,job_id,ordinal,state) VALUES($1,$2,$3,'running')",[token,row.id,row.attempts+1]);
@@ -88,9 +99,11 @@ export class IntakeQueue {
     });
   }
   async heartbeat(claim:Claim):Promise<void>{
-    const r=await this.pool.query(`UPDATE atlas_control.intake_jobs SET lease_until=clock_timestamp()+$3*interval '1 millisecond'
-      WHERE id=$1 AND lease_token=$2 AND state='running' AND lease_until>clock_timestamp() RETURNING id`,[claim.id,claim.token,this.leaseMs]);
-    if(!r.rowCount)throw new LeaseLost();
+    await this.tx(async c=>{
+      await this.live(c,claim);
+      await c.query("UPDATE atlas_control.intake_jobs SET lease_until=clock_timestamp()+$2*interval '1 millisecond' WHERE id=$1",[claim.id,this.leaseMs]);
+      await c.query("UPDATE atlas_control.processing_slot SET lease_until=clock_timestamp()+$2*interval '1 millisecond' WHERE singleton AND token=$1",[claim.token,this.leaseMs]);
+    });
   }
   async assertLive(claim:Claim):Promise<void>{await this.tx(c=>this.live(c,claim));}
   async markBlobVerified(claim:Claim):Promise<void>{await this.tx(async c=>{await this.live(c,claim);await c.query('UPDATE atlas_control.intake_jobs SET blob_verified=true WHERE id=$1',[claim.id]);});}
@@ -99,6 +112,7 @@ export class IntakeQueue {
     await c.query(`UPDATE atlas_control.intake_jobs SET state=$3,lease_token=NULL,lease_until=NULL,validation_id=$4,
       failure_code=$5,updated_at=clock_timestamp() WHERE id=$1 AND lease_token=$2`,[claim.id,claim.token,state,validationId,code]);
     await c.query("UPDATE atlas_control.intake_attempts SET state=$2,ended_at=clock_timestamp() WHERE token=$1",[claim.token,state==='completed'?'completed':'failed']);
+    await c.query("UPDATE atlas_control.processing_slot SET holder_kind=NULL,job_id=NULL,token=NULL,lease_until=NULL WHERE singleton AND holder_kind='intake' AND token=$1",[claim.token]);
   }
   async fail(claim:Claim,code:string,retryable:boolean):Promise<void>{
     if(!/^[a-z][a-z0-9_]{0,79}$/.test(code))throw new IntakeError('invalid_failure_code');

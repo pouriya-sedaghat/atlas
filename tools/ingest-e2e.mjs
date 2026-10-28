@@ -123,6 +123,7 @@ try{
   tests.push('reconciliation_registers_new_delivery_during_an_active_lease');
   await command('work',['--once']);assert.equal((await execute('docker',['inspect',orphanName])).code,0,'valid lease protected');
   await pool.query("UPDATE atlas_control.intake_jobs SET lease_until=clock_timestamp()-interval '1 second' WHERE id=$1",[old.id]);
+  await pool.query("UPDATE atlas_control.processing_slot SET lease_until=clock_timestamp()-interval '1 second' WHERE holder_kind='intake' AND job_id=$1",[old.id]);
   await command('work',['--once']);assert.notEqual((await execute('docker',['inspect',orphanName])).code,0,'expired managed attempt removed');
   assert.equal((await execute('docker',['inspect',foreignName])).code,0,'unrelated container retained');
   tests.push('expired_container_reaped_while_live_and_unrelated_containers_are_protected');

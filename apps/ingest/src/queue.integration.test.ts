@@ -18,7 +18,7 @@ describe.skipIf(!connectionString)('durable intake on real PostgreSQL',()=>{
     if(!String(db).startsWith('atlas_test'))throw new Error('test suite requires a disposable atlas_test* database');
     await pool.query(readFileSync(new URL('./schema.sql',import.meta.url),'utf8'));
   });
-  beforeEach(async()=>{await pool.query(`TRUNCATE atlas_control.intake_events,atlas_control.intake_reviews,atlas_control.intake_baselines,
+  beforeEach(async()=>{await pool.query('UPDATE atlas_control.processing_slot SET holder_kind=NULL,job_id=NULL,token=NULL,lease_until=NULL');await pool.query(`TRUNCATE atlas_control.intake_events,atlas_control.intake_reviews,atlas_control.intake_baselines,
     atlas_control.intake_attempts,atlas_control.intake_jobs,atlas_control.intake_validations,atlas_control.intake_delivery_rejections CASCADE`);});
   afterAll(()=>pool.end());
   it('admits a delivery once and serializes competing coordinators into one heavy worker',async()=>{
@@ -32,7 +32,9 @@ describe.skipIf(!connectionString)('durable intake on real PostgreSQL',()=>{
     await register();const old=(await queue.claim(spec))!;
     await queue.markBlobVerified(old);const initial=await queue.beginValidation(old);
     await pool.query("UPDATE atlas_control.intake_jobs SET lease_until=clock_timestamp()-interval '1 second'");
+    await pool.query("UPDATE atlas_control.processing_slot SET lease_until=clock_timestamp()-interval '1 second'");
     expect(await queue.claim(spec)).toBeNull();
+    await queue.releaseExpiredSlot();
     await pool.query("UPDATE atlas_control.intake_jobs SET next_attempt_at=clock_timestamp()-interval '1 second'");
     const fresh=(await queue.claim(spec))!;expect(fresh.token).not.toBe(old.token);expect(fresh.blobVerified).toBe(true);
     await expect(queue.heartbeat(old)).rejects.toMatchObject({code:'lease_lost'});
@@ -76,5 +78,18 @@ describe.skipIf(!connectionString)('durable intake on real PostgreSQL',()=>{
     const signer=(await queue.claimSigning(spec))!;
     await pool.query("UPDATE atlas_control.intake_validations SET sign_lease_until=clock_timestamp()-interval '1 second'");
     await expect(queue.finishSigning(signer,'e'.repeat(64),'f'.repeat(64),'0'.repeat(64))).rejects.toMatchObject({code:'lease_lost'});
+  });
+  it('honors a live candidate slot and fences a parser whose slot was lost',async()=>{
+    await register();
+    await pool.query("UPDATE atlas_control.processing_slot SET holder_kind='candidate',job_id='test-candidate',token='candidate-token',lease_until=clock_timestamp()+interval '1 minute'");
+    expect(await queue.claim(spec)).toBeNull();
+    await pool.query("UPDATE atlas_control.processing_slot SET lease_until=clock_timestamp()-interval '1 second'");
+    expect(await queue.claim(spec)).toBeNull();await queue.releaseExpiredSlot();
+    expect((await pool.query('SELECT holder_kind FROM atlas_control.processing_slot')).rows[0].holder_kind).toBe('candidate');
+    await pool.query('UPDATE atlas_control.processing_slot SET holder_kind=NULL,job_id=NULL,token=NULL,lease_until=NULL');
+    const claim=(await queue.claim(spec))!;expect(claim).not.toBeNull();
+    await pool.query("UPDATE atlas_control.processing_slot SET lease_until=clock_timestamp()-interval '1 second'");
+    await expect(queue.heartbeat(claim)).rejects.toMatchObject({code:'lease_lost'});
+    expect(await queue.tokenLive(claim.id,claim.token)).toBe(false);
   });
 });

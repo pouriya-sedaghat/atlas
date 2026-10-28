@@ -1,6 +1,17 @@
 -- Additive intake control schema. Import/data-serving roles must not own this schema.
 CREATE SCHEMA IF NOT EXISTS atlas_control;
 REVOKE ALL ON SCHEMA atlas_control FROM PUBLIC;
+-- Intake parsing and candidate import share one heavy-work slot on the small VM.
+CREATE TABLE IF NOT EXISTS atlas_control.processing_slot (
+  singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),
+  holder_kind text CHECK(holder_kind IN ('intake','candidate')),
+  job_id text,
+  token text,
+  lease_until timestamptz,
+  CHECK((holder_kind IS NULL AND job_id IS NULL AND token IS NULL AND lease_until IS NULL)
+     OR (holder_kind IS NOT NULL AND job_id IS NOT NULL AND token IS NOT NULL AND lease_until IS NOT NULL))
+);
+INSERT INTO atlas_control.processing_slot(singleton) VALUES(true) ON CONFLICT DO NOTHING;
 CREATE TABLE IF NOT EXISTS atlas_control.intake_instance (
   singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),
   id text NOT NULL DEFAULT replace(gen_random_uuid()::text,'-',''),

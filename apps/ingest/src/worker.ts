@@ -4,6 +4,7 @@ import {execute} from './process.js';
 import {IntakeFiles} from './files.js';
 import {evaluate,hex32,IntakeError,object,parseAudit,parseSubmission,sha256,validationSpec,type Decision,type IntakePolicy} from './contracts.js';
 import {IntakeQueue,LeaseLost,type Claim} from './queue.js';
+import {LeaseWatch} from './lease.js';
 
 export interface WorkerConfig {validatorImage:string;controllerSha256:string;maxBytes:number;minFreeBytes:number;timeoutMs:number;memoryBytes:number;cpus:number;}
 export class DockerValidator {
@@ -85,27 +86,23 @@ export class IntakeWorker {
       await this.files.cleanupAttempt(attempt.job_id,attempt.token);
       await this.queue.cleaned(attempt.token);
     }
+    await this.queue.releaseExpiredSlot();
   }
   async once(signal?:AbortSignal):Promise<boolean>{
-    await this.reconcile();const claim=await this.queue.claim(this.specSha256);await this.reap();if(!claim)return false;
-    const abort=new AbortController();let heartbeatBusy=false,leaseError:unknown;
-    const cancel=()=>abort.abort();signal?.addEventListener('abort',cancel,{once:true});if(signal?.aborted)abort.abort();
-    const heartbeat=setInterval(()=>{
-      if(heartbeatBusy)return;heartbeatBusy=true;
-      this.queue.heartbeat(claim).catch(error=>{leaseError=error;abort.abort();}).finally(()=>{heartbeatBusy=false;});
-    },Math.max(250,Math.floor(this.queue.leaseMs/4)));
+    await this.reconcile();await this.reap();const started=performance.now(),claim=await this.queue.claim(this.specSha256);if(!claim)return false;
+    const watch=new LeaseWatch(()=>this.queue.heartbeat(claim),this.queue.leaseMs,started,signal,()=>this.log({event:'control_heartbeat_retry',job:claim.id}));
     try{
       if(claim.blobVerified)await this.files.verifyBlob(claim.manifest.sha256,claim.manifest.bytes);
       else{
-        await this.files.snapshot(claim.id,claim.token,claim.manifestSha256,claim.manifest.sha256,claim.manifest.bytes,this.config.minFreeBytes,abort.signal);
+        await this.files.snapshot(claim.id,claim.token,claim.manifestSha256,claim.manifest.sha256,claim.manifest.bytes,this.config.minFreeBytes,watch.signal);
         await this.queue.markBlobVerified(claim);
       }
       await this.files.consume(claim.id,claim.manifestSha256);
       await this.queue.assertLive(claim);
       const {validation,reused}=await this.queue.beginValidation(claim);
       if(reused){this.log({event:'validation_reused',job:claim.id,validation:validation.id,state:validation.state});return true;}
-      const result=await this.validator.audit(claim,abort.signal);
-      if(leaseError)throw leaseError;
+      await this.queue.assertLive(claim);const result=await this.validator.audit(claim,watch.signal);
+      if(watch.error)throw watch.error;
       if(![0,2,3].includes(result.code)){
         const diagnostic=await this.files.putArtifact(Buffer.from(JSON.stringify({schema:'atlas.validator-failure/1',exitCode:result.code,stderr:result.stderr.toString('utf8')})));
         this.log({event:'validator_failure',job:claim.id,exitCode:result.code,diagnosticSha256:diagnostic});
@@ -128,19 +125,20 @@ export class IntakeWorker {
       }
       await this.files.verifyBlob(claim.manifest.sha256,claim.manifest.bytes);
       const reportSha=await this.files.putArtifact(result.bytes);
+      if(watch.signal.aborted)throw watch.error??new IntakeError('cancelled');
       await this.queue.completeValidation(claim,validation.id,reportSha,decision);
       this.log({event:'validation_completed',job:claim.id,validation:validation.id,kind:decision.kind,reasons:decision.reasons});
       return true;
     }catch(error){
-      const code=error instanceof IntakeError?error.code:'worker_infrastructure_error';
-      if(!(error instanceof LeaseLost)){
+      const cause=watch.error??error,code=cause instanceof IntakeError?cause.code:'worker_infrastructure_error';
+      if(!['lease_lost','control_lease_deadline'].includes(code)){
         const permanent=['sha256_mismatch','manifest_changed','size_mismatch','source_grew','not_a_private_regular_file','file_changed','invalid_identifier','symlink_forbidden','unsafe_directory'];
         await this.queue.fail(claim,code, !permanent.includes(code)).catch(failure=>{if(!(failure instanceof LeaseLost))throw failure;});
       }
       this.log({event:'attempt_stopped',job:claim.id,code});
       return true;
     }finally{
-      clearInterval(heartbeat);signal?.removeEventListener('abort',cancel);
+      watch.stop();
       await this.validator.stop(claim);await this.reap();
     }
   }

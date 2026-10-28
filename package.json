@@ -15,10 +15,11 @@
     "apps/api",
     "apps/ops",
     "apps/ingest",
+    "apps/builder",
     "apps/web"
   ],
   "scripts": {
-    "build": "npm run build -w packages/contracts && npm run build -w packages/map-assets && npm run build -w packages/releases && npm run build -w apps/api -w apps/ops -w apps/ingest -w apps/web",
+    "build": "npm run build -w packages/contracts && npm run build -w packages/map-assets && npm run build -w packages/releases && npm run build -w apps/api -w apps/ops -w apps/ingest -w apps/builder -w apps/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "openapi": "npm run openapi -w apps/api"

@@ -1,6 +1,7 @@
 -- Roles are provisioned by the database administrator, not by the parser/coordinator.
 REVOKE ALL ON ALL TABLES IN SCHEMA atlas_control FROM PUBLIC;
 GRANT USAGE ON SCHEMA atlas_control TO atlas_ingest_worker,atlas_ingest_reviewer,atlas_ingest_signer;
+GRANT SELECT,UPDATE ON atlas_control.processing_slot TO atlas_ingest_worker;
 GRANT SELECT ON atlas_control.intake_instance,atlas_control.intake_jobs,atlas_control.intake_attempts,
   atlas_control.intake_validations,atlas_control.intake_baselines TO atlas_ingest_worker;
 GRANT SELECT,INSERT,UPDATE ON atlas_control.intake_delivery_rejections TO atlas_ingest_worker;
