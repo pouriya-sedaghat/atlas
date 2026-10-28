@@ -1,0 +1,30 @@
+{
+  "root": "/private/atlas-candidate-state",
+  "repo": "/opt/atlas/builds/REVIEWED_IMMUTABLE_BUILD",
+  "sourceConfigPath": "/private/atlas-intake/config.json",
+  "controlAdminDsnFile": "/private/atlas-intake/admin.dsn",
+  "controlDsnFile": "/private/atlas-builder/control.dsn",
+  "dataAdminDsnFile": "/private/atlas-builder/data-admin.dsn",
+  "network": "atlas-private",
+  "dataHost": "atlas-candidate-db",
+  "dataContainer": "atlas-candidate-db",
+  "dataImage": "sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095",
+  "importerImage": "sha256:6548a1e2492e08fa0d5ce987d382ad57c4b21c8a94ff00017c6109770a061b79",
+  "martinImage": "REPLACE_WITH_VERIFIED_LOCAL_IMAGE_ID_SHA256",
+  "expectedPipelineSha256": null,
+  "minFreeBytes": 21474836480,
+  "importMemoryBytes": 2147483648,
+  "importCpus": 1,
+  "timeoutMs": 14400000,
+  "dataLimits": {
+    "memoryBytes": 3221225472,
+    "cpus": 1,
+    "cpuShares": 256,
+    "readBps": 16777216,
+    "writeBps": 16777216,
+    "devices": [
+      { "path": "/dev/sda", "majorMinor": "8:0" },
+      { "path": "/dev/dm-0", "majorMinor": "252:0" }
+    ]
+  }
+}

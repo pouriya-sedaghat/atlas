@@ -1,0 +1,9 @@
+{
+  "name":"@atlas/builder","version":"0.1.0","private":true,"type":"module",
+  "scripts":{
+    "build":"tsc -p tsconfig.json && node -e \"require('node:fs').copyFileSync('src/schema.sql','dist/schema.sql')\"",
+    "typecheck":"tsc -p tsconfig.json --noEmit","test":"vitest run"
+  },
+  "dependencies":{"@atlas/ingest":"0.1.0","pg":"8.23.1"},
+  "devDependencies":{"@types/node":"24.19.2","@types/pg":"8.23.1","typescript":"6.0.3","vitest":"5.0.4"}
+}

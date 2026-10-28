@@ -1,0 +1,80 @@
+{
+  "schema": "atlas.feature-coverage/1",
+  "source_sha256": "93811b6f6160f0974873c3afdd8adc88bd7a975b131c61b64a405d2f5354d8af",
+  "accounting": {
+    "missing_outcomes": 0,
+    "orphan_outcomes": 0
+  },
+  "outcomes": [
+    {
+      "osm_type": "N",
+      "status": "rendered",
+      "objects": 1
+    },
+    {
+      "osm_type": "W",
+      "status": "rendered",
+      "objects": 1
+    }
+  ],
+  "layers": {
+    "water": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0
+    },
+    "landcover": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0
+    },
+    "waterways": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0
+    },
+    "boundaries": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0
+    },
+    "transport": {
+      "rows": 1,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 1
+    },
+    "buildings": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0
+    },
+    "places": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 0
+    },
+    "pois": {
+      "rows": 1,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "observed_inserts": 1
+    }
+  },
+  "uncatalogued": [],
+  "incomplete_relations": [],
+  "incomplete_relation_examples": [],
+  "relation_impact": {
+    "directly_incomplete": 0,
+    "including_ancestor_relations": 0,
+    "with_some_rendered_output": 0
+  },
+  "geographic_truth_verified": false,
+  "review_reasons": []
+}

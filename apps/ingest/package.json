@@ -3,6 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./contracts": {"types":"./dist/contracts.d.ts","default":"./dist/contracts.js"},
+    "./config": {"types":"./dist/config.d.ts","default":"./dist/config.js"},
+    "./files": {"types":"./dist/files.d.ts","default":"./dist/files.js"},
+    "./queue": {"types":"./dist/queue.d.ts","default":"./dist/queue.js"},
+    "./signer": {"types":"./dist/signer.d.ts","default":"./dist/signer.js"},
+    "./process": {"types":"./dist/process.d.ts","default":"./dist/process.js"},
+    "./lease": {"types":"./dist/lease.d.ts","default":"./dist/lease.js"},
+    "./build": {"types":"./dist/build.d.ts","default":"./dist/build.js"}
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json && node -e \"for (const f of ['schema.sql','roles.sql','secure_fs.py']) require('node:fs').copyFileSync('src/'+f,'dist/'+f)\" && cd ../.. && node tools/write-ingest-build.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",

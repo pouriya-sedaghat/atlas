@@ -1,0 +1,60 @@
+{
+  "schema": "atlas.candidate-import-durations/1",
+  "importer_reported_elapsed_s": 2233,
+  "postprocessing": [
+    {
+      "table": "nodes",
+      "seconds": 305
+    },
+    {
+      "table": "ways",
+      "seconds": 51
+    },
+    {
+      "table": "relations",
+      "seconds": 2
+    },
+    {
+      "table": "object_outcomes",
+      "seconds": 36
+    },
+    {
+      "table": "places",
+      "seconds": 2
+    },
+    {
+      "table": "boundaries",
+      "seconds": 8
+    },
+    {
+      "table": "water",
+      "seconds": 2
+    },
+    {
+      "table": "waterways",
+      "seconds": 31
+    },
+    {
+      "table": "landcover",
+      "seconds": 24
+    },
+    {
+      "table": "transport",
+      "seconds": 332
+    },
+    {
+      "table": "buildings",
+      "seconds": 63
+    },
+    {
+      "table": "pois",
+      "seconds": 53
+    },
+    {
+      "table": "uncatalogued",
+      "seconds": 24
+    }
+  ],
+  "private_log_sha256": "f417ac6d71422c96dcc8b1196b3fb0fd8dccff6ba4df7c7ee5f8e0be34c2229c",
+  "scope": "sanitized durations from the private native importer log"
+}

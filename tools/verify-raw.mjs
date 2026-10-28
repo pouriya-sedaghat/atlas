@@ -6,10 +6,11 @@ const [auditFile, outputFile] = process.argv.slice(2);
 if (!auditFile || !outputFile || auditFile === outputFile) throw new Error('usage: verify-raw.mjs AUDIT.json REPORT.json');
 const audit = JSON.parse(readFileSync(auditFile,'utf8'));
 if (audit.schema !== 'atlas.pbf-audit/1' || audit.blockers.length) throw new Error('a completed structural audit is required');
-const password = readFileSync(process.env.ATLAS_TEST_DB_PASSWORD_FILE ?? '/run/secrets/db_password','utf8').trim();
-const database = process.env.ATLAS_RAW_DATABASE ?? 'atlas_lab';
-if (!/^atlas_(lab|test[a-z0-9_]*)$/.test(database)) throw new Error('raw verifier is restricted to Atlas lab/test databases');
-const client = new pg.Client({host:'db',database,user:'atlas_admin',password,connectionTimeoutMillis:5000,statement_timeout:30000});
+const connectionString=process.env.ATLAS_RAW_CONNECTION_FILE?readFileSync(process.env.ATLAS_RAW_CONNECTION_FILE,'utf8').trim():undefined;
+const database=connectionString?new URL(connectionString).pathname.slice(1):process.env.ATLAS_RAW_DATABASE??'atlas_lab';
+if (!/^atlas_(lab|test[a-z0-9_]*|candidate_[0-9a-f]{24}_[0-9a-f]{16})$/.test(database)) throw new Error('raw verifier is restricted to Atlas lab/test/candidate databases');
+const connection=connectionString?{connectionString}:{host:'db',database,user:'atlas_admin',password:readFileSync(process.env.ATLAS_TEST_DB_PASSWORD_FILE??'/run/secrets/db_password','utf8').trim()};
+const client = new pg.Client({...connection,connectionTimeoutMillis:5000,statement_timeout:30000});
 const integer = value => value === null ? null : JSON.rawJSON(String(value));
 const normalizeTimestamp = value => value === null ? null : value.toISOString().replace('.000Z','Z');
 const parseExact = text => JSON.parse(text, (_key,value,context) => {

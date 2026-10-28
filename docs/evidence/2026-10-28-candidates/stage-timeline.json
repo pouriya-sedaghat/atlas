@@ -1,0 +1,62 @@
+[
+  {
+    "event": "enqueued",
+    "stage": null,
+    "created_at": "2026-10-28T04:46:47.849Z"
+  },
+  {
+    "event": "claimed",
+    "stage": null,
+    "created_at": "2026-10-28T04:46:50.271Z"
+  },
+  {
+    "event": "stage",
+    "stage": "source_verification",
+    "created_at": "2026-10-28T04:46:50.273Z"
+  },
+  {
+    "event": "data_target_bound",
+    "stage": null,
+    "created_at": "2026-10-28T04:46:50.937Z"
+  },
+  {
+    "event": "stage",
+    "stage": "provision",
+    "created_at": "2026-10-28T04:46:50.989Z"
+  },
+  {
+    "event": "stage",
+    "stage": "import",
+    "created_at": "2026-10-28T04:46:54.293Z"
+  },
+  {
+    "event": "stage",
+    "stage": "finalize",
+    "created_at": "2026-10-28T05:24:18.770Z"
+  },
+  {
+    "event": "stage",
+    "stage": "raw_roundtrip",
+    "created_at": "2026-10-28T05:28:52.107Z"
+  },
+  {
+    "event": "stage",
+    "stage": "feature_coverage",
+    "created_at": "2026-10-28T05:33:07.550Z"
+  },
+  {
+    "event": "stage",
+    "stage": "martin_qa",
+    "created_at": "2026-10-28T05:39:06.616Z"
+  },
+  {
+    "event": "stage",
+    "stage": "seal",
+    "created_at": "2026-10-28T05:40:03.432Z"
+  },
+  {
+    "event": "review_required",
+    "stage": null,
+    "created_at": "2026-10-28T05:40:06.395Z"
+  }
+]

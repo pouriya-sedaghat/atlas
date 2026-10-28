@@ -30,6 +30,8 @@ jobs:
       - run: npm run build
       - run: npm run typecheck
       - run: npm test
+      - name: Verify published experimental candidate evidence
+        run: node tools/verify-candidate-evidence.mjs
   pbf-audit:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -63,3 +65,5 @@ jobs:
             --mount type=bind,src=/tmp/atlas-sandbox-fixture/conformance.osm.pbf,dst=/in/input.osm.pbf,readonly \
             atlas-audit-ci > /tmp/atlas-sandbox-fixture/report.json
           python3 -c "import json; r=json.load(open('/tmp/atlas-sandbox-fixture/report.json')); assert r['structural_status']=='passed'; assert r['counts']=={'node':152,'way':39,'relation':5}"
+      - name: Verify real osm2pgsql catalog outcomes on fictional geometry
+        run: python3 tools/catalog-smoke.py

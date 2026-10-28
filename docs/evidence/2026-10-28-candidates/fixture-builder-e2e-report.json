@@ -1,0 +1,19 @@
+{
+  "schema": "atlas.candidate-e2e/1",
+  "passed": true,
+  "tests": [
+    "accepted_signed_source_builds_into_a_separate_verified_readonly_component",
+    "importer_login_disabled_and_tile_role_cannot_read_raw_archive_or_mutate_data",
+    "builder_waits_for_a_live_intake_processing_slot",
+    "intake_waits_during_build_and_previous_martin_continues_serving_without_restart",
+    "partial_null_unsupported_and_metadata_outcomes_are_accounted_without_raw_data_loss",
+    "cryptographically_forged_source_is_refused_before_database_allocation",
+    "expired_managed_importer_reaped_with_live_completed_and_unrelated_resources_protected",
+    "component_success_or_review_never_registers_or_publishes_a_map_release"
+  ],
+  "count": 8,
+  "pipeline_sha256": "a72b42fe3955db4b40fdf3bff68bb5f62dd16f3336e128190fdce47389bd70f8",
+  "tool_sha256": "41e07e751c9cfbeb9d1e00f0bc20306348c3a2e55b2bac1c4ca71fee35584ec7",
+  "fictional_data_only": true,
+  "production_publication_approved": false
+}

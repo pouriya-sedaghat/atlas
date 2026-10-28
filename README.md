@@ -17,6 +17,12 @@ holds anomalies for exact-report review, and runs independently of the tile serv
 source was accepted only as an experimental source/baseline after explicit human anomaly review;
 receipts enforce `experimental_source_only`. All-engine builds and public release cutover are still outstanding.
 
+Stage three adds [verified experimental PostGIS/Martin candidates](docs/ATLAS-STAGE-3-FA.md)
+and [builder operation](infra/atlas/builder/README.md): a separate data cluster and database per
+attempt, canonical raw verification, explicit catalog outcomes and decoded tile checks. Candidate
+manifests remain non-publishable while required engines and release/session integration are missing.
+The rejected shared-cluster experiment and the isolated profile's results are retained in the evidence.
+
 ## Original Seyra VM demo
 
 [راهنمای فارسی اجرا روی VM](docs/README-FA.md)

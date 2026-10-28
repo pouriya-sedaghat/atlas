@@ -1,0 +1,1850 @@
+{
+  "schema": "atlas.tile-parity/1",
+  "rounds": 2,
+  "passed": true,
+  "warmup": [
+    {
+      "site": "tehran",
+      "z": 6,
+      "x": 41,
+      "y": 25,
+      "ms": 18295.283
+    },
+    {
+      "site": "tehran",
+      "z": 10,
+      "x": 658,
+      "y": 403,
+      "ms": 1075.457
+    },
+    {
+      "site": "tehran",
+      "z": 14,
+      "x": 10530,
+      "y": 6451,
+      "ms": 144.627
+    },
+    {
+      "site": "tehran",
+      "z": 16,
+      "x": 42123,
+      "y": 25804,
+      "ms": 4.116
+    },
+    {
+      "site": "mashhad",
+      "z": 6,
+      "x": 42,
+      "y": 25,
+      "ms": 1879.031
+    },
+    {
+      "site": "mashhad",
+      "z": 10,
+      "x": 681,
+      "y": 401,
+      "ms": 433.272
+    },
+    {
+      "site": "mashhad",
+      "z": 14,
+      "x": 10904,
+      "y": 6419,
+      "ms": 20.381
+    },
+    {
+      "site": "mashhad",
+      "z": 16,
+      "x": 43618,
+      "y": 25676,
+      "ms": 3.163
+    },
+    {
+      "site": "shiraz",
+      "z": 6,
+      "x": 41,
+      "y": 26,
+      "ms": 7944.94
+    },
+    {
+      "site": "shiraz",
+      "z": 10,
+      "x": 661,
+      "y": 423,
+      "ms": 61.461
+    },
+    {
+      "site": "shiraz",
+      "z": 14,
+      "x": 10582,
+      "y": 6781,
+      "ms": 60.565
+    },
+    {
+      "site": "shiraz",
+      "z": 16,
+      "x": 42330,
+      "y": 27124,
+      "ms": 3.987
+    },
+    {
+      "site": "tabriz",
+      "z": 6,
+      "x": 40,
+      "y": 24,
+      "ms": 7559.966
+    },
+    {
+      "site": "tabriz",
+      "z": 10,
+      "x": 643,
+      "y": 394,
+      "ms": 27.209
+    },
+    {
+      "site": "tabriz",
+      "z": 14,
+      "x": 10298,
+      "y": 6314,
+      "ms": 52.034
+    },
+    {
+      "site": "tabriz",
+      "z": 16,
+      "x": 41195,
+      "y": 25256,
+      "ms": 3.973
+    },
+    {
+      "site": "ahvaz",
+      "z": 6,
+      "x": 40,
+      "y": 26,
+      "ms": 2585.909
+    },
+    {
+      "site": "ahvaz",
+      "z": 10,
+      "x": 650,
+      "y": 418,
+      "ms": 23.11
+    },
+    {
+      "site": "ahvaz",
+      "z": 14,
+      "x": 10406,
+      "y": 6689,
+      "ms": 47.798
+    },
+    {
+      "site": "ahvaz",
+      "z": 16,
+      "x": 41627,
+      "y": 26759,
+      "ms": 2.995
+    },
+    {
+      "site": "rural",
+      "z": 6,
+      "x": 42,
+      "y": 25,
+      "ms": 1718.745
+    },
+    {
+      "site": "rural",
+      "z": 10,
+      "x": 678,
+      "y": 414,
+      "ms": 2.891
+    },
+    {
+      "site": "rural",
+      "z": 14,
+      "x": 10854,
+      "y": 6631,
+      "ms": 24.686
+    },
+    {
+      "site": "rural",
+      "z": 16,
+      "x": 43417,
+      "y": 26527,
+      "ms": 2.728
+    }
+  ],
+  "warmup_sql_timeout_ms": 120000,
+  "comparison_sql_timeout_ms": 15000,
+  "http_timeout_ms": 15000,
+  "comparison": "Decoded MVT features, properties and ordered geometry; layer/feature serialization order ignored",
+  "geographic_truth_verified": false,
+  "samples": [
+    {
+      "round": 1,
+      "site": "tehran",
+      "z": 6,
+      "x": 41,
+      "y": 25,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "4594f9e56841376ff440f27977ab424e5ef9ac70a4d032451f5d0a63fcb76da4",
+          "features": 16259,
+          "layers": {
+            "boundaries": 1567,
+            "landcover": 64,
+            "places": 46,
+            "transport": 14540,
+            "water": 37,
+            "waterways": 5
+          },
+          "bytes": 947112
+        },
+        "martin": {
+          "sha256": "4594f9e56841376ff440f27977ab424e5ef9ac70a4d032451f5d0a63fcb76da4",
+          "features": 16259,
+          "layers": {
+            "boundaries": 1567,
+            "landcover": 64,
+            "places": 46,
+            "transport": 14540,
+            "water": 37,
+            "waterways": 5
+          },
+          "bytes": 947112
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "tehran",
+      "z": 10,
+      "x": 658,
+      "y": 403,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "5edc80b111109e054e663740cc664d544a1d1ed8342365b5e85f2afe5a55f110",
+          "features": 14298,
+          "layers": {
+            "boundaries": 105,
+            "landcover": 630,
+            "places": 69,
+            "transport": 13193,
+            "water": 3,
+            "waterways": 298
+          },
+          "bytes": 852310
+        },
+        "martin": {
+          "sha256": "5edc80b111109e054e663740cc664d544a1d1ed8342365b5e85f2afe5a55f110",
+          "features": 14298,
+          "layers": {
+            "boundaries": 105,
+            "landcover": 630,
+            "places": 69,
+            "transport": 13193,
+            "water": 3,
+            "waterways": 298
+          },
+          "bytes": 852310
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "tehran",
+      "z": 14,
+      "x": 10530,
+      "y": 6451,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "afee3a254ae3e51422f23a5aacbf48db6b2f03691fe26ff2ffb7f56891a7d91b",
+          "features": 2556,
+          "layers": {
+            "boundaries": 39,
+            "buildings": 420,
+            "landcover": 73,
+            "places": 11,
+            "pois": 43,
+            "transport": 1968,
+            "water": 2
+          },
+          "bytes": 158748
+        },
+        "martin": {
+          "sha256": "afee3a254ae3e51422f23a5aacbf48db6b2f03691fe26ff2ffb7f56891a7d91b",
+          "features": 2556,
+          "layers": {
+            "boundaries": 39,
+            "buildings": 420,
+            "landcover": 73,
+            "places": 11,
+            "pois": 43,
+            "transport": 1968,
+            "water": 2
+          },
+          "bytes": 158748
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "tehran",
+      "z": 16,
+      "x": 42123,
+      "y": 25804,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "6dca2a97557f4770ad6011233426aa08fb8816b3f4231b8fbf8689aa0f7aa444",
+          "features": 202,
+          "layers": {
+            "boundaries": 5,
+            "buildings": 68,
+            "landcover": 8,
+            "places": 1,
+            "pois": 27,
+            "transport": 93
+          },
+          "bytes": 14595
+        },
+        "martin": {
+          "sha256": "6dca2a97557f4770ad6011233426aa08fb8816b3f4231b8fbf8689aa0f7aa444",
+          "features": 202,
+          "layers": {
+            "boundaries": 5,
+            "buildings": 68,
+            "landcover": 8,
+            "places": 1,
+            "pois": 27,
+            "transport": 93
+          },
+          "bytes": 14595
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "mashhad",
+      "z": 6,
+      "x": 42,
+      "y": 25,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "816130e333c86e1c174f2ce5033f1ca5ee763db44c65df2b04ed24937bd4b197",
+          "features": 5184,
+          "layers": {
+            "boundaries": 772,
+            "landcover": 7,
+            "places": 9,
+            "transport": 4379,
+            "water": 17
+          },
+          "bytes": 304845
+        },
+        "martin": {
+          "sha256": "816130e333c86e1c174f2ce5033f1ca5ee763db44c65df2b04ed24937bd4b197",
+          "features": 5184,
+          "layers": {
+            "boundaries": 772,
+            "landcover": 7,
+            "places": 9,
+            "transport": 4379,
+            "water": 17
+          },
+          "bytes": 304845
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "mashhad",
+      "z": 10,
+      "x": 681,
+      "y": 401,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "b5f7a65e81b8c02cbcf295878dd7a089fb2d0dd5265c9ec793246f86dca73eff",
+          "features": 4391,
+          "layers": {
+            "boundaries": 59,
+            "landcover": 332,
+            "places": 31,
+            "transport": 3831,
+            "water": 1,
+            "waterways": 137
+          },
+          "bytes": 263745
+        },
+        "martin": {
+          "sha256": "b5f7a65e81b8c02cbcf295878dd7a089fb2d0dd5265c9ec793246f86dca73eff",
+          "features": 4391,
+          "layers": {
+            "boundaries": 59,
+            "landcover": 332,
+            "places": 31,
+            "transport": 3831,
+            "water": 1,
+            "waterways": 137
+          },
+          "bytes": 263745
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "mashhad",
+      "z": 14,
+      "x": 10904,
+      "y": 6419,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "9326a818bc99f6bcd0e9742af5eee938959244f7517a66ae55cc537989ad1dd7",
+          "features": 977,
+          "layers": {
+            "boundaries": 33,
+            "buildings": 60,
+            "landcover": 48,
+            "places": 7,
+            "pois": 20,
+            "transport": 789,
+            "water": 7,
+            "waterways": 13
+          },
+          "bytes": 66736
+        },
+        "martin": {
+          "sha256": "9326a818bc99f6bcd0e9742af5eee938959244f7517a66ae55cc537989ad1dd7",
+          "features": 977,
+          "layers": {
+            "boundaries": 33,
+            "buildings": 60,
+            "landcover": 48,
+            "places": 7,
+            "pois": 20,
+            "transport": 789,
+            "water": 7,
+            "waterways": 13
+          },
+          "bytes": 66736
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "mashhad",
+      "z": 16,
+      "x": 43618,
+      "y": 25676,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "002d2833e9a1c002d956118e265ad3b3279c4cb70058977f3061c28da036b39d",
+          "features": 131,
+          "layers": {
+            "boundaries": 5,
+            "buildings": 7,
+            "landcover": 1,
+            "pois": 45,
+            "transport": 73
+          },
+          "bytes": 9759
+        },
+        "martin": {
+          "sha256": "002d2833e9a1c002d956118e265ad3b3279c4cb70058977f3061c28da036b39d",
+          "features": 131,
+          "layers": {
+            "boundaries": 5,
+            "buildings": 7,
+            "landcover": 1,
+            "pois": 45,
+            "transport": 73
+          },
+          "bytes": 9759
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "shiraz",
+      "z": 6,
+      "x": 41,
+      "y": 26,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "321728c5b3f9b505ce7de9a3a3aac3f2e5a4e18a4b7650b4eabcfff2c0093554",
+          "features": 9160,
+          "layers": {
+            "boundaries": 1488,
+            "landcover": 198,
+            "places": 31,
+            "transport": 7257,
+            "water": 25,
+            "waterways": 161
+          },
+          "bytes": 525381
+        },
+        "martin": {
+          "sha256": "321728c5b3f9b505ce7de9a3a3aac3f2e5a4e18a4b7650b4eabcfff2c0093554",
+          "features": 9160,
+          "layers": {
+            "boundaries": 1488,
+            "landcover": 198,
+            "places": 31,
+            "transport": 7257,
+            "water": 25,
+            "waterways": 161
+          },
+          "bytes": 525381
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "shiraz",
+      "z": 10,
+      "x": 661,
+      "y": 423,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "4d1a35fcc9be3018c69d69a22c10fa89d42e8263738c592e42aa3b254e747efd",
+          "features": 7322,
+          "layers": {
+            "boundaries": 114,
+            "landcover": 438,
+            "places": 22,
+            "transport": 6723,
+            "water": 1,
+            "waterways": 24
+          },
+          "bytes": 441090
+        },
+        "martin": {
+          "sha256": "4d1a35fcc9be3018c69d69a22c10fa89d42e8263738c592e42aa3b254e747efd",
+          "features": 7322,
+          "layers": {
+            "boundaries": 114,
+            "landcover": 438,
+            "places": 22,
+            "transport": 6723,
+            "water": 1,
+            "waterways": 24
+          },
+          "bytes": 441090
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "shiraz",
+      "z": 14,
+      "x": 10582,
+      "y": 6781,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "cd82b41cedac21cb1c4357c1857eb8f3a28973cc49a293ab62ed88ec09514aa6",
+          "features": 2396,
+          "layers": {
+            "boundaries": 9,
+            "buildings": 652,
+            "landcover": 136,
+            "places": 9,
+            "pois": 18,
+            "transport": 1569,
+            "water": 3
+          },
+          "bytes": 141620
+        },
+        "martin": {
+          "sha256": "cd82b41cedac21cb1c4357c1857eb8f3a28973cc49a293ab62ed88ec09514aa6",
+          "features": 2396,
+          "layers": {
+            "boundaries": 9,
+            "buildings": 652,
+            "landcover": 136,
+            "places": 9,
+            "pois": 18,
+            "transport": 1569,
+            "water": 3
+          },
+          "bytes": 141620
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "shiraz",
+      "z": 16,
+      "x": 42330,
+      "y": 27124,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "0e4dc09fd72e6b3899812d4ee6b926dcd0beabbc00aaf6e4a8d1c17056b8e1c9",
+          "features": 263,
+          "layers": {
+            "boundaries": 3,
+            "buildings": 52,
+            "landcover": 18,
+            "places": 1,
+            "pois": 39,
+            "transport": 149,
+            "water": 1
+          },
+          "bytes": 16308
+        },
+        "martin": {
+          "sha256": "0e4dc09fd72e6b3899812d4ee6b926dcd0beabbc00aaf6e4a8d1c17056b8e1c9",
+          "features": 263,
+          "layers": {
+            "boundaries": 3,
+            "buildings": 52,
+            "landcover": 18,
+            "places": 1,
+            "pois": 39,
+            "transport": 149,
+            "water": 1
+          },
+          "bytes": 16308
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "tabriz",
+      "z": 6,
+      "x": 40,
+      "y": 24,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "a7f3578da0c5f6a0908c4b44fe5e973434ba19c00c8b80e04a08d57f756a618a",
+          "features": 9043,
+          "layers": {
+            "boundaries": 1353,
+            "landcover": 40,
+            "places": 18,
+            "transport": 7530,
+            "water": 7,
+            "waterways": 95
+          },
+          "bytes": 525058
+        },
+        "martin": {
+          "sha256": "a7f3578da0c5f6a0908c4b44fe5e973434ba19c00c8b80e04a08d57f756a618a",
+          "features": 9043,
+          "layers": {
+            "boundaries": 1353,
+            "landcover": 40,
+            "places": 18,
+            "transport": 7530,
+            "water": 7,
+            "waterways": 95
+          },
+          "bytes": 525058
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "tabriz",
+      "z": 10,
+      "x": 643,
+      "y": 394,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "3a96aee382f27991ff448f03aafebd50e56fb05092b2b7b192d42e96fb2a5e7b",
+          "features": 5261,
+          "layers": {
+            "boundaries": 49,
+            "landcover": 236,
+            "places": 29,
+            "transport": 4877,
+            "water": 1,
+            "waterways": 69
+          },
+          "bytes": 311631
+        },
+        "martin": {
+          "sha256": "3a96aee382f27991ff448f03aafebd50e56fb05092b2b7b192d42e96fb2a5e7b",
+          "features": 5261,
+          "layers": {
+            "boundaries": 49,
+            "landcover": 236,
+            "places": 29,
+            "transport": 4877,
+            "water": 1,
+            "waterways": 69
+          },
+          "bytes": 311631
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "tabriz",
+      "z": 14,
+      "x": 10298,
+      "y": 6314,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "a6f87529b108af00491544b7789a6ea339a75fc6862fad3f23ccea006072db93",
+          "features": 1500,
+          "layers": {
+            "boundaries": 55,
+            "buildings": 193,
+            "landcover": 41,
+            "places": 23,
+            "pois": 68,
+            "transport": 1119,
+            "waterways": 1
+          },
+          "bytes": 100171
+        },
+        "martin": {
+          "sha256": "a6f87529b108af00491544b7789a6ea339a75fc6862fad3f23ccea006072db93",
+          "features": 1500,
+          "layers": {
+            "boundaries": 55,
+            "buildings": 193,
+            "landcover": 41,
+            "places": 23,
+            "pois": 68,
+            "transport": 1119,
+            "waterways": 1
+          },
+          "bytes": 100171
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "tabriz",
+      "z": 16,
+      "x": 41195,
+      "y": 25256,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "41b218dac156c3967b03a7974f846591eafa43fa2f9705d4c557ad8d183ff526",
+          "features": 159,
+          "layers": {
+            "boundaries": 10,
+            "buildings": 10,
+            "landcover": 10,
+            "places": 3,
+            "pois": 31,
+            "transport": 95
+          },
+          "bytes": 11650
+        },
+        "martin": {
+          "sha256": "41b218dac156c3967b03a7974f846591eafa43fa2f9705d4c557ad8d183ff526",
+          "features": 159,
+          "layers": {
+            "boundaries": 10,
+            "buildings": 10,
+            "landcover": 10,
+            "places": 3,
+            "pois": 31,
+            "transport": 95
+          },
+          "bytes": 11650
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "ahvaz",
+      "z": 6,
+      "x": 40,
+      "y": 26,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "e060a4389d724ce3dcdf48fb6272c596d147986b1b4077df04c2c782c66ae2c1",
+          "features": 2850,
+          "layers": {
+            "boundaries": 630,
+            "landcover": 31,
+            "places": 6,
+            "transport": 2033,
+            "water": 12,
+            "waterways": 138
+          },
+          "bytes": 164539
+        },
+        "martin": {
+          "sha256": "e060a4389d724ce3dcdf48fb6272c596d147986b1b4077df04c2c782c66ae2c1",
+          "features": 2850,
+          "layers": {
+            "boundaries": 630,
+            "landcover": 31,
+            "places": 6,
+            "transport": 2033,
+            "water": 12,
+            "waterways": 138
+          },
+          "bytes": 164539
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "ahvaz",
+      "z": 10,
+      "x": 650,
+      "y": 418,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "9866ac4c4d321905b9fbcb066b71700ad37961358e250b36d5e0148624dd6b4d",
+          "features": 2777,
+          "layers": {
+            "boundaries": 62,
+            "landcover": 137,
+            "places": 51,
+            "transport": 2427,
+            "water": 13,
+            "waterways": 87
+          },
+          "bytes": 162320
+        },
+        "martin": {
+          "sha256": "9866ac4c4d321905b9fbcb066b71700ad37961358e250b36d5e0148624dd6b4d",
+          "features": 2777,
+          "layers": {
+            "boundaries": 62,
+            "landcover": 137,
+            "places": 51,
+            "transport": 2427,
+            "water": 13,
+            "waterways": 87
+          },
+          "bytes": 162320
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "ahvaz",
+      "z": 14,
+      "x": 10406,
+      "y": 6689,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "5ba22f3609630a7c171a72b1fb6ede9f5fa9c6c74a4734696feb6837892c0f16",
+          "features": 713,
+          "layers": {
+            "boundaries": 19,
+            "buildings": 28,
+            "landcover": 17,
+            "places": 3,
+            "pois": 14,
+            "transport": 631,
+            "water": 1
+          },
+          "bytes": 48766
+        },
+        "martin": {
+          "sha256": "5ba22f3609630a7c171a72b1fb6ede9f5fa9c6c74a4734696feb6837892c0f16",
+          "features": 713,
+          "layers": {
+            "boundaries": 19,
+            "buildings": 28,
+            "landcover": 17,
+            "places": 3,
+            "pois": 14,
+            "transport": 631,
+            "water": 1
+          },
+          "bytes": 48766
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "ahvaz",
+      "z": 16,
+      "x": 41627,
+      "y": 26759,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "9fa477538280465b7f939898578da32fa16422556a2a8accc9152f893e0d6063",
+          "features": 80,
+          "layers": {
+            "buildings": 4,
+            "landcover": 7,
+            "pois": 16,
+            "transport": 53
+          },
+          "bytes": 6735
+        },
+        "martin": {
+          "sha256": "9fa477538280465b7f939898578da32fa16422556a2a8accc9152f893e0d6063",
+          "features": 80,
+          "layers": {
+            "buildings": 4,
+            "landcover": 7,
+            "pois": 16,
+            "transport": 53
+          },
+          "bytes": 6735
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "rural",
+      "z": 6,
+      "x": 42,
+      "y": 25,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "816130e333c86e1c174f2ce5033f1ca5ee763db44c65df2b04ed24937bd4b197",
+          "features": 5184,
+          "layers": {
+            "boundaries": 772,
+            "landcover": 7,
+            "places": 9,
+            "transport": 4379,
+            "water": 17
+          },
+          "bytes": 304845
+        },
+        "martin": {
+          "sha256": "816130e333c86e1c174f2ce5033f1ca5ee763db44c65df2b04ed24937bd4b197",
+          "features": 5184,
+          "layers": {
+            "boundaries": 772,
+            "landcover": 7,
+            "places": 9,
+            "transport": 4379,
+            "water": 17
+          },
+          "bytes": 304845
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "rural",
+      "z": 10,
+      "x": 678,
+      "y": 414,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "1fbf9e6c98bb49473a1fcbb17d481900aab9c69498d38ee8e8e6bdd79ca17e9e",
+          "features": 10,
+          "layers": {
+            "boundaries": 5,
+            "transport": 3,
+            "waterways": 2
+          },
+          "bytes": 1397
+        },
+        "martin": {
+          "sha256": "1fbf9e6c98bb49473a1fcbb17d481900aab9c69498d38ee8e8e6bdd79ca17e9e",
+          "features": 10,
+          "layers": {
+            "boundaries": 5,
+            "transport": 3,
+            "waterways": 2
+          },
+          "bytes": 1397
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "rural",
+      "z": 14,
+      "x": 10854,
+      "y": 6631,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "rural",
+      "z": 16,
+      "x": 43417,
+      "y": 26527,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "tehran",
+      "z": 6,
+      "x": 41,
+      "y": 25,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "4594f9e56841376ff440f27977ab424e5ef9ac70a4d032451f5d0a63fcb76da4",
+          "features": 16259,
+          "layers": {
+            "boundaries": 1567,
+            "landcover": 64,
+            "places": 46,
+            "transport": 14540,
+            "water": 37,
+            "waterways": 5
+          },
+          "bytes": 947112
+        },
+        "martin": {
+          "sha256": "4594f9e56841376ff440f27977ab424e5ef9ac70a4d032451f5d0a63fcb76da4",
+          "features": 16259,
+          "layers": {
+            "boundaries": 1567,
+            "landcover": 64,
+            "places": 46,
+            "transport": 14540,
+            "water": 37,
+            "waterways": 5
+          },
+          "bytes": 947112
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "tehran",
+      "z": 10,
+      "x": 658,
+      "y": 403,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "5edc80b111109e054e663740cc664d544a1d1ed8342365b5e85f2afe5a55f110",
+          "features": 14298,
+          "layers": {
+            "boundaries": 105,
+            "landcover": 630,
+            "places": 69,
+            "transport": 13193,
+            "water": 3,
+            "waterways": 298
+          },
+          "bytes": 852310
+        },
+        "martin": {
+          "sha256": "5edc80b111109e054e663740cc664d544a1d1ed8342365b5e85f2afe5a55f110",
+          "features": 14298,
+          "layers": {
+            "boundaries": 105,
+            "landcover": 630,
+            "places": 69,
+            "transport": 13193,
+            "water": 3,
+            "waterways": 298
+          },
+          "bytes": 852310
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "tehran",
+      "z": 14,
+      "x": 10530,
+      "y": 6451,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "afee3a254ae3e51422f23a5aacbf48db6b2f03691fe26ff2ffb7f56891a7d91b",
+          "features": 2556,
+          "layers": {
+            "boundaries": 39,
+            "buildings": 420,
+            "landcover": 73,
+            "places": 11,
+            "pois": 43,
+            "transport": 1968,
+            "water": 2
+          },
+          "bytes": 158748
+        },
+        "martin": {
+          "sha256": "afee3a254ae3e51422f23a5aacbf48db6b2f03691fe26ff2ffb7f56891a7d91b",
+          "features": 2556,
+          "layers": {
+            "boundaries": 39,
+            "buildings": 420,
+            "landcover": 73,
+            "places": 11,
+            "pois": 43,
+            "transport": 1968,
+            "water": 2
+          },
+          "bytes": 158748
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "tehran",
+      "z": 16,
+      "x": 42123,
+      "y": 25804,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "6dca2a97557f4770ad6011233426aa08fb8816b3f4231b8fbf8689aa0f7aa444",
+          "features": 202,
+          "layers": {
+            "boundaries": 5,
+            "buildings": 68,
+            "landcover": 8,
+            "places": 1,
+            "pois": 27,
+            "transport": 93
+          },
+          "bytes": 14595
+        },
+        "martin": {
+          "sha256": "6dca2a97557f4770ad6011233426aa08fb8816b3f4231b8fbf8689aa0f7aa444",
+          "features": 202,
+          "layers": {
+            "boundaries": 5,
+            "buildings": 68,
+            "landcover": 8,
+            "places": 1,
+            "pois": 27,
+            "transport": 93
+          },
+          "bytes": 14595
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "mashhad",
+      "z": 6,
+      "x": 42,
+      "y": 25,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "816130e333c86e1c174f2ce5033f1ca5ee763db44c65df2b04ed24937bd4b197",
+          "features": 5184,
+          "layers": {
+            "boundaries": 772,
+            "landcover": 7,
+            "places": 9,
+            "transport": 4379,
+            "water": 17
+          },
+          "bytes": 304845
+        },
+        "martin": {
+          "sha256": "816130e333c86e1c174f2ce5033f1ca5ee763db44c65df2b04ed24937bd4b197",
+          "features": 5184,
+          "layers": {
+            "boundaries": 772,
+            "landcover": 7,
+            "places": 9,
+            "transport": 4379,
+            "water": 17
+          },
+          "bytes": 304845
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "mashhad",
+      "z": 10,
+      "x": 681,
+      "y": 401,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "b5f7a65e81b8c02cbcf295878dd7a089fb2d0dd5265c9ec793246f86dca73eff",
+          "features": 4391,
+          "layers": {
+            "boundaries": 59,
+            "landcover": 332,
+            "places": 31,
+            "transport": 3831,
+            "water": 1,
+            "waterways": 137
+          },
+          "bytes": 263745
+        },
+        "martin": {
+          "sha256": "b5f7a65e81b8c02cbcf295878dd7a089fb2d0dd5265c9ec793246f86dca73eff",
+          "features": 4391,
+          "layers": {
+            "boundaries": 59,
+            "landcover": 332,
+            "places": 31,
+            "transport": 3831,
+            "water": 1,
+            "waterways": 137
+          },
+          "bytes": 263745
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "mashhad",
+      "z": 14,
+      "x": 10904,
+      "y": 6419,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "9326a818bc99f6bcd0e9742af5eee938959244f7517a66ae55cc537989ad1dd7",
+          "features": 977,
+          "layers": {
+            "boundaries": 33,
+            "buildings": 60,
+            "landcover": 48,
+            "places": 7,
+            "pois": 20,
+            "transport": 789,
+            "water": 7,
+            "waterways": 13
+          },
+          "bytes": 66736
+        },
+        "martin": {
+          "sha256": "9326a818bc99f6bcd0e9742af5eee938959244f7517a66ae55cc537989ad1dd7",
+          "features": 977,
+          "layers": {
+            "boundaries": 33,
+            "buildings": 60,
+            "landcover": 48,
+            "places": 7,
+            "pois": 20,
+            "transport": 789,
+            "water": 7,
+            "waterways": 13
+          },
+          "bytes": 66736
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "mashhad",
+      "z": 16,
+      "x": 43618,
+      "y": 25676,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "002d2833e9a1c002d956118e265ad3b3279c4cb70058977f3061c28da036b39d",
+          "features": 131,
+          "layers": {
+            "boundaries": 5,
+            "buildings": 7,
+            "landcover": 1,
+            "pois": 45,
+            "transport": 73
+          },
+          "bytes": 9759
+        },
+        "martin": {
+          "sha256": "002d2833e9a1c002d956118e265ad3b3279c4cb70058977f3061c28da036b39d",
+          "features": 131,
+          "layers": {
+            "boundaries": 5,
+            "buildings": 7,
+            "landcover": 1,
+            "pois": 45,
+            "transport": 73
+          },
+          "bytes": 9759
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "shiraz",
+      "z": 6,
+      "x": 41,
+      "y": 26,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "321728c5b3f9b505ce7de9a3a3aac3f2e5a4e18a4b7650b4eabcfff2c0093554",
+          "features": 9160,
+          "layers": {
+            "boundaries": 1488,
+            "landcover": 198,
+            "places": 31,
+            "transport": 7257,
+            "water": 25,
+            "waterways": 161
+          },
+          "bytes": 525381
+        },
+        "martin": {
+          "sha256": "321728c5b3f9b505ce7de9a3a3aac3f2e5a4e18a4b7650b4eabcfff2c0093554",
+          "features": 9160,
+          "layers": {
+            "boundaries": 1488,
+            "landcover": 198,
+            "places": 31,
+            "transport": 7257,
+            "water": 25,
+            "waterways": 161
+          },
+          "bytes": 525381
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "shiraz",
+      "z": 10,
+      "x": 661,
+      "y": 423,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "4d1a35fcc9be3018c69d69a22c10fa89d42e8263738c592e42aa3b254e747efd",
+          "features": 7322,
+          "layers": {
+            "boundaries": 114,
+            "landcover": 438,
+            "places": 22,
+            "transport": 6723,
+            "water": 1,
+            "waterways": 24
+          },
+          "bytes": 441090
+        },
+        "martin": {
+          "sha256": "4d1a35fcc9be3018c69d69a22c10fa89d42e8263738c592e42aa3b254e747efd",
+          "features": 7322,
+          "layers": {
+            "boundaries": 114,
+            "landcover": 438,
+            "places": 22,
+            "transport": 6723,
+            "water": 1,
+            "waterways": 24
+          },
+          "bytes": 441090
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "shiraz",
+      "z": 14,
+      "x": 10582,
+      "y": 6781,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "cd82b41cedac21cb1c4357c1857eb8f3a28973cc49a293ab62ed88ec09514aa6",
+          "features": 2396,
+          "layers": {
+            "boundaries": 9,
+            "buildings": 652,
+            "landcover": 136,
+            "places": 9,
+            "pois": 18,
+            "transport": 1569,
+            "water": 3
+          },
+          "bytes": 141620
+        },
+        "martin": {
+          "sha256": "cd82b41cedac21cb1c4357c1857eb8f3a28973cc49a293ab62ed88ec09514aa6",
+          "features": 2396,
+          "layers": {
+            "boundaries": 9,
+            "buildings": 652,
+            "landcover": 136,
+            "places": 9,
+            "pois": 18,
+            "transport": 1569,
+            "water": 3
+          },
+          "bytes": 141620
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "shiraz",
+      "z": 16,
+      "x": 42330,
+      "y": 27124,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "0e4dc09fd72e6b3899812d4ee6b926dcd0beabbc00aaf6e4a8d1c17056b8e1c9",
+          "features": 263,
+          "layers": {
+            "boundaries": 3,
+            "buildings": 52,
+            "landcover": 18,
+            "places": 1,
+            "pois": 39,
+            "transport": 149,
+            "water": 1
+          },
+          "bytes": 16308
+        },
+        "martin": {
+          "sha256": "0e4dc09fd72e6b3899812d4ee6b926dcd0beabbc00aaf6e4a8d1c17056b8e1c9",
+          "features": 263,
+          "layers": {
+            "boundaries": 3,
+            "buildings": 52,
+            "landcover": 18,
+            "places": 1,
+            "pois": 39,
+            "transport": 149,
+            "water": 1
+          },
+          "bytes": 16308
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "tabriz",
+      "z": 6,
+      "x": 40,
+      "y": 24,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "a7f3578da0c5f6a0908c4b44fe5e973434ba19c00c8b80e04a08d57f756a618a",
+          "features": 9043,
+          "layers": {
+            "boundaries": 1353,
+            "landcover": 40,
+            "places": 18,
+            "transport": 7530,
+            "water": 7,
+            "waterways": 95
+          },
+          "bytes": 525058
+        },
+        "martin": {
+          "sha256": "a7f3578da0c5f6a0908c4b44fe5e973434ba19c00c8b80e04a08d57f756a618a",
+          "features": 9043,
+          "layers": {
+            "boundaries": 1353,
+            "landcover": 40,
+            "places": 18,
+            "transport": 7530,
+            "water": 7,
+            "waterways": 95
+          },
+          "bytes": 525058
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "tabriz",
+      "z": 10,
+      "x": 643,
+      "y": 394,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "3a96aee382f27991ff448f03aafebd50e56fb05092b2b7b192d42e96fb2a5e7b",
+          "features": 5261,
+          "layers": {
+            "boundaries": 49,
+            "landcover": 236,
+            "places": 29,
+            "transport": 4877,
+            "water": 1,
+            "waterways": 69
+          },
+          "bytes": 311631
+        },
+        "martin": {
+          "sha256": "3a96aee382f27991ff448f03aafebd50e56fb05092b2b7b192d42e96fb2a5e7b",
+          "features": 5261,
+          "layers": {
+            "boundaries": 49,
+            "landcover": 236,
+            "places": 29,
+            "transport": 4877,
+            "water": 1,
+            "waterways": 69
+          },
+          "bytes": 311631
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "tabriz",
+      "z": 14,
+      "x": 10298,
+      "y": 6314,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "a6f87529b108af00491544b7789a6ea339a75fc6862fad3f23ccea006072db93",
+          "features": 1500,
+          "layers": {
+            "boundaries": 55,
+            "buildings": 193,
+            "landcover": 41,
+            "places": 23,
+            "pois": 68,
+            "transport": 1119,
+            "waterways": 1
+          },
+          "bytes": 100171
+        },
+        "martin": {
+          "sha256": "a6f87529b108af00491544b7789a6ea339a75fc6862fad3f23ccea006072db93",
+          "features": 1500,
+          "layers": {
+            "boundaries": 55,
+            "buildings": 193,
+            "landcover": 41,
+            "places": 23,
+            "pois": 68,
+            "transport": 1119,
+            "waterways": 1
+          },
+          "bytes": 100171
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "tabriz",
+      "z": 16,
+      "x": 41195,
+      "y": 25256,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "41b218dac156c3967b03a7974f846591eafa43fa2f9705d4c557ad8d183ff526",
+          "features": 159,
+          "layers": {
+            "boundaries": 10,
+            "buildings": 10,
+            "landcover": 10,
+            "places": 3,
+            "pois": 31,
+            "transport": 95
+          },
+          "bytes": 11650
+        },
+        "martin": {
+          "sha256": "41b218dac156c3967b03a7974f846591eafa43fa2f9705d4c557ad8d183ff526",
+          "features": 159,
+          "layers": {
+            "boundaries": 10,
+            "buildings": 10,
+            "landcover": 10,
+            "places": 3,
+            "pois": 31,
+            "transport": 95
+          },
+          "bytes": 11650
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "ahvaz",
+      "z": 6,
+      "x": 40,
+      "y": 26,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "e060a4389d724ce3dcdf48fb6272c596d147986b1b4077df04c2c782c66ae2c1",
+          "features": 2850,
+          "layers": {
+            "boundaries": 630,
+            "landcover": 31,
+            "places": 6,
+            "transport": 2033,
+            "water": 12,
+            "waterways": 138
+          },
+          "bytes": 164539
+        },
+        "martin": {
+          "sha256": "e060a4389d724ce3dcdf48fb6272c596d147986b1b4077df04c2c782c66ae2c1",
+          "features": 2850,
+          "layers": {
+            "boundaries": 630,
+            "landcover": 31,
+            "places": 6,
+            "transport": 2033,
+            "water": 12,
+            "waterways": 138
+          },
+          "bytes": 164539
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "ahvaz",
+      "z": 10,
+      "x": 650,
+      "y": 418,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "9866ac4c4d321905b9fbcb066b71700ad37961358e250b36d5e0148624dd6b4d",
+          "features": 2777,
+          "layers": {
+            "boundaries": 62,
+            "landcover": 137,
+            "places": 51,
+            "transport": 2427,
+            "water": 13,
+            "waterways": 87
+          },
+          "bytes": 162320
+        },
+        "martin": {
+          "sha256": "9866ac4c4d321905b9fbcb066b71700ad37961358e250b36d5e0148624dd6b4d",
+          "features": 2777,
+          "layers": {
+            "boundaries": 62,
+            "landcover": 137,
+            "places": 51,
+            "transport": 2427,
+            "water": 13,
+            "waterways": 87
+          },
+          "bytes": 162320
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "ahvaz",
+      "z": 14,
+      "x": 10406,
+      "y": 6689,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "5ba22f3609630a7c171a72b1fb6ede9f5fa9c6c74a4734696feb6837892c0f16",
+          "features": 713,
+          "layers": {
+            "boundaries": 19,
+            "buildings": 28,
+            "landcover": 17,
+            "places": 3,
+            "pois": 14,
+            "transport": 631,
+            "water": 1
+          },
+          "bytes": 48766
+        },
+        "martin": {
+          "sha256": "5ba22f3609630a7c171a72b1fb6ede9f5fa9c6c74a4734696feb6837892c0f16",
+          "features": 713,
+          "layers": {
+            "boundaries": 19,
+            "buildings": 28,
+            "landcover": 17,
+            "places": 3,
+            "pois": 14,
+            "transport": 631,
+            "water": 1
+          },
+          "bytes": 48766
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "ahvaz",
+      "z": 16,
+      "x": 41627,
+      "y": 26759,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "9fa477538280465b7f939898578da32fa16422556a2a8accc9152f893e0d6063",
+          "features": 80,
+          "layers": {
+            "buildings": 4,
+            "landcover": 7,
+            "pois": 16,
+            "transport": 53
+          },
+          "bytes": 6735
+        },
+        "martin": {
+          "sha256": "9fa477538280465b7f939898578da32fa16422556a2a8accc9152f893e0d6063",
+          "features": 80,
+          "layers": {
+            "buildings": 4,
+            "landcover": 7,
+            "pois": 16,
+            "transport": 53
+          },
+          "bytes": 6735
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "rural",
+      "z": 6,
+      "x": 42,
+      "y": 25,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "816130e333c86e1c174f2ce5033f1ca5ee763db44c65df2b04ed24937bd4b197",
+          "features": 5184,
+          "layers": {
+            "boundaries": 772,
+            "landcover": 7,
+            "places": 9,
+            "transport": 4379,
+            "water": 17
+          },
+          "bytes": 304845
+        },
+        "martin": {
+          "sha256": "816130e333c86e1c174f2ce5033f1ca5ee763db44c65df2b04ed24937bd4b197",
+          "features": 5184,
+          "layers": {
+            "boundaries": 772,
+            "landcover": 7,
+            "places": 9,
+            "transport": 4379,
+            "water": 17
+          },
+          "bytes": 304845
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "rural",
+      "z": 10,
+      "x": 678,
+      "y": 414,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "1fbf9e6c98bb49473a1fcbb17d481900aab9c69498d38ee8e8e6bdd79ca17e9e",
+          "features": 10,
+          "layers": {
+            "boundaries": 5,
+            "transport": 3,
+            "waterways": 2
+          },
+          "bytes": 1397
+        },
+        "martin": {
+          "sha256": "1fbf9e6c98bb49473a1fcbb17d481900aab9c69498d38ee8e8e6bdd79ca17e9e",
+          "features": 10,
+          "layers": {
+            "boundaries": 5,
+            "transport": 3,
+            "waterways": 2
+          },
+          "bytes": 1397
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "rural",
+      "z": 14,
+      "x": 10854,
+      "y": 6631,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "rural",
+      "z": 16,
+      "x": 43417,
+      "y": 26527,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "schema": "atlas.candidate-manifest/1",
+  "id": "30725455baf2ad4ccac43666c17b64eb30e5d4dd9e9230755ab7d5358514ff48",
+  "attempt": "044b523588fbc9afb8d11a6cd3799605",
+  "scope": "experimental_source_only",
+  "publishable": false,
+  "map_release_ready": false,
+  "source": {
+    "validation_id": "ec791ed7f12fe6dc787a3519baba58ab",
+    "sha256": "93811b6f6160f0974873c3afdd8adc88bd7a975b131c61b64a405d2f5354d8af",
+    "payload_sha256": "c926317393b2be65a2e541505aefccc2fab3d653d25d05810ee7f2b538265e95",
+    "bundle_sha256": "356b516d4044c194527de5b77b3923cc1d4683fbd56bc31d575fa4ea0542e5f5",
+    "public_key_sha256": "184d5e57ddbd6e607eaa3299e74f08fc9143e94408b28a90e2bfe0ef5f19256d"
+  },
+  "pipeline_sha256": "a72b42fe3955db4b40fdf3bff68bb5f62dd16f3336e128190fdce47389bd70f8",
+  "specification": {
+    "schema": "atlas.candidate-spec/1",
+    "node": "24.21.0",
+    "files": {
+      "infra/atlas/raw.lua": "e635fa389f4a810b3ed601995d7979e4dcf750523db7977e41fd90e47fad891d",
+      "infra/atlas/raw-finalize.sql": "fb452542a1f2bc6277b91ad769b257d510e00e65c497c154122f13c2bd07c619",
+      "infra/atlas/tiles.sql": "d9daecf09dcdbce253f4fbae3dd800e8bbab416cb4ad6a4d4b13d625c46350f0",
+      "infra/atlas/catalog-observed.lua": "15802a06243d8323ba9746da2ba4a8c85dec07ca14a17dfba55a78b7c59b42d1",
+      "infra/catalog/seyra-flex.lua": "44a7911075d9ebb8877f4f68134f5279c103247ea1afe3eb15dfcc4ccd4a5954",
+      "tools/verify-raw.mjs": "39dcec119d00d53502238f9b5ac8db0899191ffd96f28bb9e6f3d9b3f7c8cc2b",
+      "tools/verify-tiles.mjs": "bfc23efb4fa7052712c1e2b2f7374a4de826f6d160e4da58f7e12dcd707beae4",
+      "builder/cli.js": "6560093511bcbe5d02915aeac2cf5814bb829690a6587540d1be049066e3cc88",
+      "builder/config.js": "484b67456f437626ce7e2fccd0adeccc53ee356f8dc53a0a9b961fe51fbb1456",
+      "builder/data.js": "9bf4b834821701f11fa256bc593614e359ea7468d9f372b6ffbb83a302123716",
+      "builder/qa.js": "60597e6e34194961b3a493210ee563def0fef51529b75cce7be53b13bd6b5391",
+      "builder/queue.js": "2898c04b766498aa385a086ac60898150edd7cd45c4bd26353132d2ca7f61886",
+      "builder/schema.sql": "02d9df0f6f34da7adff7af54676de130bc37dda4259264b0870fcb9d8f0fb521",
+      "builder/source.js": "f3db1dcdfd30c5ff46846a5e36e83d52e0ede63657e4f6df36af9f798fb8be9e",
+      "builder/worker.js": "32bce66ff71dfe184913b58c465079f8eb5366cd539247c145af63af43b22ef9",
+      "package-lock.json": "f090f6aa10a5c2fdc75b3f2712e012eb0355372430906ac652f64b97df4102a2"
+    },
+    "images": {
+      "data": {
+        "id": "sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095",
+        "repository_digests": [
+          "postgis/postgis@sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095"
+        ]
+      },
+      "importer": {
+        "id": "sha256:6548a1e2492e08fa0d5ce987d382ad57c4b21c8a94ff00017c6109770a061b79",
+        "repository_digests": [
+          "iboates/osm2pgsql@sha256:6548a1e2492e08fa0d5ce987d382ad57c4b21c8a94ff00017c6109770a061b79"
+        ]
+      },
+      "martin": {
+        "id": "sha256:eee66c92a5cd29318a51359e3527dc9bb86fdd886a709f93886bc7596334794b",
+        "repository_digests": [
+          "atlas-lab/martin@sha256:eee66c92a5cd29318a51359e3527dc9bb86fdd886a709f93886bc7596334794b"
+        ]
+      }
+    },
+    "source_verifier_build": "8df71a4f770b1c37aaa89d05e7592c93956ab0fc370714f1b26e44214b6ec14b",
+    "trusted_source_key": "184d5e57ddbd6e607eaa3299e74f08fc9143e94408b28a90e2bfe0ef5f19256d",
+    "scope": "experimental_source_only",
+    "component": "postgis_and_martin",
+    "catalog_contract": "seyra-catalog-1.0.0-observed-1",
+    "publication_supported": false,
+    "resources": {
+      "import_cpus": 1,
+      "import_memory_bytes": 2147483648,
+      "import_cpu_shares": 128,
+      "min_free_bytes": 2147483648,
+      "timeout_ms": 7200000,
+      "heavy_slot": "shared_with_intake",
+      "isolation": "separate_data_cluster",
+      "data_limits": {
+        "memoryBytes": 3221225472,
+        "cpus": 1,
+        "cpuShares": 256,
+        "readBps": 16777216,
+        "writeBps": 16777216,
+        "devices": [
+          {
+            "path": "/dev/sda",
+            "majorMinor": "8:0"
+          },
+          {
+            "path": "/dev/dm-0",
+            "majorMinor": "252:0"
+          }
+        ]
+      },
+      "warmup_sql_timeout_ms": 120000,
+      "serving_sql_timeout_ms": 10000
+    }
+  },
+  "postgis": {
+    "database": "atlas_candidate_30725455baf2ad4ccac43666_044b523588fbc9af",
+    "identity_token": "044b523588fbc9afb8d11a6cd3799605",
+    "read_only": true,
+    "target": {
+      "kind": "postgresql",
+      "container": "atlas-candidate-db",
+      "image": "sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095",
+      "system_identifier": "7701568481236377651",
+      "volumes": [
+        {
+          "name": "atlas-candidate-postgis-v1",
+          "type": "volume",
+          "destination": "/var/lib/postgresql/data"
+        }
+      ]
+    },
+    "runtime_profile": {
+      "container": "atlas-candidate-db",
+      "image": "sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095",
+      "limits": {
+        "memoryBytes": 3221225472,
+        "cpus": 1,
+        "cpuShares": 256,
+        "readBps": 16777216,
+        "writeBps": 16777216,
+        "devices": [
+          {
+            "path": "/dev/sda",
+            "majorMinor": "8:0"
+          },
+          {
+            "path": "/dev/dm-0",
+            "majorMinor": "252:0"
+          }
+        ]
+      },
+      "volumes": [
+        {
+          "name": "atlas-candidate-postgis-v1",
+          "type": "volume",
+          "destination": "/var/lib/postgresql/data"
+        }
+      ],
+      "io_max": "8:0 rbps=16777216 wbps=16777216 riops=max wiops=max\n252:0 rbps=16777216 wbps=16777216 riops=max wiops=max",
+      "cpu_max": "100000 100000",
+      "memory_max": "3221225472",
+      "memory_swap_max": "0",
+      "observed_io_devices": [
+        "8:0",
+        "252:0"
+      ],
+      "public_ports": []
+    },
+    "postgres": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+    "postgis": "POSTGIS=\"3.6.4 94d984b\" [EXTENSION] PGSQL=\"170\" GEOS=\"3.14.1-CAPI-1.20.5\" (compiled against GEOS 3.13.1) PROJ=\"9.8.1 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/tmp/proj DATABASE_PATH=/usr/share/proj/proj.db\" (compiled against PROJ 9.6.0) LIBXML=\"2.9.14\" LIBJSON=\"0.18\" LIBPROTOBUF=\"1.5.1\" WAGYU=\"0.5.0 (Internal)\"",
+    "bytes": "16794127"
+  },
+  "serving": {
+    "engine": "Martin",
+    "image": "sha256:eee66c92a5cd29318a51359e3527dc9bb86fdd886a709f93886bc7596334794b",
+    "container": "atlas-martin-30725455baf2-044b523588fbc9af",
+    "endpoint": "http://atlas-martin-30725455baf2-044b523588fbc9af:3000",
+    "network": "atlas-lab_backend",
+    "public_ports": []
+  },
+  "qa": {
+    "canonical_roundtrip": "a17ff891f79fc9a624b0eb6958901f27a6c0b7fb68c2515f9f5d07d8ad811018",
+    "feature_coverage": "f0c530fdb1b1e5db9f9f77f420552c7249e27333990878f35a4a29be13890521",
+    "tile_parity": "5535666b578f43ff305804f95a8d2245373e88aba90a7d447460c95d80f93155",
+    "review_reasons": []
+  },
+  "components": {
+    "postgis": "verified",
+    "tiles": "verified",
+    "search": "missing",
+    "routing": "missing",
+    "poi": "missing",
+    "assets": "missing"
+  },
+  "created_at": "2026-10-28T04:46:34.671Z"
+}

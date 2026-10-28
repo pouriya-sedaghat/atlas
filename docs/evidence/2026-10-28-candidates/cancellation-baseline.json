@@ -1,0 +1,8 @@
+{
+  "schema": "atlas.candidate-cancellation-baseline/1",
+  "at": "2026-10-28T05:19:20.189Z",
+  "fictional_database_only": true,
+  "interval": "0",
+  "backend_present_after_client_end": true,
+  "backend_state": "active"
+}

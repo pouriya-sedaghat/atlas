@@ -1,0 +1,173 @@
+{
+  "requests": [
+    {
+      "site": "tehran",
+      "z": 6,
+      "status": 200,
+      "bytes": 947112,
+      "ms": 528.57
+    },
+    {
+      "site": "tehran",
+      "z": 10,
+      "status": 200,
+      "bytes": 852310,
+      "ms": 85.12
+    },
+    {
+      "site": "tehran",
+      "z": 14,
+      "status": 200,
+      "bytes": 158748,
+      "ms": 12.384
+    },
+    {
+      "site": "tehran",
+      "z": 16,
+      "status": 200,
+      "bytes": 14595,
+      "ms": 3.952
+    },
+    {
+      "site": "mashhad",
+      "z": 6,
+      "status": 200,
+      "bytes": 304845,
+      "ms": 92.043
+    },
+    {
+      "site": "mashhad",
+      "z": 10,
+      "status": 200,
+      "bytes": 263745,
+      "ms": 34.182
+    },
+    {
+      "site": "mashhad",
+      "z": 14,
+      "status": 200,
+      "bytes": 66736,
+      "ms": 6.441
+    },
+    {
+      "site": "mashhad",
+      "z": 16,
+      "status": 200,
+      "bytes": 9759,
+      "ms": 3.391
+    },
+    {
+      "site": "shiraz",
+      "z": 6,
+      "status": 200,
+      "bytes": 525381,
+      "ms": 178.711
+    },
+    {
+      "site": "shiraz",
+      "z": 10,
+      "status": 200,
+      "bytes": 441090,
+      "ms": 68.755
+    },
+    {
+      "site": "shiraz",
+      "z": 14,
+      "status": 200,
+      "bytes": 141620,
+      "ms": 9.837
+    },
+    {
+      "site": "shiraz",
+      "z": 16,
+      "status": 200,
+      "bytes": 16308,
+      "ms": 3.596
+    },
+    {
+      "site": "tabriz",
+      "z": 6,
+      "status": 200,
+      "bytes": 525058,
+      "ms": 210.162
+    },
+    {
+      "site": "tabriz",
+      "z": 10,
+      "status": 200,
+      "bytes": 311631,
+      "ms": 31.765
+    },
+    {
+      "site": "tabriz",
+      "z": 14,
+      "status": 200,
+      "bytes": 100171,
+      "ms": 7.564
+    },
+    {
+      "site": "tabriz",
+      "z": 16,
+      "status": 200,
+      "bytes": 11650,
+      "ms": 3.476
+    },
+    {
+      "site": "ahvaz",
+      "z": 6,
+      "status": 200,
+      "bytes": 164539,
+      "ms": 81.108
+    },
+    {
+      "site": "ahvaz",
+      "z": 10,
+      "status": 200,
+      "bytes": 162320,
+      "ms": 24.803
+    },
+    {
+      "site": "ahvaz",
+      "z": 14,
+      "status": 200,
+      "bytes": 48766,
+      "ms": 5.554
+    },
+    {
+      "site": "ahvaz",
+      "z": 16,
+      "status": 200,
+      "bytes": 6735,
+      "ms": 3.662
+    },
+    {
+      "site": "rural",
+      "z": 6,
+      "status": 200,
+      "bytes": 304845,
+      "ms": 82.921
+    },
+    {
+      "site": "rural",
+      "z": 10,
+      "status": 200,
+      "bytes": 1397,
+      "ms": 22.107
+    },
+    {
+      "site": "rural",
+      "z": 14,
+      "status": 204,
+      "bytes": 0,
+      "ms": 2.501
+    },
+    {
+      "site": "rural",
+      "z": 16,
+      "status": 204,
+      "bytes": 0,
+      "ms": 2.529
+    }
+  ],
+  "scope": "private lab at rest before import"
+}
