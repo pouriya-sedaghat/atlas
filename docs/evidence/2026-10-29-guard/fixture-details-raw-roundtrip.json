@@ -1,0 +1,26 @@
+{
+  "schema": "atlas.raw-roundtrip/1",
+  "source_sha256": "7479ef784a00eab9efc78e7185d5fb10eb84bface54c938b56446b734d94a810",
+  "format": "atlas.osm-records/1; uint64be-length + utf8-compact-json per object",
+  "results": {
+    "node": {
+      "count": 9,
+      "sha256": "37e45668698c6894795266cca0f520974a8299e81132829504adb4521ede14b7",
+      "count_matches": true,
+      "digest_matches": true
+    },
+    "way": {
+      "count": 8,
+      "sha256": "b2a5912d3312754adaad4b8ea84976668a34f3a8cc7d130db2d466e180959ca5",
+      "count_matches": true,
+      "digest_matches": true
+    },
+    "relation": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "count_matches": true,
+      "digest_matches": true
+    }
+  },
+  "passed": true
+}

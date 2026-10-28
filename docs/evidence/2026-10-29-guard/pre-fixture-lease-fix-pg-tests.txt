@@ -1,0 +1,56 @@
+
+ RUN  v5.0.4 /home/owner/atlas-lab/source/apps/builder
+
+{"event":"candidate_metadata_transaction_retry","sqlstate":"40P01","retry":1}
+ ✓ src/metadata.integration.test.ts (4 tests) 1951ms
+   ✓ candidate metadata transactions on real PostgreSQL (4)
+     ✓ retries the entire implicit batch after a real deadlock with no duplicate mutation 1657ms
+ ✓ src/qa.test.ts (6 tests) 5ms
+ ❯ src/queue.integration.test.ts (12 tests | 1 failed) 2937ms
+   ❯ candidate transactions and shared admission (12)
+     ✓ deduplicates a receipt/specification and serializes competing builders 172ms
+     × holds a builder while intake owns the slot and holds intake while a builder owns it 1793ms
+     ✓ fences an expired attempt and gives its retry a different database and identities 59ms
+     ✓ does not consume a failure budget for disk pressure and rejects a changed receipt 153ms
+     ✓ records capacity wait without allocating attempts, database names or a processing slot 34ms
+     ✓ durably fences the failed attempt and keeps admission held across restart and lease expiry 159ms
+     ✓ records one incident and one failure on duplicate concurrent delivery 113ms
+     ✓ refuses stale authority after a replacement attempt is claimed 38ms
+     ✓ requires matching root/pipeline and an actual failing observation 89ms
+     ✓ releases only a verified incident and never requeues it or releases a later owner 77ms
+     ✓ serializes completion and guard commit without a published-and-failed race 106ms
+     ✓ keeps ordinary shutdown retry semantics and denies controller edits to incident evidence 97ms
+ ✓ src/topology.integration.test.ts (8 tests) 5887ms
+   ✓ serving topology closure on real PostgreSQL (8)
+     ✓ counts sparse multi-layer outcomes in one query with the original per-layer results 573ms
+     ✓ reports all zero counters for an empty outcome archive 590ms
+     ✓ keeps malformed counts and integer overflow as hard SQL failures 355ms
+     ✓ blocks direct and transitive missing references while retaining every raw/render row 326ms
+     ✓ treats unknown nested geometry conservatively and terminates relation cycles 380ms
+     ✓ uses the spatial index on the filtered snapshot for selective tile requests 640ms
+     ✓ uses the zoom index when a broad viewport excludes dense high-zoom features 733ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/queue.integration.test.ts > candidate transactions and shared admission > holds a builder while intake owns the slot and holds intake while a builder owns it
+IntakeError: lease_lost
+ ❯ BuildQueue.live src/queue.ts:59:26
+     57|       AND s.holder_kind='candidate' AND s.job_id=j.id AND s.token=j.to…
+     58|       WHERE j.id=$1 AND j.token=$2 AND j.state='running' AND j.lease_u…
+     59|     if(!r.rowCount)throw new LeaseLost();
+       |                          ^
+     60|   }
+     61|   async claim(pipelineSha:string):Promise<BuildClaim|null>{
+ ❯ src/queue.ts:145:5
+ ❯ BuildQueue.tx src/queue.ts:23:75
+ ❯ BuildQueue.finish src/queue.ts:144:100
+ ❯ src/queue.integration.test.ts:40:53
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  1 failed | 29 passed (30)
+   Start at  20:41:55
+   Duration  6.09s (tests 96%, transform 3%, import 1%)
+

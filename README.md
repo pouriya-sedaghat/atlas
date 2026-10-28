@@ -31,6 +31,10 @@ not publish a release or connect the legacy web client. The latest Iran attempt 
 after one old-serving timeout; a later single-scan QA improvement passed separate PostgreSQL
 and fictional-data tests, but has not repeated the full-country acceptance test.
 
+[Stage five](docs/ATLAS-STAGE-5-FA.md) adds durable serving-guard incidents and verified recovery.
+It passed separate PostgreSQL, fictional systemd/Docker and bounded read-only I/O checks;
+the existing Iran runtime was not upgraded and full-country acceptance remains open.
+
 ## Original Seyra VM demo
 
 [راهنمای فارسی اجرا روی VM](docs/README-FA.md)

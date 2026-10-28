@@ -28,6 +28,20 @@ CREATE TABLE IF NOT EXISTS atlas_control.candidate_events (
   created_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
 ALTER TABLE atlas_control.candidate_attempts ADD COLUMN IF NOT EXISTS data_target jsonb;
+-- A serving incident holds admission until exact-attempt shutdown has been verified.
+CREATE TABLE IF NOT EXISTS atlas_control.candidate_guard_incidents (
+  id text PRIMARY KEY CHECK(id ~ '^[0-9a-f]{64}$'),
+  job_id text NOT NULL REFERENCES atlas_control.candidate_jobs(id),
+  token text NOT NULL REFERENCES atlas_control.candidate_attempts(token),
+  root_sha256 text NOT NULL,pipeline_sha256 text NOT NULL,
+  evidence_sha256 text NOT NULL,evidence_text text NOT NULL CHECK(octet_length(evidence_text)<=16384),
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  shutdown_confirmed_at timestamptz,shutdown_witness jsonb,
+  UNIQUE(job_id,token),CHECK((shutdown_confirmed_at IS NULL)=(shutdown_witness IS NULL))
+);
+REVOKE ALL ON atlas_control.candidate_guard_incidents FROM PUBLIC;
+GRANT SELECT,INSERT ON atlas_control.candidate_guard_incidents TO atlas_candidate_controller;
+GRANT UPDATE(shutdown_confirmed_at,shutdown_witness) ON atlas_control.candidate_guard_incidents TO atlas_candidate_controller;
 REVOKE ALL ON atlas_control.candidate_instance,atlas_control.candidate_jobs,atlas_control.candidate_attempts,atlas_control.candidate_events FROM PUBLIC;
 GRANT USAGE ON SCHEMA atlas_control TO atlas_candidate_controller;
 GRANT SELECT ON atlas_control.intake_instance,atlas_control.intake_validations,atlas_control.intake_baselines,atlas_control.intake_jobs TO atlas_candidate_controller;

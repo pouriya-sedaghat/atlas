@@ -1,0 +1,1035 @@
+{
+  "schema": "atlas.bounded-io-diagnostic/1",
+  "tool_sha256": "8201f7346af42eb8d3bd90138099f18922717053323b3b71d243d50e8d30d31f",
+  "qa_compiled_sha256": "46d547c799fe914e9df3e15a23c1e6b44fb71fd00c1d8eaa97c49e6fc9987aca",
+  "source_failed_job": "e5139b4aef800ceecfe9aa5b1bd8c57166737915149c8b4fd0c704da0da5af42",
+  "source_attempt": "1781c44b7587509c825a84eb9bd62b4e",
+  "source_pipeline": "32590f3516d833ae9a773fb27488d66b4790026d5478a34e7c149621d8406e64",
+  "started_at": "2026-10-28T20:38:16.712Z",
+  "ended_at": "2026-10-28T20:39:07.882Z",
+  "data_profile": {
+    "container": "atlas-candidate-db",
+    "image": "sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095",
+    "limits": {
+      "memoryBytes": 3221225472,
+      "cpus": 1,
+      "cpuShares": 256,
+      "readBps": 8388608,
+      "writeBps": 8388608,
+      "devices": [
+        {
+          "path": "/dev/sda",
+          "majorMinor": "8:0"
+        },
+        {
+          "path": "/dev/dm-0",
+          "majorMinor": "252:0"
+        }
+      ]
+    },
+    "volumes": [
+      {
+        "name": "atlas-candidate-postgis-v1",
+        "type": "volume",
+        "destination": "/var/lib/postgresql/data"
+      }
+    ],
+    "io_max": "8:0 rbps=8388608 wbps=8388608 riops=max wiops=max\n252:0 rbps=8388608 wbps=8388608 riops=max wiops=max",
+    "cpu_max": "100000 100000",
+    "memory_max": "3221225472",
+    "memory_swap_max": "0",
+    "observed_io_devices": [
+      "8:0",
+      "252:0"
+    ],
+    "postgres_prerequisites": {
+      "client_connection_check_interval": "1000",
+      "fsync": "on",
+      "full_page_writes": "on",
+      "synchronous_commit": "on"
+    },
+    "public_ports": []
+  },
+  "workload": {
+    "sql": "single aggregate of all layer outcome counters",
+    "statement_timeout_ms": 20000,
+    "read_only": true,
+    "result": "sql_error",
+    "code": "57014",
+    "ms": 20004.645
+  },
+  "stages": [
+    {
+      "phase": "baseline",
+      "at": "2026-10-28T20:38:16.780Z"
+    },
+    {
+      "phase": "bounded_read",
+      "at": "2026-10-28T20:38:31.822Z"
+    },
+    {
+      "phase": "recovery",
+      "at": "2026-10-28T20:38:51.827Z"
+    }
+  ],
+  "summary": {
+    "baseline": {
+      "requests": 14,
+      "errors": 0,
+      "max_ms": 392.259,
+      "p95_ms": 392.259
+    },
+    "bounded_read": {
+      "requests": 19,
+      "errors": 0,
+      "max_ms": 325.552,
+      "p95_ms": 325.552
+    },
+    "recovery": {
+      "requests": 15,
+      "errors": 0,
+      "max_ms": 229.469,
+      "p95_ms": 229.469
+    }
+  },
+  "requests": 48,
+  "errors": 0,
+  "aborted_on_serving_failure": false,
+  "original_serving_unchanged": true,
+  "event_loop_delay_ms": {
+    "max": 37.912575,
+    "p99": 21.495807
+  },
+  "resources": [
+    {
+      "at": "2026-10-28T20:38:16.794Z",
+      "phase": "baseline",
+      "host_io_pressure": "some avg10=0.22 avg60=2.77 avg300=3.54 total=27138020637\nfull avg10=0.22 avg60=2.58 avg300=3.30 total=25348429675",
+      "data_io_pressure": "some avg10=0.02 avg60=2.77 avg300=3.41 total=28539179036\nfull avg10=0.02 avg60=2.76 avg300=3.39 total=28239528822",
+      "data_io_stat": "8:0 rbytes=230196346880 wbytes=222109990912 rios=12076654 wios=1232693 dbytes=0 dios=0\n252:0 rbytes=230196346880 wbytes=222109990912 rios=12048812 wios=1185794 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615290 9865286 551742150 18188754 2253481 1022428 661971614 14072897 0 4096113 32261652 0 0 0 0 0 0",
+        " 252       0 dm-0 13443992 0 551364076 739586418 3200731 0 661969472 480520264 0 32748024 1220106682 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10246647808
+    },
+    {
+      "at": "2026-10-28T20:38:18.800Z",
+      "phase": "baseline",
+      "host_io_pressure": "some avg10=0.18 avg60=2.68 avg300=3.51 total=27138020654\nfull avg10=0.18 avg60=2.50 avg300=3.27 total=25348429689",
+      "data_io_pressure": "some avg10=0.20 avg60=2.71 avg300=3.39 total=28539179036\nfull avg10=0.20 avg60=2.71 avg300=3.38 total=28239528822",
+      "data_io_stat": "8:0 rbytes=230196346880 wbytes=222110515200 rios=12076654 wios=1232721 dbytes=0 dios=0\n252:0 rbytes=230196346880 wbytes=222110515200 rios=12048812 wios=1185822 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615291 9865286 551742158 18188755 2253669 1022428 661977118 14072962 0 4096148 32261717 0 0 0 0 0 0",
+        " 252       0 dm-0 13443993 0 551364084 739586419 3200919 0 661974976 480520322 0 32748066 1220106741 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10228092928
+    },
+    {
+      "at": "2026-10-28T20:38:20.805Z",
+      "phase": "baseline",
+      "host_io_pressure": "some avg10=0.15 avg60=2.59 avg300=3.49 total=27138021022\nfull avg10=0.15 avg60=2.41 avg300=3.25 total=25348430050",
+      "data_io_pressure": "some avg10=0.16 avg60=2.62 avg300=3.37 total=28539179036\nfull avg10=0.16 avg60=2.62 avg300=3.35 total=28239528822",
+      "data_io_stat": "8:0 rbytes=230196346880 wbytes=222111039488 rios=12076654 wios=1232729 dbytes=0 dios=0\n252:0 rbytes=230196346880 wbytes=222111039488 rios=12048812 wios=1185830 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615291 9865286 551742158 18188755 2253729 1022552 661980206 14072986 0 4096157 32261741 0 0 0 0 0 0",
+        " 252       0 dm-0 13443993 0 551364084 739586419 3201103 0 661978064 480520462 0 32748078 1220106881 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10213380096
+    },
+    {
+      "at": "2026-10-28T20:38:22.810Z",
+      "phase": "baseline",
+      "host_io_pressure": "some avg10=0.12 avg60=2.51 avg300=3.47 total=27138034534\nfull avg10=0.12 avg60=2.33 avg300=3.23 total=25348443544",
+      "data_io_pressure": "some avg10=0.13 avg60=2.54 avg300=3.34 total=28539203578\nfull avg10=0.13 avg60=2.53 avg300=3.33 total=28239553364",
+      "data_io_stat": "8:0 rbytes=230196506624 wbytes=222112382976 rios=12076675 wios=1232746 dbytes=0 dios=0\n252:0 rbytes=230196506624 wbytes=222112382976 rios=12048833 wios=1185847 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615302 9865296 551742470 18188807 2253746 1022552 661982830 14072995 0 4096197 32261802 0 0 0 0 0 0",
+        " 252       0 dm-0 13444014 0 551364396 739586594 3201120 0 661980688 480520472 0 32748119 1220107066 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10221006848
+    },
+    {
+      "at": "2026-10-28T20:38:24.819Z",
+      "phase": "baseline",
+      "host_io_pressure": "some avg10=0.10 avg60=2.43 avg300=3.44 total=27138034673\nfull avg10=0.10 avg60=2.26 avg300=3.20 total=25348443683",
+      "data_io_pressure": "some avg10=0.29 avg60=2.49 avg300=3.33 total=28539203578\nfull avg10=0.29 avg60=2.48 avg300=3.31 total=28239553364",
+      "data_io_stat": "8:0 rbytes=230196506624 wbytes=222112907264 rios=12076675 wios=1232754 dbytes=0 dios=0\n252:0 rbytes=230196506624 wbytes=222112907264 rios=12048833 wios=1185855 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615302 9865296 551742470 18188807 2253756 1022591 661984182 14073001 0 4096204 32261808 0 0 0 0 0 0",
+        " 252       0 dm-0 13444014 0 551364396 739586594 3201169 0 661982040 480520519 0 32748126 1220107113 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10231226368
+    },
+    {
+      "at": "2026-10-28T20:38:26.829Z",
+      "phase": "baseline",
+      "host_io_pressure": "some avg10=0.08 avg60=2.35 avg300=3.42 total=27138035027\nfull avg10=0.08 avg60=2.18 avg300=3.18 total=25348443765",
+      "data_io_pressure": "some avg10=0.23 avg60=2.41 avg300=3.30 total=28539203578\nfull avg10=0.23 avg60=2.40 avg300=3.29 total=28239553364",
+      "data_io_stat": "8:0 rbytes=230196506624 wbytes=222113431552 rios=12076675 wios=1232790 dbytes=0 dios=0\n252:0 rbytes=230196506624 wbytes=222113431552 rios=12048833 wios=1185891 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615302 9865296 551742470 18188807 2253797 1022616 661985446 14073013 0 4096212 32261820 0 0 0 0 0 0",
+        " 252       0 dm-0 13444014 0 551364396 739586594 3201235 0 661983304 480520532 0 32748134 1220107126 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10225033216
+    },
+    {
+      "at": "2026-10-28T20:38:28.836Z",
+      "phase": "baseline",
+      "host_io_pressure": "some avg10=0.06 avg60=2.27 avg300=3.39 total=27138035106\nfull avg10=0.06 avg60=2.11 avg300=3.16 total=25348443844",
+      "data_io_pressure": "some avg10=0.19 avg60=2.33 avg300=3.28 total=28539203578\nfull avg10=0.19 avg60=2.32 avg300=3.27 total=28239553364",
+      "data_io_stat": "8:0 rbytes=230196506624 wbytes=222113955840 rios=12076675 wios=1232816 dbytes=0 dios=0\n252:0 rbytes=230196506624 wbytes=222113955840 rios=12048833 wios=1185917 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615302 9865296 551742470 18188807 2253823 1022616 661986470 14073028 0 4096216 32261835 0 0 0 0 0 0",
+        " 252       0 dm-0 13444014 0 551364396 739586594 3201261 0 661984328 480520549 0 32748140 1220107143 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10231947264
+    },
+    {
+      "at": "2026-10-28T20:38:30.844Z",
+      "phase": "baseline",
+      "host_io_pressure": "some avg10=0.05 avg60=2.19 avg300=3.37 total=27138035296\nfull avg10=0.05 avg60=2.04 avg300=3.14 total=25348443906",
+      "data_io_pressure": "some avg10=0.15 avg60=2.25 avg300=3.26 total=28539203578\nfull avg10=0.15 avg60=2.24 avg300=3.25 total=28239553364",
+      "data_io_stat": "8:0 rbytes=230196506624 wbytes=222114480128 rios=12076675 wios=1232866 dbytes=0 dios=0\n252:0 rbytes=230196506624 wbytes=222114480128 rios=12048833 wios=1185967 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615302 9865296 551742470 18188807 2253875 1022654 661987814 14073049 0 4096226 32261856 0 0 0 0 0 0",
+        " 252       0 dm-0 13444014 0 551364396 739586594 3201351 0 661985672 480520608 0 32748153 1220107202 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10227576832
+    },
+    {
+      "at": "2026-10-28T20:38:32.846Z",
+      "phase": "bounded_read",
+      "host_io_pressure": "some avg10=4.21 avg60=2.87 avg300=3.51 total=27138757622\nfull avg10=4.03 avg60=2.70 avg300=3.27 total=25349137883",
+      "data_io_pressure": "some avg10=0.31 avg60=2.21 avg300=3.24 total=28540020272\nfull avg10=0.31 avg60=2.20 avg300=3.23 total=28240370058",
+      "data_io_stat": "8:0 rbytes=230196899840 wbytes=222114742272 rios=12076704 wios=1232880 dbytes=0 dios=0\n252:0 rbytes=230201094144 wbytes=222114742272 rios=12048863 wios=1185981 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615329 9865298 551743238 18188854 2253894 1022679 661988566 14073056 0 4096265 32261910 0 0 0 0 0 0",
+        " 252       0 dm-0 13444043 0 551365164 739586640 3201395 0 661986424 480520614 1 32748508 1220107254 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10206920704
+    },
+    {
+      "at": "2026-10-28T20:38:34.853Z",
+      "phase": "bounded_read",
+      "host_io_pressure": "some avg10=18.84 avg60=5.56 avg300=4.06 total=27140462960\nfull avg10=18.15 avg60=5.29 avg300=3.81 total=25350791522",
+      "data_io_pressure": "some avg10=17.10 avg60=5.18 avg300=3.86 total=28541891673\nfull avg10=17.10 avg60=5.17 avg300=3.84 total=28242241459",
+      "data_io_stat": "8:0 rbytes=230216986624 wbytes=222115266560 rios=12076784 wios=1232938 dbytes=0 dios=0\n252:0 rbytes=230218280960 wbytes=222115266560 rios=12048956 wios=1186039 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615348 9865359 551782470 18188918 2253952 1022679 661989590 14073074 0 4096298 32261993 0 0 0 0 0 0",
+        " 252       0 dm-0 13444120 0 551404396 739624470 3201453 0 661987448 480520637 17 32750515 1220145107 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10211512320
+    },
+    {
+      "at": "2026-10-28T20:38:36.863Z",
+      "phase": "bounded_read",
+      "host_io_pressure": "some avg10=27.20 avg60=7.51 avg300=4.48 total=27141808888\nfull avg10=26.46 avg60=7.21 avg300=4.22 total=25352110300",
+      "data_io_pressure": "some avg10=26.86 avg60=7.33 avg300=4.32 total=28543388896\nfull avg10=26.86 avg60=7.33 avg300=4.30 total=28243731420",
+      "data_io_stat": "8:0 rbytes=230229520384 wbytes=222115790848 rios=12076914 wios=1232969 dbytes=0 dios=0\n252:0 rbytes=230229520384 wbytes=222115790848 rios=12049061 wios=1186070 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615475 9865362 551806950 18189270 2253985 1022714 661990910 14073081 0 4096329 32262352 0 0 0 0 0 0",
+        " 252       0 dm-0 13444242 0 551428876 739641235 3201521 0 661988768 480520640 0 32751272 1220161875 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10218708992
+    },
+    {
+      "at": "2026-10-28T20:38:38.872Z",
+      "phase": "bounded_read",
+      "host_io_pressure": "some avg10=36.77 avg60=9.88 avg300=5.00 total=27143444551\nfull avg10=35.43 avg60=9.46 avg300=4.71 total=25353649638",
+      "data_io_pressure": "some avg10=39.57 avg60=10.27 avg300=4.95 total=28545359886\nfull avg10=38.66 avg60=10.10 avg300=4.90 total=28245615505",
+      "data_io_stat": "8:0 rbytes=230243217408 wbytes=222116642816 rios=12076954 wios=1233019 dbytes=0 dios=0\n252:0 rbytes=230247673856 wbytes=222116642816 rios=12049102 wios=1186120 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615484 9865393 551833702 18189332 2254040 1022759 661992974 14073098 0 4096341 32262431 0 0 0 0 0 0",
+        " 252       0 dm-0 13444279 0 551455628 739674261 3201621 0 661990832 480520693 4 32752862 1220194954 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10201149440
+    },
+    {
+      "at": "2026-10-28T20:38:40.882Z",
+      "phase": "bounded_read",
+      "host_io_pressure": "some avg10=41.52 avg60=11.62 avg300=5.39 total=27144718826\nfull avg10=39.70 avg60=11.08 avg300=5.08 total=25354868168",
+      "data_io_pressure": "some avg10=49.61 avg60=13.04 avg300=5.57 total=28546882571\nfull avg10=48.68 avg60=12.84 avg300=5.51 total=28247132742",
+      "data_io_stat": "8:0 rbytes=230256586752 wbytes=222117175296 rios=12076977 wios=1233076 dbytes=0 dios=0\n252:0 rbytes=230257635328 wbytes=222117175296 rios=12049114 wios=1186177 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615507 9865393 551859814 18189396 2254648 1023115 662009910 14073187 0 4096416 32262584 0 0 0 0 0 0",
+        " 252       0 dm-0 13444294 0 551481740 739679106 3202585 0 662007768 480520811 1 32754507 1220199917 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10201370624
+    },
+    {
+      "at": "2026-10-28T20:38:42.893Z",
+      "phase": "bounded_read",
+      "host_io_pressure": "some avg10=49.03 avg60=13.95 avg300=5.92 total=27146321823\nfull avg10=47.36 avg60=13.40 avg300=5.61 total=25356442941",
+      "data_io_pressure": "some avg10=54.75 avg60=15.16 avg300=6.06 total=28548834687\nfull avg10=54.00 avg60=14.97 avg300=6.01 total=28249084858",
+      "data_io_stat": "8:0 rbytes=230264451072 wbytes=222117732352 rios=12076994 wios=1233125 dbytes=0 dios=0\n252:0 rbytes=230272839680 wbytes=222117732352 rios=12049132 wios=1186226 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615517 9865400 551875174 18189434 2254697 1023115 662010998 14073203 0 4096438 32262638 0 0 0 0 0 0",
+        " 252       0 dm-0 13444310 0 551497100 739682081 3202634 0 662008856 480520825 3 32755885 1220202906 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10228813824
+    },
+    {
+      "at": "2026-10-28T20:38:44.899Z",
+      "phase": "bounded_read",
+      "host_io_pressure": "some avg10=53.37 avg60=15.88 avg300=6.38 total=27147821695\nfull avg10=51.46 avg60=15.25 avg300=6.05 total=25357905964",
+      "data_io_pressure": "some avg10=61.50 avg60=17.68 avg300=6.65 total=28550631515\nfull avg10=60.88 avg60=17.49 avg300=6.60 total=28250881374",
+      "data_io_stat": "8:0 rbytes=230282276864 wbytes=222118256640 rios=12077020 wios=1233181 dbytes=0 dios=0\n252:0 rbytes=230283325440 wbytes=222118256640 rios=12049144 wios=1186282 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615543 9865400 551909990 18189516 2254758 1023181 662012590 14073219 0 4096487 32262735 0 0 0 0 0 0",
+        " 252       0 dm-0 13444324 0 551531916 739685473 3202761 0 662010448 480520902 1 32757304 1220206375 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10211196928
+    },
+    {
+      "at": "2026-10-28T20:38:46.909Z",
+      "phase": "bounded_read",
+      "host_io_pressure": "some avg10=59.65 avg60=18.24 avg300=6.94 total=27149594910\nfull avg10=57.72 avg60=17.57 avg300=6.59 total=25359635138",
+      "data_io_pressure": "some avg10=67.02 avg60=20.11 avg300=7.23 total=28552565728\nfull avg10=66.52 avg60=19.93 avg300=7.18 total=28252812122",
+      "data_io_stat": "8:0 rbytes=230292205568 wbytes=222118780928 rios=12077039 wios=1233237 dbytes=0 dios=0\n252:0 rbytes=230298005504 wbytes=222118780928 rios=12049158 wios=1186338 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615560 9865402 551929382 18189573 2255061 1023183 662016566 14073309 0 4096531 32262882 0 0 0 0 0 0",
+        " 252       0 dm-0 13444337 0 551551308 739687211 3203066 0 662014424 480521007 2 32758820 1220208218 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10203869184
+    },
+    {
+      "at": "2026-10-28T20:38:48.919Z",
+      "phase": "bounded_read",
+      "host_io_pressure": "some avg10=64.24 avg60=20.43 avg300=7.47 total=27151354367\nfull avg10=62.30 avg60=19.71 avg300=7.12 total=25361344747",
+      "data_io_pressure": "some avg10=72.45 avg60=22.62 avg300=7.85 total=28554514952\nfull avg10=72.04 avg60=22.45 avg300=7.79 total=28254757946",
+      "data_io_stat": "8:0 rbytes=230306918400 wbytes=222119305216 rios=12077126 wios=1233301 dbytes=0 dios=0\n252:0 rbytes=230314782720 wbytes=222119305216 rios=12049242 wios=1186402 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615568 9865481 551958118 18189621 2255127 1023241 662018070 14073330 0 4096556 32262952 0 0 0 0 0 0",
+        " 252       0 dm-0 13444422 0 551580044 739766160 3203190 0 662015928 480521148 1 32760322 1220287308 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10205409280
+    },
+    {
+      "at": "2026-10-28T20:38:50.925Z",
+      "phase": "bounded_read",
+      "host_io_pressure": "some avg10=67.45 avg60=22.44 avg300=7.98 total=27153029829\nfull avg10=65.32 avg60=21.65 avg300=7.61 total=25362951350",
+      "data_io_pressure": "some avg10=76.72 avg60=25.02 avg300=8.45 total=28556433816\nfull avg10=76.38 avg60=24.86 avg300=8.40 total=28256676810",
+      "data_io_stat": "8:0 rbytes=230325268480 wbytes=222120718336 rios=12078154 wios=1233562 dbytes=0 dios=0\n252:0 rbytes=230329462784 wbytes=222120718336 rios=12050269 wios=1186663 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615586 9866491 551993958 18189705 2255278 1023384 662021094 14073450 0 4096595 32263156 0 0 0 0 0 0",
+        " 252       0 dm-0 13445449 0 551615884 740727007 3203484 0 662018952 480521383 1 32762329 1221248390 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10200510464
+    },
+    {
+      "at": "2026-10-28T20:38:52.933Z",
+      "phase": "recovery",
+      "host_io_pressure": "some avg10=63.57 avg60=23.21 avg300=8.24 total=27153656472\nfull avg10=61.64 avg60=22.41 avg300=7.86 total=25363565688",
+      "data_io_pressure": "some avg10=78.40 avg60=27.02 avg300=8.98 total=28557305368\nfull avg10=78.12 avg60=26.86 avg300=8.93 total=28257548362",
+      "data_io_stat": "8:0 rbytes=230335754240 wbytes=222121013248 rios=12078668 wios=1233590 dbytes=0 dios=0\n252:0 rbytes=230342045696 wbytes=222121013248 rios=12050783 wios=1186691 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615598 9866993 552014438 18189734 2255306 1023384 662021670 14073457 0 4096609 32263191 0 0 0 0 0 0",
+        " 252       0 dm-0 13445963 0 551636364 740949067 3203512 0 662019528 480521386 1 32764011 1221470453 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10200698880
+    },
+    {
+      "at": "2026-10-28T20:38:54.942Z",
+      "phase": "recovery",
+      "host_io_pressure": "some avg10=52.05 avg60=22.45 avg300=8.19 total=27153656698\nfull avg10=50.47 avg60=21.68 avg300=7.81 total=25363565862",
+      "data_io_pressure": "some avg10=64.20 avg60=26.14 avg300=8.92 total=28557305368\nfull avg10=63.97 avg60=25.98 avg300=8.87 total=28257548362",
+      "data_io_stat": "8:0 rbytes=230342045696 wbytes=222121545728 rios=12078670 wios=1233641 dbytes=0 dios=0\n252:0 rbytes=230342045696 wbytes=222121545728 rios=12050783 wios=1186742 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615600 9866993 552026726 18189780 2255360 1023416 662022998 14073475 0 4096641 32263255 0 0 0 0 0 0",
+        " 252       0 dm-0 13445964 0 551648652 740949858 3203598 0 662020856 480521401 0 32764272 1221471259 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10198274048
+    },
+    {
+      "at": "2026-10-28T20:38:56.952Z",
+      "phase": "recovery",
+      "host_io_pressure": "some avg10=42.62 avg60=21.72 avg300=8.13 total=27153656831\nfull avg10=41.33 avg60=20.97 avg300=7.76 total=25363565991",
+      "data_io_pressure": "some avg10=52.56 avg60=25.28 avg300=8.86 total=28557305368\nfull avg10=52.38 avg60=25.13 avg300=8.81 total=28257548362",
+      "data_io_stat": "8:0 rbytes=230342045696 wbytes=222122070016 rios=12078670 wios=1233643 dbytes=0 dios=0\n252:0 rbytes=230342045696 wbytes=222122070016 rios=12050783 wios=1186744 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615600 9866993 552026726 18189780 2255367 1023438 662024238 14073477 0 4096643 32263258 0 0 0 0 0 0",
+        " 252       0 dm-0 13445964 0 551648652 740949858 3203627 0 662022096 480521404 0 32764275 1221471262 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10196750336
+    },
+    {
+      "at": "2026-10-28T20:38:58.959Z",
+      "phase": "recovery",
+      "host_io_pressure": "some avg10=34.90 avg60=21.01 avg300=8.08 total=27153656976\nfull avg10=33.84 avg60=20.28 avg300=7.70 total=25363566136",
+      "data_io_pressure": "some avg10=43.04 avg60=24.45 avg300=8.80 total=28557305368\nfull avg10=42.89 avg60=24.31 avg300=8.75 total=28257548362",
+      "data_io_stat": "8:0 rbytes=230342045696 wbytes=222122594304 rios=12078670 wios=1233646 dbytes=0 dios=0\n252:0 rbytes=230342045696 wbytes=222122594304 rios=12050783 wios=1186747 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615600 9866993 552026726 18189780 2255370 1023438 662025262 14073481 0 4096645 32263261 0 0 0 0 0 0",
+        " 252       0 dm-0 13445964 0 551648652 740949858 3203630 0 662023120 480521407 0 32764278 1221471265 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10212683776
+    },
+    {
+      "at": "2026-10-28T20:39:00.962Z",
+      "phase": "recovery",
+      "host_io_pressure": "some avg10=28.58 avg60=20.32 avg300=8.02 total=27153657266\nfull avg10=27.71 avg60=19.62 avg300=7.65 total=25363566426",
+      "data_io_pressure": "some avg10=35.24 avg60=23.65 avg300=8.74 total=28557305368\nfull avg10=35.12 avg60=23.51 avg300=8.68 total=28257548362",
+      "data_io_stat": "8:0 rbytes=230342045696 wbytes=222123118592 rios=12078670 wios=1233648 dbytes=0 dios=0\n252:0 rbytes=230342045696 wbytes=222123118592 rios=12050783 wios=1186749 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615600 9866993 552026726 18189780 2255374 1023443 662026342 14073485 0 4096649 32263265 0 0 0 0 0 0",
+        " 252       0 dm-0 13445964 0 551648652 740949858 3203639 0 662024200 480521416 0 32764282 1221471274 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10209611776
+    },
+    {
+      "at": "2026-10-28T20:39:02.967Z",
+      "phase": "recovery",
+      "host_io_pressure": "some avg10=23.40 avg60=19.65 avg300=7.96 total=27153657759\nfull avg10=22.69 avg60=18.98 avg300=7.60 total=25363566499",
+      "data_io_pressure": "some avg10=28.86 avg60=22.88 avg300=8.68 total=28557305368\nfull avg10=28.76 avg60=22.74 avg300=8.63 total=28257548362",
+      "data_io_stat": "8:0 rbytes=230342045696 wbytes=222123642880 rios=12078670 wios=1233650 dbytes=0 dios=0\n252:0 rbytes=230342045696 wbytes=222123642880 rios=12050783 wios=1186751 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615600 9866993 552026726 18189780 2255381 1023461 662027550 14073489 0 4096652 32263269 0 0 0 0 0 0",
+        " 252       0 dm-0 13445964 0 551648652 740949858 3203664 0 662025408 480521419 0 32764285 1221471277 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10220085248
+    },
+    {
+      "at": "2026-10-28T20:39:04.977Z",
+      "phase": "recovery",
+      "host_io_pressure": "some avg10=19.16 avg60=19.01 avg300=7.91 total=27153657895\nfull avg10=18.58 avg60=18.36 avg300=7.54 total=25363566635",
+      "data_io_pressure": "some avg10=23.63 avg60=22.13 avg300=8.62 total=28557305368\nfull avg10=23.54 avg60=22.00 avg300=8.57 total=28257548362",
+      "data_io_stat": "8:0 rbytes=230342045696 wbytes=222124167168 rios=12078670 wios=1233652 dbytes=0 dios=0\n252:0 rbytes=230342045696 wbytes=222124167168 rios=12050783 wios=1186753 dbytes=0 dios=0",
+      "diskstats": [
+        "   8       0 sda 3615600 9866993 552026726 18189780 2255383 1023461 662028574 14073492 0 4096655 32263273 0 0 0 0 0 0",
+        " 252       0 dm-0 13445964 0 551648652 740949858 3203666 0 662026432 480521422 0 32764288 1221471280 0 0 0 0 0 0"
+      ],
+      "memory_available_bytes": 10214322176
+    }
+  ],
+  "samples": [
+    {
+      "site": "tehran",
+      "z": 6,
+      "x": 41,
+      "y": 25,
+      "phase": "baseline",
+      "completed_phase": "baseline",
+      "status": 200,
+      "sha256": "ebb49477ec4a51c0179f4b22777d0dfd526860fcb02f572ed52243307b9a66fe",
+      "bytes": 947112,
+      "matches_first_observation": true,
+      "ms": 392.259
+    },
+    {
+      "site": "tehran",
+      "z": 10,
+      "x": 658,
+      "y": 403,
+      "phase": "baseline",
+      "completed_phase": "baseline",
+      "status": 200,
+      "sha256": "f52449626e948a93e54d3de614a5cb6391c1046d581736afca83d6e91d2f7560",
+      "bytes": 852310,
+      "matches_first_observation": true,
+      "ms": 115.946
+    },
+    {
+      "site": "tehran",
+      "z": 14,
+      "x": 10530,
+      "y": 6451,
+      "phase": "baseline",
+      "completed_phase": "baseline",
+      "status": 200,
+      "sha256": "16d8a7bd5573a5820c54efded54df47e6cd3e7965c015d1f1564f52dabe48be4",
+      "bytes": 158748,
+      "matches_first_observation": true,
+      "ms": 15.608
+    },
+    {
+      "site": "tehran",
+      "z": 16,
+      "x": 42123,
+      "y": 25804,
+      "phase": "baseline",
+      "completed_phase": "baseline",
+      "status": 200,
+      "sha256": "13277ee9d32f6f790a71f38192e147d0e19a68c32d57bd93f94a6681d260a742",
+      "bytes": 14595,
+      "matches_first_observation": true,
+      "ms": 9.338
+    },
+    {
+      "site": "mashhad",
+      "z": 6,
+      "x": 42,
+      "y": 25,
+      "phase": "baseline",
+      "completed_phase": "baseline",
+      "status": 200,
+      "sha256": "27a01edfe7da1fda4b24e500aadecccd4f28bce47bb6c640da56d7fd65312f5b",
+      "bytes": 304845,
+      "matches_first_observation": true,
+      "ms": 92.779
+    },
+    {
+      "site": "mashhad",
+      "z": 10,
+      "x": 681,
+      "y": 401,
+      "phase": "baseline",
+      "completed_phase": "baseline",
+      "status": 200,
+      "sha256": "0706dd4b286df3030e67b631c928cc89f84fc81441a7d01d154c9b5fc352b4e6",
+      "bytes": 263745,
+      "matches_first_observation": true,
+      "ms": 48.288
+    },
+    {
+      "site": "mashhad",
+      "z": 14,
+      "x": 10904,
+      "y": 6419,
+      "phase": "baseline",
+      "completed_phase": "baseline",
+      "status": 200,
+      "sha256": "767415072d363a76d27f4151b8a747cd1c50f08ac2e83c138b316f12544566fb",
+      "bytes": 66736,
+      "matches_first_observation": true,
+      "ms": 12.062
+    },
+    {
+      "site": "mashhad",
+      "z": 16,
+      "x": 43618,
+      "y": 25676,
+      "phase": "baseline",
+      "completed_phase": "baseline",
+      "status": 200,
+      "sha256": "fe1f56a12dc1cc1bac50d6348a00ecb1a50f61f6f73d8d5fcbf32c31dbf1270f",
+      "bytes": 9759,
+      "matches_first_observation": true,
+      "ms": 9.211
+    },
+    {
+      "site": "shiraz",
+      "z": 6,
+      "x": 41,
+      "y": 26,
+      "phase": "baseline",
+      "completed_phase": "baseline",
+      "status": 200,
+      "sha256": "fa59ded92225ec6e3b48424aef3d723f8d3f6b34fd43329d4046d61b6f7f941b",
+      "bytes": 525381,
+      "matches_first_observation": true,
+      "ms": 198.517
+    },
+    {
+      "site": "shiraz",
+      "z": 10,
+      "x": 661,
+      "y": 423,
+      "phase": "baseline",
+      "completed_phase": "baseline",
+      "status": 200,
+      "sha256": "8b4ab3f792735ab04d88a15a2df16ad801ef8bac9d10ef283f55dc51571c9d95",
+      "bytes": 441090,
+      "matches_first_observation": true,
+      "ms": 74.022
+    },
+    {
+      "site": "shiraz",
+      "z": 14,
+      "x": 10582,
+      "y": 6781,
+      "phase": "baseline",
+      "completed_phase": "baseline",
+      "status": 200,
+      "sha256": "e44754a7a0f11684cb2ca1609ab6d9892622d2bf545d404164ca2040bf920292",
+      "bytes": 141620,
+      "matches_first_observation": true,
+      "ms": 20.338
+    },
+    {
+      "site": "shiraz",
+      "z": 16,
+      "x": 42330,
+      "y": 27124,
+      "phase": "baseline",
+      "completed_phase": "baseline",
+      "status": 200,
+      "sha256": "244fe4e8bf6c8fc4ccceeae65171ef710f9bc0b89a5f5dfe81146ad032132b87",
+      "bytes": 16308,
+      "matches_first_observation": true,
+      "ms": 8.996
+    },
+    {
+      "site": "tabriz",
+      "z": 6,
+      "x": 40,
+      "y": 24,
+      "phase": "baseline",
+      "completed_phase": "baseline",
+      "status": 200,
+      "sha256": "8a90401461228b66ff15026f68c47d9e61a99af9dd50d19725fd1f8942030679",
+      "bytes": 525058,
+      "matches_first_observation": true,
+      "ms": 249.929
+    },
+    {
+      "site": "tabriz",
+      "z": 10,
+      "x": 643,
+      "y": 394,
+      "phase": "baseline",
+      "completed_phase": "baseline",
+      "status": 200,
+      "sha256": "b6960d7c01607e476393b3713eb0ba55fc5d200b9230e8f3ff6d5fcdedea89f3",
+      "bytes": 311631,
+      "matches_first_observation": true,
+      "ms": 35.072
+    },
+    {
+      "site": "tabriz",
+      "z": 14,
+      "x": 10298,
+      "y": 6314,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "c9796d5181fd23cf650df50b56c711ec4a6edd0b6b85f5c79a6ec7c647e399aa",
+      "bytes": 100171,
+      "matches_first_observation": true,
+      "ms": 8.999
+    },
+    {
+      "site": "tabriz",
+      "z": 16,
+      "x": 41195,
+      "y": 25256,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "789dc7c4ef0b4e7afbac0eddda302df2d919e9c8dfa5d0014339d45248f325b6",
+      "bytes": 11650,
+      "matches_first_observation": true,
+      "ms": 9.028
+    },
+    {
+      "site": "ahvaz",
+      "z": 6,
+      "x": 40,
+      "y": 26,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "62acead809323ca79019272371479b05f71aa106b488cb65005f0c096d229119",
+      "bytes": 164539,
+      "matches_first_observation": true,
+      "ms": 90.632
+    },
+    {
+      "site": "ahvaz",
+      "z": 10,
+      "x": 650,
+      "y": 418,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "a812f7c455d5840b900d52ee9a404923fbda4968f144baacc3082d849fc51800",
+      "bytes": 162320,
+      "matches_first_observation": true,
+      "ms": 31.446
+    },
+    {
+      "site": "ahvaz",
+      "z": 14,
+      "x": 10406,
+      "y": 6689,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "9f100d5b3f228a1efbfc44244d5c06d675b8336a45f34936fcafe0bb057bedbb",
+      "bytes": 48766,
+      "matches_first_observation": true,
+      "ms": 11.145
+    },
+    {
+      "site": "ahvaz",
+      "z": 16,
+      "x": 41627,
+      "y": 26759,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "8e36740bb92f3bf8669a3e12f6472475e73470a1dd9160a78d6d1e2ae7d23933",
+      "bytes": 6735,
+      "matches_first_observation": true,
+      "ms": 7.438
+    },
+    {
+      "site": "rural",
+      "z": 6,
+      "x": 42,
+      "y": 25,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "27a01edfe7da1fda4b24e500aadecccd4f28bce47bb6c640da56d7fd65312f5b",
+      "bytes": 304845,
+      "matches_first_observation": true,
+      "ms": 87.322
+    },
+    {
+      "site": "rural",
+      "z": 10,
+      "x": 678,
+      "y": 414,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "6c6fad4feae9e2e7aad949f25ad0102fde5f56dc66d3b9a67423d46f032f5f52",
+      "bytes": 1397,
+      "matches_first_observation": true,
+      "ms": 4.767
+    },
+    {
+      "site": "rural",
+      "z": 14,
+      "x": 10854,
+      "y": 6631,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 204,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "matches_first_observation": true,
+      "ms": 6.364
+    },
+    {
+      "site": "rural",
+      "z": 16,
+      "x": 43417,
+      "y": 26527,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 204,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "matches_first_observation": true,
+      "ms": 7.985
+    },
+    {
+      "site": "tehran",
+      "z": 6,
+      "x": 41,
+      "y": 25,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "ebb49477ec4a51c0179f4b22777d0dfd526860fcb02f572ed52243307b9a66fe",
+      "bytes": 947112,
+      "matches_first_observation": true,
+      "ms": 325.552
+    },
+    {
+      "site": "tehran",
+      "z": 10,
+      "x": 658,
+      "y": 403,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "f52449626e948a93e54d3de614a5cb6391c1046d581736afca83d6e91d2f7560",
+      "bytes": 852310,
+      "matches_first_observation": true,
+      "ms": 86.753
+    },
+    {
+      "site": "tehran",
+      "z": 14,
+      "x": 10530,
+      "y": 6451,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "16d8a7bd5573a5820c54efded54df47e6cd3e7965c015d1f1564f52dabe48be4",
+      "bytes": 158748,
+      "matches_first_observation": true,
+      "ms": 15.298
+    },
+    {
+      "site": "tehran",
+      "z": 16,
+      "x": 42123,
+      "y": 25804,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "13277ee9d32f6f790a71f38192e147d0e19a68c32d57bd93f94a6681d260a742",
+      "bytes": 14595,
+      "matches_first_observation": true,
+      "ms": 7.916
+    },
+    {
+      "site": "mashhad",
+      "z": 6,
+      "x": 42,
+      "y": 25,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "27a01edfe7da1fda4b24e500aadecccd4f28bce47bb6c640da56d7fd65312f5b",
+      "bytes": 304845,
+      "matches_first_observation": true,
+      "ms": 86.364
+    },
+    {
+      "site": "mashhad",
+      "z": 10,
+      "x": 681,
+      "y": 401,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "0706dd4b286df3030e67b631c928cc89f84fc81441a7d01d154c9b5fc352b4e6",
+      "bytes": 263745,
+      "matches_first_observation": true,
+      "ms": 38.003
+    },
+    {
+      "site": "mashhad",
+      "z": 14,
+      "x": 10904,
+      "y": 6419,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "767415072d363a76d27f4151b8a747cd1c50f08ac2e83c138b316f12544566fb",
+      "bytes": 66736,
+      "matches_first_observation": true,
+      "ms": 11.387
+    },
+    {
+      "site": "mashhad",
+      "z": 16,
+      "x": 43618,
+      "y": 25676,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "fe1f56a12dc1cc1bac50d6348a00ecb1a50f61f6f73d8d5fcbf32c31dbf1270f",
+      "bytes": 9759,
+      "matches_first_observation": true,
+      "ms": 8.754
+    },
+    {
+      "site": "shiraz",
+      "z": 6,
+      "x": 41,
+      "y": 26,
+      "phase": "bounded_read",
+      "completed_phase": "bounded_read",
+      "status": 200,
+      "sha256": "fa59ded92225ec6e3b48424aef3d723f8d3f6b34fd43329d4046d61b6f7f941b",
+      "bytes": 525381,
+      "matches_first_observation": true,
+      "ms": 182.271
+    },
+    {
+      "site": "shiraz",
+      "z": 10,
+      "x": 661,
+      "y": 423,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 200,
+      "sha256": "8b4ab3f792735ab04d88a15a2df16ad801ef8bac9d10ef283f55dc51571c9d95",
+      "bytes": 441090,
+      "matches_first_observation": true,
+      "ms": 70.275
+    },
+    {
+      "site": "shiraz",
+      "z": 14,
+      "x": 10582,
+      "y": 6781,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 200,
+      "sha256": "e44754a7a0f11684cb2ca1609ab6d9892622d2bf545d404164ca2040bf920292",
+      "bytes": 141620,
+      "matches_first_observation": true,
+      "ms": 15.046
+    },
+    {
+      "site": "shiraz",
+      "z": 16,
+      "x": 42330,
+      "y": 27124,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 200,
+      "sha256": "244fe4e8bf6c8fc4ccceeae65171ef710f9bc0b89a5f5dfe81146ad032132b87",
+      "bytes": 16308,
+      "matches_first_observation": true,
+      "ms": 9.56
+    },
+    {
+      "site": "tabriz",
+      "z": 6,
+      "x": 40,
+      "y": 24,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 200,
+      "sha256": "8a90401461228b66ff15026f68c47d9e61a99af9dd50d19725fd1f8942030679",
+      "bytes": 525058,
+      "matches_first_observation": true,
+      "ms": 229.469
+    },
+    {
+      "site": "tabriz",
+      "z": 10,
+      "x": 643,
+      "y": 394,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 200,
+      "sha256": "b6960d7c01607e476393b3713eb0ba55fc5d200b9230e8f3ff6d5fcdedea89f3",
+      "bytes": 311631,
+      "matches_first_observation": true,
+      "ms": 32.168
+    },
+    {
+      "site": "tabriz",
+      "z": 14,
+      "x": 10298,
+      "y": 6314,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 200,
+      "sha256": "c9796d5181fd23cf650df50b56c711ec4a6edd0b6b85f5c79a6ec7c647e399aa",
+      "bytes": 100171,
+      "matches_first_observation": true,
+      "ms": 11.224
+    },
+    {
+      "site": "tabriz",
+      "z": 16,
+      "x": 41195,
+      "y": 25256,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 200,
+      "sha256": "789dc7c4ef0b4e7afbac0eddda302df2d919e9c8dfa5d0014339d45248f325b6",
+      "bytes": 11650,
+      "matches_first_observation": true,
+      "ms": 5.008
+    },
+    {
+      "site": "ahvaz",
+      "z": 6,
+      "x": 40,
+      "y": 26,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 200,
+      "sha256": "62acead809323ca79019272371479b05f71aa106b488cb65005f0c096d229119",
+      "bytes": 164539,
+      "matches_first_observation": true,
+      "ms": 86.077
+    },
+    {
+      "site": "ahvaz",
+      "z": 10,
+      "x": 650,
+      "y": 418,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 200,
+      "sha256": "a812f7c455d5840b900d52ee9a404923fbda4968f144baacc3082d849fc51800",
+      "bytes": 162320,
+      "matches_first_observation": true,
+      "ms": 28.587
+    },
+    {
+      "site": "ahvaz",
+      "z": 14,
+      "x": 10406,
+      "y": 6689,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 200,
+      "sha256": "9f100d5b3f228a1efbfc44244d5c06d675b8336a45f34936fcafe0bb057bedbb",
+      "bytes": 48766,
+      "matches_first_observation": true,
+      "ms": 12.091
+    },
+    {
+      "site": "ahvaz",
+      "z": 16,
+      "x": 41627,
+      "y": 26759,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 200,
+      "sha256": "8e36740bb92f3bf8669a3e12f6472475e73470a1dd9160a78d6d1e2ae7d23933",
+      "bytes": 6735,
+      "matches_first_observation": true,
+      "ms": 9.399
+    },
+    {
+      "site": "rural",
+      "z": 6,
+      "x": 42,
+      "y": 25,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 200,
+      "sha256": "27a01edfe7da1fda4b24e500aadecccd4f28bce47bb6c640da56d7fd65312f5b",
+      "bytes": 304845,
+      "matches_first_observation": true,
+      "ms": 88.508
+    },
+    {
+      "site": "rural",
+      "z": 10,
+      "x": 678,
+      "y": 414,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 200,
+      "sha256": "6c6fad4feae9e2e7aad949f25ad0102fde5f56dc66d3b9a67423d46f032f5f52",
+      "bytes": 1397,
+      "matches_first_observation": true,
+      "ms": 9.103
+    },
+    {
+      "site": "rural",
+      "z": 14,
+      "x": 10854,
+      "y": 6631,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 204,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "matches_first_observation": true,
+      "ms": 6.283
+    },
+    {
+      "site": "rural",
+      "z": 16,
+      "x": 43417,
+      "y": 26527,
+      "phase": "recovery",
+      "completed_phase": "recovery",
+      "status": 204,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "matches_first_observation": true,
+      "ms": 8.159
+    }
+  ],
+  "candidate_data_modified": false,
+  "full_import_repeated": false,
+  "production_acceptance_claim": false,
+  "interpretation": "One bounded sequential read on an already failed candidate. PSI includes deliberate cgroup throttling. Device counters are separate block layers, not additive physical-disk measurements. No concurrency/capacity or root-cause proof."
+}
