@@ -19,6 +19,21 @@ export function verifyIoMax(value:string,limits:Config['dataLimits']):void{
   for(const device of limits.devices){const row=rows.get(device.majorMinor);if(!row||row.rbps!==String(limits.readBps)||row.wbps!==String(limits.writeBps))throw new IntakeError('data_io_limits_not_enforced');}
 }
 export interface Credentials {importPassword:string;tilePassword:string;qaPassword:string;}
+// Each call is an implicit transaction. A deadlock rolls the whole batch back;
+// retry only that metadata batch, never the completed bulk import.
+export async function metadataTransaction(client:Pick<pg.Client,'query'>,sql:string,assertLive:()=>Promise<void>,signal?:AbortSignal):Promise<void>{
+  for(let attempt=0;attempt<3;attempt++){
+    if(signal?.aborted)throw new IntakeError('cancelled');
+    await assertLive();
+    try{await client.query(sql);return;}
+    catch(error){
+      if((error as {code?:string}).code!=='40P01')throw error;
+      if(attempt===2)throw new IntakeError('candidate_metadata_deadlock');
+      process.stderr.write(JSON.stringify({event:'candidate_metadata_transaction_retry',sqlstate:'40P01',retry:attempt+1})+'\n');
+      await new Promise(resolve=>setTimeout(resolve,100*(attempt+1)));
+    }
+  }
+}
 export class DataRuntime {
   readonly directory:string;private readonly names:{importer:string;martin:string};
   private credentials!:Credentials;private adminUri!:URL;
@@ -34,7 +49,7 @@ export class DataRuntime {
   private async admin(database='postgres'):Promise<pg.Client>{
     if(this.signal?.aborted)throw new IntakeError('cancelled');
     const uri=new URL(await secretFile(this.config.dataAdminDsnFile));uri.pathname='/'+database;
-    const client=new pg.Client({connectionString:uri.toString(),connectionTimeoutMillis:5000,statement_timeout:Math.min(this.config.timeoutMs,1800000),application_name:'atlas-candidate-admin'});
+    const client=new pg.Client({connectionString:uri.toString(),connectionTimeoutMillis:30000,statement_timeout:Math.min(this.config.timeoutMs,1800000),application_name:'atlas-candidate-admin'});
     await client.connect();
     const close=()=>void client.end().catch(()=>undefined);
     client.once('end',()=>this.signal?.removeEventListener('abort',close));
@@ -147,9 +162,10 @@ export class DataRuntime {
   async finalize():Promise<Record<string,unknown>>{
     await this.queue.assertLive(this.claim);await this.assertOwned();const db=await this.admin(this.claim.database_name);
     try{
-      await db.query(await readFile(join(this.config.repo,'infra/atlas/raw-finalize.sql'),'utf8'));
-      await db.query(await readFile(join(this.config.repo,'infra/atlas/catalog-topology.sql'),'utf8'));
-      await db.query(tileSqlForRole(await readFile(join(this.config.repo,'infra/atlas/tiles-v2.sql'),'utf8'),this.claim.tile_role));
+      const metadata=(sql:string)=>metadataTransaction(db,sql,()=>this.queue.assertLive(this.claim),this.signal);
+      await metadata(await readFile(join(this.config.repo,'infra/atlas/raw-finalize.sql'),'utf8'));
+      await metadata(await readFile(join(this.config.repo,'infra/atlas/catalog-topology.sql'),'utf8'));
+      await metadata(tileSqlForRole(await readFile(join(this.config.repo,'infra/atlas/tiles-v2.sql'),'utf8'),this.claim.tile_role));
       await db.query(`REASSIGN OWNED BY ${q(this.claim.import_role)} TO ${q(this.claim.owner_role)}`);
       await db.query(`REVOKE ALL ON SCHEMA osm_raw,render,import_work FROM ${q(this.claim.import_role)}`);
       await db.query(`ALTER TABLE render.relation_topology OWNER TO ${q(this.claim.owner_role)}`);
@@ -157,7 +173,9 @@ export class DataRuntime {
       await db.query(`GRANT USAGE ON SCHEMA osm_raw,render,tiles,atlas_build TO ${q(this.claim.qa_role)}; GRANT SELECT ON ALL TABLES IN SCHEMA osm_raw,render,atlas_build TO ${q(this.claim.qa_role)}`);
       await db.query(`GRANT SELECT ON ALL TABLES IN SCHEMA tiles TO ${q(this.claim.qa_role)}; REVOKE ALL ON SCHEMA render FROM ${q(this.claim.tile_role)}; REVOKE ALL ON ALL TABLES IN SCHEMA render FROM ${q(this.claim.tile_role)}`);
       await db.query(`REVOKE EXECUTE ON FUNCTION tiles.basemap(integer,integer,integer) FROM PUBLIC; GRANT EXECUTE ON FUNCTION tiles.basemap(integer,integer,integer) TO ${q(this.claim.tile_role)},${q(this.claim.qa_role)}`);
-      await db.query('ANALYZE');
+      // DDL/GRANT must commit before statistics maintenance: autovacuum can hold
+      // a relation lock while waiting for the catalog row changed by the GRANT.
+      await metadata('ANALYZE');
       const version=(await db.query('SELECT version() AS postgres,postgis_full_version() AS postgis,pg_database_size(current_database())::text AS bytes')).rows[0];
       const admin=await this.admin();try{
         await admin.query(`ALTER ROLE ${q(this.claim.import_role)} NOLOGIN`);
@@ -168,7 +186,7 @@ export class DataRuntime {
       return version;
     }finally{await db.end();}
   }
-  async qaClient():Promise<pg.Client>{const client=new pg.Client({connectionString:await secretFile(join(this.directory,'qa.dsn')),connectionTimeoutMillis:5000,statement_timeout:Math.min(this.config.timeoutMs,1800000)});await client.connect();return client;}
+  async qaClient():Promise<pg.Client>{const client=new pg.Client({connectionString:await secretFile(join(this.directory,'qa.dsn')),connectionTimeoutMillis:30000,statement_timeout:Math.min(this.config.timeoutMs,1800000)});await client.connect();return client;}
   async martin(signal:AbortSignal):Promise<string>{
     await this.queue.assertLive(this.claim);
     const uri=this.uri(this.claim.tile_role,this.credentials.tilePassword,this.claim.database_name,this.config.dataHost);

@@ -94,7 +94,7 @@ export class CandidateWorker {
       await writeFile(join(data.directory,'failure.json'),JSON.stringify({code,name:cause instanceof Error?cause.name:'unknown',message:cause instanceof Error?cause.message.slice(0,2000):'',stack:cause instanceof Error?cause.stack?.slice(0,6000):''},null,2)+'\n',{flag:'wx',mode:0o600}).catch(()=>undefined);
       if(['lease_lost','control_lease_deadline'].includes(code))throw cause;
       await data.stop('importer');await data.stop('martin');
-      await this.queue.fail(claim,code,!['canonical_roundtrip_failed','outcome_accounting_failed','unexplained_catalog_loss','layer_integrity_failed','serving_topology_integrity_failed','candidate_tile_contract_failed','source_receipt_changed'].includes(code));
+      await this.queue.fail(claim,code,!['canonical_roundtrip_failed','outcome_accounting_failed','unexplained_catalog_loss','layer_integrity_failed','serving_topology_integrity_failed','candidate_tile_contract_failed','source_receipt_changed','candidate_metadata_deadlock'].includes(code));
       process.stderr.write(JSON.stringify({event:'candidate_attempt_failed',id:claim.id,code})+'\n');throw error;
     }finally{
       watch.stop();
