@@ -28,6 +28,17 @@ CREATE TABLE IF NOT EXISTS atlas_control.candidate_events (
   created_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
 ALTER TABLE atlas_control.candidate_attempts ADD COLUMN IF NOT EXISTS data_target jsonb;
+ALTER TABLE atlas_control.candidate_instance ADD COLUMN IF NOT EXISTS admission_enabled boolean NOT NULL DEFAULT false;
+ALTER TABLE atlas_control.candidate_instance ADD COLUMN IF NOT EXISTS serving_watch_required boolean NOT NULL DEFAULT true;
+ALTER TABLE atlas_control.candidate_attempts ADD COLUMN IF NOT EXISTS guard_observer_token text;
+CREATE TABLE IF NOT EXISTS atlas_control.candidate_serving_watches (
+  job_id text PRIMARY KEY REFERENCES atlas_control.candidate_jobs(id),
+  root_sha256 text NOT NULL,pipeline_sha256 text NOT NULL,observer_token text NOT NULL,
+  endpoint_sha256 text NOT NULL,owner_until timestamptz NOT NULL,ready_until timestamptz NOT NULL,
+  last_success_at timestamptz,created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+REVOKE ALL ON atlas_control.candidate_serving_watches FROM PUBLIC;
+GRANT SELECT,INSERT,UPDATE ON atlas_control.candidate_serving_watches TO atlas_candidate_controller;
 -- A serving incident holds admission until exact-attempt shutdown has been verified.
 CREATE TABLE IF NOT EXISTS atlas_control.candidate_guard_incidents (
   id text PRIMARY KEY CHECK(id ~ '^[0-9a-f]{64}$'),

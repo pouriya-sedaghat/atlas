@@ -1,0 +1,113 @@
+{
+  "schema": "atlas.candidate-serving-probe/1",
+  "tool_sha256": "30ffc7e207dd2daa333ba844e24efec670f2195bf8b937fa641c67c1ffe8c6be",
+  "node": "24.21.0",
+  "guard_enabled": true,
+  "guard_incident": null,
+  "serving_watch_required": true,
+  "serving_watch_ready": true,
+  "stopped_by_signal": true,
+  "observer_failure": null,
+  "started_at": "2026-10-29T05:53:24.577Z",
+  "ended_at": "2026-10-29T05:53:28.131Z",
+  "job_id": "f0c512214b74a289fafdfad6d3e26e6da19820a13b5f77be25e7720dc65944ad",
+  "terminal": null,
+  "requests": 1,
+  "errors": 0,
+  "byte_change_observations": 0,
+  "latency_ms": {
+    "median": 383.057,
+    "p95": 383.057,
+    "max": 383.057
+  },
+  "old_containers": [
+    {
+      "name": "atlas-lab-db-1",
+      "id": "00feccadfee220561bc68966b1fc2c631943264d97940e48c48241269e4651b3",
+      "started_at": "2026-10-27T07:35:31.114460047Z"
+    },
+    {
+      "name": "atlas-lab-martin-1",
+      "id": "4df9f2fdcaf224270eac55c584f4d5f16267e59edeead4064269fa4cc1b89720",
+      "started_at": "2026-10-27T07:42:20.261905854Z"
+    },
+    {
+      "name": "atlas-lab-pgtileserv-1",
+      "id": "bf548271d9c148c0f01ce91d41b81ff3e280afb299a3cdd4af5b5ad742f41ff8",
+      "started_at": "2026-10-27T07:42:20.478682241Z"
+    }
+  ],
+  "old_container_ids_and_start_times_unchanged": true,
+  "guard_stopped_experimental_builder": false,
+  "scope": "existing private laboratory Martin during candidate import and QA; not a public gateway, browser, publication, or capacity proof",
+  "resource_sampling": "approximately every 15 seconds; observed samples are not exact peaks",
+  "resources": [
+    {
+      "at": "2026-10-29T05:53:27.101Z",
+      "elapsed_ms": 2524,
+      "filesystem_available_bytes": 205670318080,
+      "memory_available_bytes": 10203865088,
+      "data_io_stat": "8:0 rbytes=230353149952 wbytes=223150419968 rios=12079435 wios=1267877 dbytes=0 dios=0\n252:0 rbytes=230353149952 wbytes=223150419968 rios=12051548 wios=1220883 dbytes=0 dios=0",
+      "docker": [
+        {
+          "BlockIO": "38GB / 93.8GB",
+          "CPUPerc": "0.43%",
+          "Container": "atlas-lab-db-1",
+          "ID": "00feccadfee2",
+          "MemPerc": "6.99%",
+          "MemUsage": "357.7MiB / 5GiB",
+          "Name": "atlas-lab-db-1",
+          "NetIO": "9.91GB / 10.7GB",
+          "PIDs": "14"
+        },
+        {
+          "BlockIO": "98.8MB / 295kB",
+          "CPUPerc": "0.04%",
+          "Container": "atlas-lab-martin-1",
+          "ID": "4df9f2fdcaf2",
+          "MemPerc": "4.33%",
+          "MemUsage": "22.18MiB / 512MiB",
+          "Name": "atlas-lab-martin-1",
+          "NetIO": "7.03GB / 6.78GB",
+          "PIDs": "5"
+        },
+        {
+          "BlockIO": "38.3MB / 0B",
+          "CPUPerc": "0.00%",
+          "Container": "atlas-lab-pgtileserv-1",
+          "ID": "bf548271d9c1",
+          "MemPerc": "2.41%",
+          "MemUsage": "12.35MiB / 512MiB",
+          "Name": "atlas-lab-pgtileserv-1",
+          "NetIO": "43.4MB / 43.3MB",
+          "PIDs": "10"
+        },
+        {
+          "BlockIO": "461GB / 446GB",
+          "CPUPerc": "0.79%",
+          "Container": "atlas-candidate-db",
+          "ID": "8ad0d89ff4a8",
+          "MemPerc": "18.44%",
+          "MemUsage": "566.5MiB / 3GiB",
+          "Name": "atlas-candidate-db",
+          "NetIO": "57.5GB / 14.7GB",
+          "PIDs": "9"
+        }
+      ],
+      "stats_ok": true
+    }
+  ],
+  "samples": [
+    {
+      "site": "tehran",
+      "z": 6,
+      "x": 41,
+      "y": 25,
+      "status": 200,
+      "bytes": 947112,
+      "ms": 383.057,
+      "sha256": "ebb49477ec4a51c0179f4b22777d0dfd526860fcb02f572ed52243307b9a66fe",
+      "bytes_match_first_sample": true
+    }
+  ]
+}

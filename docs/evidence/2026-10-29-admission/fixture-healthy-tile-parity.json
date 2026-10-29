@@ -1,0 +1,459 @@
+{
+  "schema": "atlas.tile-parity/1",
+  "rounds": 2,
+  "passed": true,
+  "failure": null,
+  "warmup": [
+    {
+      "site": "pois",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "ms": 12.815
+    },
+    {
+      "site": "pois",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "ms": 0.833
+    },
+    {
+      "site": "pois",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "ms": 1.847
+    },
+    {
+      "site": "pois",
+      "z": 16,
+      "x": 32769,
+      "y": 32764,
+      "ms": 1.101
+    },
+    {
+      "site": "transport",
+      "z": 6,
+      "x": 32,
+      "y": 32,
+      "ms": 0.693
+    },
+    {
+      "site": "transport",
+      "z": 10,
+      "x": 512,
+      "y": 512,
+      "ms": 0.655
+    },
+    {
+      "site": "transport",
+      "z": 14,
+      "x": 8192,
+      "y": 8192,
+      "ms": 1.123
+    },
+    {
+      "site": "transport",
+      "z": 16,
+      "x": 32768,
+      "y": 32768,
+      "ms": 1.032
+    }
+  ],
+  "warmup_sql_timeout_ms": 120000,
+  "comparison_sql_timeout_ms": 15000,
+  "http_timeout_ms": 15000,
+  "comparison": "Decoded MVT features, properties and ordered geometry; layer/feature serialization order ignored",
+  "geographic_truth_verified": false,
+  "samples": [
+    {
+      "round": 1,
+      "site": "pois",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "pois",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "pois",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "dc553856a04ba1f720e8302ef70fbb103714526051c839bb4531814605ddaafb",
+          "features": 2,
+          "layers": {
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 410
+        },
+        "martin": {
+          "sha256": "dc553856a04ba1f720e8302ef70fbb103714526051c839bb4531814605ddaafb",
+          "features": 2,
+          "layers": {
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 410
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "pois",
+      "z": 16,
+      "x": 32769,
+      "y": 32764,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "1c1c8b4b261cf0040d868d20534b73f054601abab5c7f3f5b694db92bc80d0b1",
+          "features": 1,
+          "layers": {
+            "pois": 1
+          },
+          "bytes": 175
+        },
+        "martin": {
+          "sha256": "1c1c8b4b261cf0040d868d20534b73f054601abab5c7f3f5b694db92bc80d0b1",
+          "features": 1,
+          "layers": {
+            "pois": 1
+          },
+          "bytes": 175
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "transport",
+      "z": 6,
+      "x": 32,
+      "y": 32,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "transport",
+      "z": 10,
+      "x": 512,
+      "y": 512,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "transport",
+      "z": 14,
+      "x": 8192,
+      "y": 8192,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "1bb420daa25a34c0da1b58a4e670f253c1225fb8331bc1c540a200b1ffdf1e20",
+          "features": 1,
+          "layers": {
+            "transport": 1
+          },
+          "bytes": 233
+        },
+        "martin": {
+          "sha256": "1bb420daa25a34c0da1b58a4e670f253c1225fb8331bc1c540a200b1ffdf1e20",
+          "features": 1,
+          "layers": {
+            "transport": 1
+          },
+          "bytes": 233
+        }
+      }
+    },
+    {
+      "round": 1,
+      "site": "transport",
+      "z": 16,
+      "x": 32768,
+      "y": 32768,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "1bb420daa25a34c0da1b58a4e670f253c1225fb8331bc1c540a200b1ffdf1e20",
+          "features": 1,
+          "layers": {
+            "transport": 1
+          },
+          "bytes": 233
+        },
+        "martin": {
+          "sha256": "1bb420daa25a34c0da1b58a4e670f253c1225fb8331bc1c540a200b1ffdf1e20",
+          "features": 1,
+          "layers": {
+            "transport": 1
+          },
+          "bytes": 233
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "pois",
+      "z": 6,
+      "x": 32,
+      "y": 31,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "pois",
+      "z": 10,
+      "x": 512,
+      "y": 511,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "pois",
+      "z": 14,
+      "x": 8192,
+      "y": 8191,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "dc553856a04ba1f720e8302ef70fbb103714526051c839bb4531814605ddaafb",
+          "features": 2,
+          "layers": {
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 410
+        },
+        "martin": {
+          "sha256": "dc553856a04ba1f720e8302ef70fbb103714526051c839bb4531814605ddaafb",
+          "features": 2,
+          "layers": {
+            "pois": 1,
+            "transport": 1
+          },
+          "bytes": 410
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "pois",
+      "z": 16,
+      "x": 32769,
+      "y": 32764,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "1c1c8b4b261cf0040d868d20534b73f054601abab5c7f3f5b694db92bc80d0b1",
+          "features": 1,
+          "layers": {
+            "pois": 1
+          },
+          "bytes": 175
+        },
+        "martin": {
+          "sha256": "1c1c8b4b261cf0040d868d20534b73f054601abab5c7f3f5b694db92bc80d0b1",
+          "features": 1,
+          "layers": {
+            "pois": 1
+          },
+          "bytes": 175
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "transport",
+      "z": 6,
+      "x": 32,
+      "y": 32,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "transport",
+      "z": 10,
+      "x": 512,
+      "y": 512,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        },
+        "martin": {
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "features": 0,
+          "layers": {},
+          "bytes": 0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "transport",
+      "z": 14,
+      "x": 8192,
+      "y": 8192,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "1bb420daa25a34c0da1b58a4e670f253c1225fb8331bc1c540a200b1ffdf1e20",
+          "features": 1,
+          "layers": {
+            "transport": 1
+          },
+          "bytes": 233
+        },
+        "martin": {
+          "sha256": "1bb420daa25a34c0da1b58a4e670f253c1225fb8331bc1c540a200b1ffdf1e20",
+          "features": 1,
+          "layers": {
+            "transport": 1
+          },
+          "bytes": 233
+        }
+      }
+    },
+    {
+      "round": 2,
+      "site": "transport",
+      "z": 16,
+      "x": 32768,
+      "y": 32768,
+      "parity": true,
+      "decoded": {
+        "database": {
+          "sha256": "1bb420daa25a34c0da1b58a4e670f253c1225fb8331bc1c540a200b1ffdf1e20",
+          "features": 1,
+          "layers": {
+            "transport": 1
+          },
+          "bytes": 233
+        },
+        "martin": {
+          "sha256": "1bb420daa25a34c0da1b58a4e670f253c1225fb8331bc1c540a200b1ffdf1e20",
+          "features": 1,
+          "layers": {
+            "transport": 1
+          },
+          "bytes": 233
+        }
+      }
+    }
+  ]
+}

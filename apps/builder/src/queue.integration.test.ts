@@ -21,6 +21,9 @@ describe.skipIf(!connectionString)('candidate transactions and shared admission'
     await pool.query('TRUNCATE atlas_control.candidate_events,atlas_control.candidate_attempts,atlas_control.candidate_jobs,atlas_control.intake_jobs,atlas_control.intake_validations CASCADE');
     await pool.query('UPDATE atlas_control.processing_slot SET holder_kind=NULL,job_id=NULL,token=NULL,lease_until=NULL');
     sourceId=randomBytes(16).toString('hex');
+    await queue.bind(root,true);
+    // Queue-only fictional tests bypass admission explicitly; no worker runs in this database.
+    await pool.query('UPDATE atlas_control.candidate_instance SET admission_enabled=true,serving_watch_required=false WHERE singleton');
     await pool.query(`INSERT INTO atlas_control.intake_validations(id,source_sha256,source_bytes,spec_sha256,provenance_sha256,region,manifest,state,payload_sha256,bundle_sha256,public_key_sha256)
       VALUES($1,$2,100,$3,$3,'fixture','{}','accepted',$4,$3,$3)`,[sourceId,'d'.repeat(64),pipeline,payload]);
   });
@@ -130,6 +133,60 @@ describe.skipIf(!connectionString)('candidate transactions and shared admission'
     await pool.query("UPDATE atlas_control.candidate_jobs SET next_attempt_at=clock_timestamp()-interval '1 second'");const fresh=(await queue.claim(pipeline))!;
     const incident=await queue.latchServingGuard(root,pipeline,id,fresh.token,observation),client=await pool.connect();
     try{await client.query('SET ROLE atlas_candidate_controller');await expect(client.query('UPDATE atlas_control.candidate_guard_incidents SET evidence_text=$1 WHERE id=$2',['{}',incident.id])).rejects.toMatchObject({code:'42501'});}
+    finally{await client.query('RESET ROLE');client.release();}
+  });
+  const observer='4'.repeat(32),endpoint='5'.repeat(64);
+  async function guarded(){const id=await enqueue();await pool.query('UPDATE atlas_control.candidate_instance SET admission_enabled=false,serving_watch_required=true WHERE singleton');return id;}
+  async function ready(id:string){await queue.beginServingWatch(root,pipeline,id,observer,endpoint);await queue.markServingHealthy(root,pipeline,id,observer);await queue.setAdmission(root,pipeline,true);}
+  const expireWatch=()=>pool.query("UPDATE atlas_control.candidate_serving_watches SET ready_until=clock_timestamp()-interval '1 second',owner_until=clock_timestamp()-interval '1 second'");
+  it('keeps paused or not-yet-healthy builds unclaimed without allocating resources',async()=>{
+    const id=await guarded();expect(await queue.claim(pipeline)).toBeNull();
+    await expect(queue.setAdmission(root,pipeline,true)).rejects.toMatchObject({code:'serving_watch_not_ready'});
+    await queue.beginServingWatch(root,pipeline,id,observer,endpoint);
+    await expect(queue.setAdmission(root,pipeline,true)).rejects.toMatchObject({code:'serving_watch_not_ready'});
+    expect((await queue.status() as any[])[0].attempts).toBe(0);
+  });
+  it('binds a guarded claim to the healthy observer and fences a lost watcher in heartbeat',async()=>{
+    const id=await guarded();await ready(id);const claim=(await queue.claim(pipeline))!;
+    expect((await pool.query('SELECT guard_observer_token FROM atlas_control.candidate_attempts WHERE token=$1',[claim.token])).rows[0].guard_observer_token).toBe(observer);
+    await queue.assertLive(claim);await expireWatch();
+    await expect(queue.heartbeat(claim)).rejects.toMatchObject({code:'lease_lost'});
+    const status=(await queue.status() as any[])[0];expect(status).toMatchObject({state:'failed',stage:'guard_stopping',attempts:1,failures:1});
+    const incident=await queue.servingGuard(status.guard_incident,root,pipeline);expect(JSON.parse(incident.evidence_text).schema).toBe('atlas.serving-watch-loss/1');
+    expect(await queue.claim(pipeline)).toBeNull();
+  });
+  it('does not revive an active attempt with a healthy sample arriving after the watch deadline',async()=>{
+    const id=await guarded();await ready(id);await queue.claim(pipeline);await expireWatch();
+    expect(await queue.markServingHealthy(root,pipeline,id,observer)).toMatch(/^[0-9a-f]{64}$/);
+    expect((await queue.status() as any[])[0].state).toBe('failed');
+  });
+  it('refuses competing observers and takeover of an expired watch during an active attempt',async()=>{
+    const id=await guarded();await ready(id);
+    await expect(queue.beginServingWatch(root,pipeline,id,'6'.repeat(32),endpoint)).rejects.toMatchObject({code:'serving_watch_busy'});
+    await queue.claim(pipeline);await expireWatch();
+    await expect(queue.beginServingWatch(root,pipeline,id,'6'.repeat(32),endpoint)).rejects.toMatchObject({code:'serving_watch_busy'});
+  });
+  it('records watcher loss before ordinary lease-expiry retry even after both deadlines pass',async()=>{
+    const id=await guarded();await ready(id);await queue.claim(pipeline);await expireWatch();
+    await pool.query("UPDATE atlas_control.candidate_jobs SET lease_until=clock_timestamp()-interval '1 second'; UPDATE atlas_control.processing_slot SET lease_until=clock_timestamp()-interval '1 second'");
+    expect(await queue.claim(pipeline)).toBeNull();await queue.releaseExpiredSlot();
+    expect((await queue.status() as any[])[0]).toMatchObject({state:'failed',stage:'guard_stopping',attempts:1,failures:1});
+  });
+  it('permits queued watch replacement but ignores stale-owner close and renewal',async()=>{
+    const id=await guarded();await queue.beginServingWatch(root,pipeline,id,observer,endpoint);await expireWatch();
+    const fresh='6'.repeat(32);await queue.beginServingWatch(root,pipeline,id,fresh,endpoint);await queue.markServingHealthy(root,pipeline,id,fresh);
+    expect(await queue.closeServingWatch(root,pipeline,id,observer)).toBeNull();
+    await expect(queue.markServingHealthy(root,pipeline,id,observer)).rejects.toMatchObject({code:'serving_watch_owner_changed'});
+    await queue.setAdmission(root,pipeline,true);expect(await queue.claim(pipeline)).not.toBeNull();
+  });
+  it('pauses future admission without cancelling a healthy current claim',async()=>{
+    const id=await guarded();await ready(id);const claim=(await queue.claim(pipeline))!;
+    await queue.setAdmission(root,pipeline,false);await queue.heartbeat(claim);await queue.finish(claim,'e'.repeat(64),false);
+    expect((await queue.status() as any[])[0].state).toBe('component_verified');
+  });
+  it('keeps fixture bypass and admission changes outside the observer controller role',async()=>{
+    await guarded();await expect(queue.fixtureAdmission(root)).rejects.toMatchObject({code:'fixture_admission_forbidden'});
+    const client=await pool.connect();try{await client.query('SET ROLE atlas_candidate_controller');await expect(client.query('UPDATE atlas_control.candidate_instance SET admission_enabled=true')).rejects.toMatchObject({code:'42501'});}
     finally{await client.query('RESET ROLE');client.release();}
   });
 });

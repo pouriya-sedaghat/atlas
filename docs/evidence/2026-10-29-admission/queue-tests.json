@@ -1,0 +1,22 @@
+{
+  "source_files": {
+    "apps/builder/src/queue.integration.test.ts": "4fb00449ab61a2949a4fbb87ed686f5e41b0e0f00f953407add21b46b9728312",
+    "apps/builder/src/guard.ts": "89ff1b0d40ea765a01ca102aff3d45265366a6b21ae072089257ef8768348918",
+    "apps/builder/dist/queue.js": "076c2be7ba035ad6e988f41c9ffb8e2c88a1af171875f135839069430967e67d",
+    "apps/builder/dist/data.js": "e6d8235205631874ae2b425442d32373bd8bf94ddd2f446d339fe40242964b8e",
+    "apps/builder/dist/guard.js": "bcddb7f8d7115fa3d509415244e608bb2b7b93be4d4ab890d7ac44206cd5e99d",
+    "apps/builder/dist/schema.sql": "679d455f5d6067c2f90d739563d454070314f7117dc8d547e55a7e7739a7dcca"
+  },
+  "schema": "atlas.serving-guard-queue-tests/1",
+  "passed": true,
+  "builder_tests_passed": 38,
+  "new_guard_queue_regressions": 7,
+  "new_watch_admission_cases": 8,
+  "production_import_repeated": false,
+  "owned_fixture_removed": true,
+  "qa_source_sha256": "e8d0312a4f30f925319078adfcdb2fd5b3f2a27ec3449434e52bbc65278dd102",
+  "qa_compiled_sha256": "46d547c799fe914e9df3e15a23c1e6b44fb71fd00c1d8eaa97c49e6fc9987aca",
+  "integration_test_sha256": "3b66fa2e2970728b0e32154fb4a74d22ecc3b026bd2b910f09214e98b4420410",
+  "test_log_sha256": "100635f8d28e4a7c78ddb7be7d1f757fab1550d561a08ee9a3f9b19f06a5cdac",
+  "scope": "disposable PostgreSQL tests of durable guard admission/fencing; no availability claim"
+}

@@ -1,0 +1,36 @@
+{
+  "schema": "atlas.serving-guard-fault-tests/1",
+  "passed": true,
+  "count": 6,
+  "tests": [
+    "foreign_worker_unit_refused_before_quarantine_or_stop",
+    "committed_guard_survives_observer_restart_before_unit_stop",
+    "changed_target_refused_without_releasing_admission",
+    "owned_import_and_tagged_admin_backends_terminated_unknown_backend_keeps_hold",
+    "recovery_disables_credentials_releases_once_and_never_requeues_failed_job",
+    "actual_http_observer_commits_incident_before_stopping_only_the_fixture_unit"
+  ],
+  "fictional_control_only": true,
+  "real_builder_unit_stopped": false,
+  "incident": "0b4af7dc71ae0dc60fbfa1402528257180c8b2518219b8fd42e54840df4ae61b",
+  "root_sha256": "062a925c20abd2d791ef9bd46081e15c49b5cd11ed88622d3bdfa65988e2eac3",
+  "pipeline_sha256": "537bf93bce20c32ffc50e4d50add2896a95d510a82b768c200bc6f7719a60e7d",
+  "evidence_sha256": "5d8cc03a6edd549ee3d346c9ef042442b0123617e98fd227b0d2ff4c17716c47",
+  "job_id": "f2be3a38d0a3dbb826b85714bea07af2e23770d7f71c0b35d1cf6423966b0146",
+  "attempt": "aeed65b2c7fb8f05523df3afaef86222",
+  "final_state": "failed",
+  "final_stage": "guard_stopped",
+  "attempts": 1,
+  "failed_data_retained": true,
+  "wire_incident": "bc3f7a815614d40a8bd94f7cba2c0e8f0fbabc3988a51cc3cc5cbe6e02b3ccdb",
+  "wire_probe_sha256": "d23d453480375444aa1744b46f30c49b8b6f9ce25c3f5ad042b0c1b93c55c6df",
+  "source_files": {
+    "apps/builder/dist/guard.js": "bcddb7f8d7115fa3d509415244e608bb2b7b93be4d4ab890d7ac44206cd5e99d",
+    "apps/builder/dist/queue.js": "076c2be7ba035ad6e988f41c9ffb8e2c88a1af171875f135839069430967e67d",
+    "apps/builder/dist/data.js": "e6d8235205631874ae2b425442d32373bd8bf94ddd2f446d339fe40242964b8e",
+    "apps/builder/dist/schema.sql": "679d455f5d6067c2f90d739563d454070314f7117dc8d547e55a7e7739a7dcca",
+    "tools/check-serving-guard.mjs": "bc839e6859b94518380af547e16751cd08de4df11a12a75362604ad6fafd1160",
+    "tools/candidate-serving-probe.mjs": "120395a7e6ec9a8af27ad5375e2e603e72bda2b02597c77e495b9f18e3a521a4",
+    "tools/serving-observation.mjs": "1f43254a2ebd81814352d5099616cbc4fc42878aaf010de448cc27f73463e85f"
+  }
+}

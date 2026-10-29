@@ -1,0 +1,59 @@
+
+> seyra@1.0.0 build
+> npm run build -w packages/contracts && npm run build -w packages/map-assets && npm run build -w packages/releases && npm run build -w apps/api -w apps/ops -w apps/ingest -w apps/builder -w apps/web
+
+
+> @seyra/contracts@1.0.0 build
+> tsc -p tsconfig.json
+
+
+> @seyra/map-assets@1.0.0 build
+> tsc -p tsconfig.json
+
+
+> @atlas/releases@0.1.0 build
+> tsc -p tsconfig.json && node -e "require('node:fs').copyFileSync('src/schema.sql','dist/schema.sql')"
+
+
+> @seyra/api@1.0.0 build
+> tsc -p tsconfig.json
+
+
+> @seyra/ops@1.0.0 build
+> tsc -p tsconfig.json
+
+
+> @atlas/ingest@0.1.0 build
+> tsc -p tsconfig.json && node -e "for (const f of ['schema.sql','roles.sql','secure_fs.py']) require('node:fs').copyFileSync('src/'+f,'dist/'+f)" && cd ../.. && node tools/write-ingest-build.mjs
+
+
+> @atlas/builder@0.1.0 build
+> tsc -p tsconfig.json && node -e "require('node:fs').copyFileSync('src/schema.sql','dist/schema.sql')"
+
+
+> @seyra/web@1.0.0 build
+> tsc -p tsconfig.json --noEmit && vite build
+
+vite v8.3.4 building client environment for production...
+transforming...
+✓ 410 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                   0.48 kB │ gzip:   0.30 kB
+dist/assets/Vazirmatn-Regular-CtGL0YI-.woff2     50.68 kB
+dist/assets/Vazirmatn-Bold-_OhAJEdh.woff2        51.02 kB
+dist/assets/maplibre-gl-worker-DxGNRm0a.mjs     508.31 kB
+dist/assets/index-D5De_mLX.css                   86.28 kB │ gzip:  11.79 kB
+dist/assets/index-BnEPnJIq.js                 1,342.60 kB │ gzip: 375.40 kB
+
+✓ built in 983ms
+npm notice
+npm notice New major version of npm available! 11.3.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
+npm notice
+npm notice New major version of npm available! 11.3.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

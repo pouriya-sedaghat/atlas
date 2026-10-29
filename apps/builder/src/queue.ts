@@ -4,6 +4,7 @@ import {hash,IntakeError,sha256} from '@atlas/ingest/contracts';
 import {LeaseLost} from '@atlas/ingest/queue';
 export interface Candidate {id:string;source_validation_id:string;payload_sha256:string;pipeline_sha256:string;specification:Record<string,unknown>;state:string;attempts:number;manifest_sha256:string|null;}
 export interface BuildClaim extends Candidate {token:string;database_name:string;owner_role:string;import_role:string;tile_role:string;qa_role:string;}
+export const SERVING_WATCH_MS=30000;
 export interface GuardObservation {at:string;site:string;z:number;x:number;y:number;status:number;ms:number;}
 export interface GuardIncident {id:string;root_sha256:string;pipeline_sha256:string;evidence_sha256:string;evidence_text:string;shutdown_confirmed_at:Date|null;claim:BuildClaim&{data_target:Record<string,unknown>|null};}
 export function guardEvidence(root:string,pipeline:string,job:string,token:string,observation:GuardObservation):string{
@@ -23,7 +24,7 @@ export class BuildQueue {
       await c.query('SELECT pg_advisory_xact_lock(70620528)');const value=await fn(c);await c.query('COMMIT');return value;
     }catch(error){await c.query('ROLLBACK').catch(()=>undefined);throw error;}finally{c.release();}
   }
-  private async event(c:PoolClient,id:string,token:string|null,event:string,detail:unknown={}):Promise<void>{
+  private async event(c:PoolClient,id:string|null,token:string|null,event:string,detail:unknown={}):Promise<void>{
     await c.query('INSERT INTO atlas_control.candidate_events(job_id,token,event,detail) VALUES($1,$2,$3,$4)',[id,token,event,JSON.stringify(detail)]);
   }
   async bind(rootSha:string,initialize=false):Promise<string>{
@@ -52,14 +53,28 @@ export class BuildQueue {
   async waitCapacity(pipelineSha:string):Promise<void>{
     hash(pipelineSha);await this.tx(async c=>{await c.query("UPDATE atlas_control.candidate_jobs SET stage='capacity_wait',failure_code='capacity',next_attempt_at=clock_timestamp()+interval '60 seconds',updated_at=clock_timestamp() WHERE pipeline_sha256=$1 AND state IN ('queued','retry_wait') AND next_attempt_at<=clock_timestamp()",[pipelineSha]);});
   }
-  private async live(c:PoolClient,claim:BuildClaim):Promise<void>{
+  private async watched(c:PoolClient,claim:BuildClaim):Promise<boolean>{
+    const policy=(await c.query('SELECT serving_watch_required FROM atlas_control.candidate_instance WHERE singleton')).rows[0];
+    if(!policy)return false;if(!policy.serving_watch_required)return true;
+    return Boolean((await c.query(`SELECT 1 FROM atlas_control.candidate_serving_watches w JOIN atlas_control.candidate_attempts a ON a.job_id=w.job_id AND a.token=$2
+      JOIN atlas_control.candidate_instance i ON i.singleton AND i.root_sha256=w.root_sha256 WHERE w.job_id=$1 AND w.pipeline_sha256=$3
+      AND w.observer_token=a.guard_observer_token AND w.ready_until>clock_timestamp() AND w.owner_until>clock_timestamp()`,[claim.id,claim.token,claim.pipeline_sha256])).rowCount);
+  }
+  private async live(c:PoolClient,claim:BuildClaim,requireWatch=true):Promise<void>{
     const r=await c.query(`SELECT 1 FROM atlas_control.candidate_jobs j JOIN atlas_control.processing_slot s ON s.singleton
       AND s.holder_kind='candidate' AND s.job_id=j.id AND s.token=j.token
       WHERE j.id=$1 AND j.token=$2 AND j.state='running' AND j.lease_until>clock_timestamp() AND s.lease_until>clock_timestamp() FOR UPDATE OF j,s`,[claim.id,claim.token]);
     if(!r.rowCount)throw new LeaseLost();
+    if(requireWatch&&!await this.watched(c,claim))throw new LeaseLost();
   }
   async claim(pipelineSha:string):Promise<BuildClaim|null>{
     hash(pipelineSha);return this.tx(async c=>{
+      const policy=(await c.query('SELECT * FROM atlas_control.candidate_instance WHERE singleton')).rows[0];
+      if(!policy)return null;
+      if(policy.serving_watch_required){
+        const running=(await c.query("SELECT * FROM atlas_control.candidate_jobs WHERE state='running' FOR UPDATE")).rows;
+        for(const claim of running)if(!await this.watched(c,claim))await this.watchLost(c,claim,'watch_not_live');
+      }
       const expired=(await c.query("SELECT id,token,failures FROM atlas_control.candidate_jobs WHERE state='running' AND lease_until<=clock_timestamp() FOR UPDATE")).rows;
       for(const row of expired){
         await c.query("UPDATE atlas_control.candidate_attempts SET state='abandoned',ended_at=clock_timestamp() WHERE token=$1 AND state='running'",[row.token]);
@@ -67,23 +82,106 @@ export class BuildQueue {
         await this.event(c,row.id,row.token,'attempt_expired');
       }
       if((await c.query('SELECT 1 FROM atlas_control.processing_slot WHERE singleton AND holder_kind IS NOT NULL FOR UPDATE')).rowCount)return null;
+      if(!policy.admission_enabled)return null;
       // Also protect an older intake build during a controlled drain/migration.
       if((await c.query("SELECT 1 FROM atlas_control.intake_jobs WHERE state='running' AND lease_until>clock_timestamp() LIMIT 1")).rowCount)return null;
-      const job=(await c.query<Candidate>("SELECT * FROM atlas_control.candidate_jobs WHERE pipeline_sha256=$1 AND state IN ('queued','retry_wait') AND next_attempt_at<=clock_timestamp() ORDER BY created_at,id LIMIT 1 FOR UPDATE",[pipelineSha])).rows[0];
+      const job=(await c.query<Candidate>(`SELECT j.* FROM atlas_control.candidate_jobs j WHERE j.pipeline_sha256=$1 AND j.state IN ('queued','retry_wait') AND j.next_attempt_at<=clock_timestamp()
+        AND (NOT $2::boolean OR EXISTS(SELECT FROM atlas_control.candidate_serving_watches w WHERE w.job_id=j.id AND w.pipeline_sha256=j.pipeline_sha256
+          AND w.root_sha256=$3 AND w.ready_until>clock_timestamp() AND w.owner_until>clock_timestamp())) ORDER BY j.created_at,j.id LIMIT 1 FOR UPDATE`,[pipelineSha,policy.serving_watch_required,policy.root_sha256])).rows[0];
       if(!job)return null;
       const token=randomBytes(16).toString('hex'),suffix=job.id.slice(0,24)+'_'+token.slice(0,16);
       const claim={...job,token,database_name:'atlas_candidate_'+suffix,owner_role:'atlas_own_'+suffix,import_role:'atlas_imp_'+suffix,tile_role:'atlas_tile_'+suffix,qa_role:'atlas_qa_'+suffix,attempts:job.attempts+1};
       await c.query("UPDATE atlas_control.processing_slot SET holder_kind='candidate',job_id=$1,token=$2,lease_until=clock_timestamp()+$3*interval '1 millisecond' WHERE singleton",[job.id,token,this.leaseMs]);
       await c.query("UPDATE atlas_control.candidate_jobs SET state='running',token=$2,lease_until=clock_timestamp()+$3*interval '1 millisecond',attempts=attempts+1,stage='claimed',failure_code=NULL,updated_at=clock_timestamp() WHERE id=$1",[job.id,token,this.leaseMs]);
       await c.query("INSERT INTO atlas_control.candidate_attempts(token,job_id,ordinal,database_name,owner_role,import_role,tile_role,qa_role,state) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'running')",[token,job.id,claim.attempts,claim.database_name,claim.owner_role,claim.import_role,claim.tile_role,claim.qa_role]);
+      if(policy.serving_watch_required)await c.query('UPDATE atlas_control.candidate_attempts SET guard_observer_token=(SELECT observer_token FROM atlas_control.candidate_serving_watches WHERE job_id=$2) WHERE token=$1',[token,job.id]);
       await this.event(c,job.id,token,'claimed');return claim;
     });
   }
-  async heartbeat(claim:BuildClaim):Promise<void>{await this.tx(async c=>{
-    await this.live(c,claim);await c.query("UPDATE atlas_control.candidate_jobs SET lease_until=clock_timestamp()+$2*interval '1 millisecond' WHERE id=$1",[claim.id,this.leaseMs]);
+  async heartbeat(claim:BuildClaim):Promise<void>{const lost=await this.tx(async c=>{
+    await this.live(c,claim,false);
+    if(!await this.watched(c,claim)){await this.watchLost(c,claim,'watch_deadline_lost');return true;}
+    await c.query("UPDATE atlas_control.candidate_jobs SET lease_until=clock_timestamp()+$2*interval '1 millisecond' WHERE id=$1",[claim.id,this.leaseMs]);
     await c.query("UPDATE atlas_control.processing_slot SET lease_until=clock_timestamp()+$2*interval '1 millisecond' WHERE singleton AND token=$1",[claim.token,this.leaseMs]);
-  });}
+    return false;
+  });if(lost)throw new LeaseLost();}
   async assertLive(claim:BuildClaim):Promise<void>{await this.tx(c=>this.live(c,claim));}
+  async admissionStatus():Promise<{admission_enabled:boolean;serving_watch_required:boolean}>{
+    const row=(await this.pool.query('SELECT admission_enabled,serving_watch_required FROM atlas_control.candidate_instance WHERE singleton')).rows[0];
+    if(!row)throw new IntakeError('candidate_root_binding_mismatch');return row;
+  }
+  async setAdmission(root:string,pipeline:string,enabled:boolean):Promise<void>{
+    hash(root);hash(pipeline);await this.tx(async c=>{
+      const policy=(await c.query('SELECT * FROM atlas_control.candidate_instance WHERE singleton FOR UPDATE')).rows[0];
+      if(policy?.root_sha256!==root)throw new IntakeError('candidate_root_binding_mismatch');
+      if(enabled){
+        if(!policy.serving_watch_required)throw new IntakeError('unguarded_admission_forbidden');
+        const ready=await c.query(`SELECT 1 FROM atlas_control.candidate_serving_watches w JOIN atlas_control.candidate_jobs j ON j.id=w.job_id
+          WHERE w.root_sha256=$1 AND w.pipeline_sha256=$2 AND w.ready_until>clock_timestamp() AND w.owner_until>clock_timestamp()
+          AND j.state IN ('queued','retry_wait','running') LIMIT 1`,[root,pipeline]);
+        if(!ready.rowCount)throw new IntakeError('serving_watch_not_ready');
+      }
+      await c.query('UPDATE atlas_control.candidate_instance SET admission_enabled=$1 WHERE singleton',[enabled]);
+      await this.event(c,null,null,'build_admission_changed',{root,pipeline,enabled});
+    });
+  }
+  async fixtureAdmission(root:string):Promise<void>{
+    hash(root);await this.tx(async c=>{
+      const name=(await c.query('SELECT current_database() AS name')).rows[0].name;
+      if(!/^atlas_test_ingest_e2e_[0-9a-f]{8}$/.test(name))throw new IntakeError('fixture_admission_forbidden');
+      const r=await c.query('UPDATE atlas_control.candidate_instance SET admission_enabled=true,serving_watch_required=false WHERE singleton AND root_sha256=$1 RETURNING singleton',[root]);
+      if(!r.rowCount)throw new IntakeError('candidate_root_binding_mismatch');
+      await this.event(c,null,null,'fixture_unguarded_admission',{root});
+    });
+  }
+  private async watchBinding(c:PoolClient,root:string,pipeline:string,job:string):Promise<Candidate>{
+    hash(root);hash(pipeline);hash(job);
+    const bound=(await c.query('SELECT root_sha256 FROM atlas_control.candidate_instance WHERE singleton')).rows[0];
+    if(bound?.root_sha256!==root)throw new IntakeError('candidate_root_binding_mismatch');
+    const row=(await c.query('SELECT * FROM atlas_control.candidate_jobs WHERE id=$1 AND pipeline_sha256=$2 FOR UPDATE',[job,pipeline])).rows[0];
+    if(!row)throw new IntakeError('serving_watch_job_mismatch');return row;
+  }
+  async beginServingWatch(root:string,pipeline:string,job:string,observer:string,endpoint:string):Promise<void>{
+    if(!/^[0-9a-f]{32}$/.test(observer))throw new IntakeError('invalid_serving_observer');hash(endpoint);
+    await this.tx(async c=>{
+      const claim=await this.watchBinding(c,root,pipeline,job);
+      if(!['queued','retry_wait','running'].includes(claim.state))throw new IntakeError('serving_watch_job_terminal');
+      const row=(await c.query('SELECT *,owner_until>clock_timestamp() AS owned FROM atlas_control.candidate_serving_watches WHERE job_id=$1 FOR UPDATE',[job])).rows[0];
+      if(row?.observer_token===observer){if(row.endpoint_sha256!==endpoint)throw new IntakeError('serving_endpoint_changed');return;}
+      if(claim.state==='running'||row?.owned)throw new IntakeError('serving_watch_busy');
+      await c.query(`INSERT INTO atlas_control.candidate_serving_watches(job_id,root_sha256,pipeline_sha256,observer_token,endpoint_sha256,owner_until,ready_until)
+        VALUES($1,$2,$3,$4,$5,clock_timestamp()+$6*interval '1 millisecond','-infinity') ON CONFLICT(job_id) DO UPDATE SET
+        root_sha256=$2,pipeline_sha256=$3,observer_token=$4,endpoint_sha256=$5,owner_until=clock_timestamp()+$6*interval '1 millisecond',ready_until='-infinity',last_success_at=NULL`,[job,root,pipeline,observer,endpoint,SERVING_WATCH_MS]);
+      await this.event(c,job,null,'serving_watch_started',{observer,endpoint_sha256:endpoint});
+    });
+  }
+  async markServingHealthy(root:string,pipeline:string,job:string,observer:string):Promise<string|null>{
+    return this.tx(async c=>{
+      const claim=await this.watchBinding(c,root,pipeline,job);
+      const row=(await c.query('SELECT *,ready_until>clock_timestamp() AND owner_until>clock_timestamp() AS ready FROM atlas_control.candidate_serving_watches WHERE job_id=$1 FOR UPDATE',[job])).rows[0];
+      if(row?.observer_token!==observer)throw new IntakeError('serving_watch_owner_changed');
+      if(claim.state==='running'&&!row.ready)return (await this.watchLost(c,claim as BuildClaim,'observer_deadline_missed')).id;
+      if(!['queued','retry_wait','running'].includes(claim.state))return null;
+      await c.query(`UPDATE atlas_control.candidate_serving_watches SET last_success_at=clock_timestamp(),ready_until=clock_timestamp()+$2*interval '1 millisecond',owner_until=clock_timestamp()+$2*interval '1 millisecond' WHERE job_id=$1`,[job,SERVING_WATCH_MS]);return null;
+    });
+  }
+  async closeServingWatch(root:string,pipeline:string,job:string,observer:string):Promise<string|null>{
+    return this.tx(async c=>{
+      const claim=await this.watchBinding(c,root,pipeline,job),row=(await c.query('SELECT observer_token FROM atlas_control.candidate_serving_watches WHERE job_id=$1 FOR UPDATE',[job])).rows[0];
+      if(row?.observer_token!==observer)return null;
+      await c.query('UPDATE atlas_control.candidate_serving_watches SET ready_until=clock_timestamp(),owner_until=clock_timestamp() WHERE job_id=$1',[job]);
+      if(claim.state==='running')return (await this.watchLost(c,claim as BuildClaim,'observer_closed')).id;return null;
+    });
+  }
+  private async watchLost(c:PoolClient,claim:BuildClaim,reason:string):Promise<GuardIncident>{
+    const slot=await c.query("SELECT 1 FROM atlas_control.processing_slot WHERE singleton AND holder_kind='candidate' AND job_id=$1 AND token=$2 FOR UPDATE",[claim.id,claim.token]);
+    if(!slot.rowCount)throw new IntakeError('guard_hold_changed');
+    const policy=(await c.query('SELECT root_sha256 FROM atlas_control.candidate_instance WHERE singleton')).rows[0];
+    const watch=(await c.query('SELECT observer_token,last_success_at,ready_until FROM atlas_control.candidate_serving_watches WHERE job_id=$1',[claim.id])).rows[0];
+    const evidence=JSON.stringify({schema:'atlas.serving-watch-loss/1',root:policy.root_sha256,pipeline:claim.pipeline_sha256,job:claim.id,token:claim.token,
+      reason,observer:watch?.observer_token??null,last_success_at:watch?.last_success_at??null,ready_until:watch?.ready_until instanceof Date?watch.ready_until.toISOString():String(watch?.ready_until??'missing'),at:new Date().toISOString()});
+    return this.commitGuard(c,claim,policy.root_sha256,evidence,{reason});
+  }
   async guardSnapshot(job:string,pipeline:string):Promise<{token:string}|null>{
     hash(job);hash(pipeline);return (await this.pool.query(`SELECT j.token FROM atlas_control.candidate_jobs j JOIN atlas_control.processing_slot s ON s.singleton AND s.holder_kind='candidate' AND s.job_id=j.id AND s.token=j.token
       WHERE j.id=$1 AND j.pipeline_sha256=$2 AND j.state='running' AND j.lease_until>clock_timestamp() AND s.lease_until>clock_timestamp()`,[job,pipeline])).rows[0]??null;
@@ -102,15 +200,19 @@ export class BuildQueue {
       const prior=(await c.query('SELECT id,evidence_sha256 FROM atlas_control.candidate_guard_incidents WHERE job_id=$1 AND token=$2',[job,token])).rows[0];
       if(prior){if(prior.evidence_sha256!==evidenceSha)throw new IntakeError('guard_evidence_changed');return this.incident(c,prior.id);}
       const claim=(await c.query('SELECT * FROM atlas_control.candidate_jobs WHERE id=$1 AND pipeline_sha256=$2 AND token=$3',[job,pipeline,token])).rows[0];
-      if(!claim)throw new LeaseLost();await this.live(c,claim);
+      if(!claim)throw new LeaseLost();await this.live(c,claim,false);
+      return this.commitGuard(c,claim,root,evidence,{status:observation.status});
+    });
+  }
+  private async commitGuard(c:PoolClient,claim:BuildClaim,root:string,evidence:string,detail:Record<string,unknown>):Promise<GuardIncident>{
+    const job=claim.id,token=claim.token,pipeline=claim.pipeline_sha256,evidenceSha=sha256(evidence),id=sha256(JSON.stringify({job,token,evidenceSha}));
       await c.query(`INSERT INTO atlas_control.candidate_guard_incidents(id,job_id,token,root_sha256,pipeline_sha256,evidence_sha256,evidence_text) VALUES($1,$2,$3,$4,$5,$6,$7)`,[id,job,token,root,pipeline,evidenceSha,evidence]);
       await c.query("UPDATE atlas_control.candidate_jobs SET state='failed',stage='guard_stopping',failure_code='serving_guard_failed',failures=failures+1,token=NULL,lease_until=NULL,updated_at=clock_timestamp() WHERE id=$1",[job]);
       await c.query("UPDATE atlas_control.candidate_attempts SET state='failed',ended_at=clock_timestamp() WHERE job_id=$1 AND token=$2",[job,token]);
       // Infinity is deliberate: old intake/build reapers also cannot time out this hold.
       await c.query("UPDATE atlas_control.processing_slot SET lease_until='infinity'::timestamptz WHERE singleton AND holder_kind='candidate' AND job_id=$1 AND token=$2",[job,token]);
-      await this.event(c,job,token,'serving_guard_latched',{incident:id,evidence_sha256:evidenceSha,status:observation.status});
+      await this.event(c,job,token,'serving_guard_latched',{incident:id,evidence_sha256:evidenceSha,...detail});
       return this.incident(c,id);
-    });
   }
   async servingGuard(id:string,root:string,pipeline:string):Promise<GuardIncident>{
     hash(id);hash(root);hash(pipeline);return this.tx(async c=>{const r=await this.incident(c,id);

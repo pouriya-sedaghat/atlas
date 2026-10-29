@@ -63,6 +63,7 @@ export async function pipeline(config:Config):Promise<Pipeline>{
     resources:{import_cpus:config.importCpus,import_memory_bytes:config.importMemoryBytes,import_cpu_shares:128,min_free_bytes:config.minFreeBytes,timeout_ms:config.timeoutMs,heavy_slot:'shared_with_intake',
       isolation:'separate_data_cluster',data_limits:config.dataLimits,warmup_sql_timeout_ms:120000,serving_sql_timeout_ms:10000,
       admin_connection_timeout_ms:30000,metadata_deadlock_retries:2,
+      serving_watch_required:true,serving_watch_lease_ms:30000,admission_default:'paused',
       postgres_prerequisites:{client_connection_check_interval_ms:1000,fsync:'on',synchronous_commit:'on',full_page_writes:'on'}}};
   const digest=sha256(JSON.stringify(specification));
   if(config.expectedPipelineSha256&&config.expectedPipelineSha256!==digest)throw new IntakeError('candidate_pipeline_changed');

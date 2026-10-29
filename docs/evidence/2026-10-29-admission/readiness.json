@@ -1,0 +1,30 @@
+{
+  "schema": "atlas.paused-main-readiness/1",
+  "passed": true,
+  "pipeline_sha256": "3c429f78191c2286aa881e31af17765e59cde728d2086e876b7f4cafd539460e",
+  "job": {
+    "id": "f0c512214b74a289fafdfad6d3e26e6da19820a13b5f77be25e7720dc65944ad",
+    "state": "queued",
+    "stage": "queued",
+    "attempts": 0,
+    "failures": 0,
+    "manifest_sha256": null
+  },
+  "admission": {
+    "admission_enabled": false,
+    "serving_watch_required": true
+  },
+  "controller_cannot_enable_builds": true,
+  "watch_became_ready": true,
+  "watch_closed_cleanly": true,
+  "ready": {
+    "schema": "atlas.serving-watch-ready/1",
+    "job_id": "f0c512214b74a289fafdfad6d3e26e6da19820a13b5f77be25e7720dc65944ad",
+    "pipeline": "3c429f78191c2286aa881e31af17765e59cde728d2086e876b7f4cafd539460e",
+    "observer": "1b8f12149e0d129759e428f6b22fd6d0",
+    "at": "2026-10-29T05:53:24.991Z"
+  },
+  "probe_requests": 1,
+  "probe_errors": 0,
+  "full_import_started": false
+}

@@ -82,7 +82,7 @@ try{
  const evidence={schema:'atlas.serving-guard-fault-tests/1',passed:true,count:tests.length,tests,fictional_control_only:true,real_builder_unit_stopped:false,
   incident:final.id,root_sha256:final.root_sha256,pipeline_sha256:final.pipeline_sha256,evidence_sha256:final.evidence_sha256,
   job_id:id,attempt:claim.token,final_state:status.state,final_stage:status.stage,attempts:status.attempts,failed_data_retained:true,wire_incident:wireProbe.guard_incident,wire_probe_sha256:sha256(await readFile(wireReport)),
-  source_files:Object.fromEntries(await Promise.all(['apps/builder/dist/guard.js','apps/builder/dist/queue.js','apps/builder/dist/data.js','apps/builder/dist/schema.sql','tools/check-serving-guard.mjs','tools/candidate-serving-probe.mjs'].map(async name=>[name,sha256(await readFile(join(config.repo,name)))])))};
+  source_files:Object.fromEntries(await Promise.all(['apps/builder/dist/guard.js','apps/builder/dist/queue.js','apps/builder/dist/data.js','apps/builder/dist/schema.sql','tools/check-serving-guard.mjs','tools/candidate-serving-probe.mjs','tools/serving-observation.mjs'].map(async name=>[name,sha256(await readFile(join(config.repo,name)))])))};
  await writeFile(reportPath,JSON.stringify(evidence,null,2)+'\n',{flag:'wx',mode:0o600});console.log(JSON.stringify({passed:true,count:tests.length,tests}));
 }finally{
  if(foreign)await foreign.end().catch(()=>{});if(importer)await importer.end().catch(()=>{});if(managedAdmin)await managedAdmin.end().catch(()=>{});if(importTask)await importTask;if(adminTask)await adminTask;

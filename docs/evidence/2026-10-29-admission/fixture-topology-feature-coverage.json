@@ -1,0 +1,186 @@
+{
+  "schema": "atlas.feature-coverage/2",
+  "source_sha256": "b02d75716d13cbbd7b11e05499e3a2a05c16a8160b5623168b39238675e112c1",
+  "accounting": {
+    "missing_outcomes": 0,
+    "orphan_outcomes": 0
+  },
+  "outcomes": [
+    {
+      "osm_type": "N",
+      "status": "rendered",
+      "objects": 1
+    },
+    {
+      "osm_type": "R",
+      "status": "rendered",
+      "objects": 5
+    },
+    {
+      "osm_type": "W",
+      "status": "rendered",
+      "objects": 1
+    }
+  ],
+  "layers": {
+    "water": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "served_rows": 0,
+      "expected_served_rows": 0,
+      "blocked_rows_exposed": 0,
+      "observed_inserts": 0,
+      "withheld_rows": 0
+    },
+    "landcover": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "served_rows": 0,
+      "expected_served_rows": 0,
+      "blocked_rows_exposed": 0,
+      "observed_inserts": 0,
+      "withheld_rows": 0
+    },
+    "waterways": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "served_rows": 0,
+      "expected_served_rows": 0,
+      "blocked_rows_exposed": 0,
+      "observed_inserts": 0,
+      "withheld_rows": 0
+    },
+    "boundaries": {
+      "rows": 5,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "served_rows": 2,
+      "expected_served_rows": 2,
+      "blocked_rows_exposed": 0,
+      "observed_inserts": 5,
+      "withheld_rows": 3
+    },
+    "transport": {
+      "rows": 1,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "served_rows": 1,
+      "expected_served_rows": 1,
+      "blocked_rows_exposed": 0,
+      "observed_inserts": 1,
+      "withheld_rows": 0
+    },
+    "buildings": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "served_rows": 0,
+      "expected_served_rows": 0,
+      "blocked_rows_exposed": 0,
+      "observed_inserts": 0,
+      "withheld_rows": 0
+    },
+    "places": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "served_rows": 0,
+      "expected_served_rows": 0,
+      "blocked_rows_exposed": 0,
+      "observed_inserts": 0,
+      "withheld_rows": 0
+    },
+    "pois": {
+      "rows": 1,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "served_rows": 1,
+      "expected_served_rows": 1,
+      "blocked_rows_exposed": 0,
+      "observed_inserts": 1,
+      "withheld_rows": 0
+    },
+    "detail_points": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "served_rows": 0,
+      "expected_served_rows": 0,
+      "blocked_rows_exposed": 0,
+      "observed_inserts": 0,
+      "withheld_rows": 0
+    },
+    "detail_lines": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "served_rows": 0,
+      "expected_served_rows": 0,
+      "blocked_rows_exposed": 0,
+      "observed_inserts": 0,
+      "withheld_rows": 0
+    },
+    "detail_areas": {
+      "rows": 0,
+      "empty_geometries": 0,
+      "invalid_geometries": 0,
+      "served_rows": 0,
+      "expected_served_rows": 0,
+      "blocked_rows_exposed": 0,
+      "observed_inserts": 0,
+      "withheld_rows": 0
+    }
+  },
+  "uncatalogued": [],
+  "serving_integrity": {
+    "missing_topology_rows": 0,
+    "withheld_relations": 3,
+    "nested_geometry_relations": 1,
+    "blocked_rows_exposed": 0,
+    "policy": "withhold incomplete relations, their ancestors and unsupported geometric relation members; raw/render data retained"
+  },
+  "detail_facets": [
+    {
+      "osm_type": "W",
+      "family": "transport",
+      "status": "core_layer_or_attribute",
+      "objects": 1
+    }
+  ],
+  "incomplete_relations": [
+    {
+      "relation_type": "boundary",
+      "member_type": "w",
+      "missing_references": 1,
+      "affected_relations": 1
+    }
+  ],
+  "incomplete_relation_examples": [
+    {
+      "osm_id": "31",
+      "relation_type": "boundary",
+      "name": null,
+      "admin_level": "4",
+      "missing_references": 1,
+      "status": "rendered",
+      "outputs": {
+        "boundaries": 1
+      },
+      "issues": {},
+      "geometry_probes": {}
+    }
+  ],
+  "relation_impact": {
+    "directly_incomplete": 1,
+    "including_ancestor_relations": 2,
+    "with_some_rendered_output": 2
+  },
+  "geographic_truth_verified": false,
+  "review_reasons": [
+    "incomplete_source_topology",
+    "unsupported_nested_geometry"
+  ]
+}

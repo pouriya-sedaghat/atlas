@@ -1,0 +1,105 @@
+
+> seyra@1.0.0 test
+> npm run test --workspaces --if-present
+
+
+> @seyra/contracts@1.0.0 test
+> vitest run
+
+
+ RUN  v5.0.4 C:/Users/admin/Documents/Codex/2026-10-26/new-chat/work/atlas/packages/contracts
+
+
+ Test Files  2 passed (2)
+      Tests  12 passed (12)
+   Start at  09:06:48
+   Duration  618ms (import 37%, worker 36%, transform 20%, tests 6%)
+
+
+> @seyra/map-assets@1.0.0 test
+> vitest run
+
+
+ RUN  v5.0.4 C:/Users/admin/Documents/Codex/2026-10-26/new-chat/work/atlas/packages/map-assets
+
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  09:06:49
+   Duration  263ms (import 66%, tests 20%, transform 9%, worker 5%)
+
+
+> @atlas/releases@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.4 C:/Users/admin/Documents/Codex/2026-10-26/new-chat/work/atlas/packages/releases
+
+
+ Test Files  1 passed | 1 skipped (2)
+      Tests  3 passed | 6 skipped (9)
+   Start at  09:06:50
+   Duration  639ms (import 93%, transform 4%, worker 2%, tests 1%)
+
+
+> @seyra/api@1.0.0 test
+> vitest run
+
+
+ RUN  v5.0.4 C:/Users/admin/Documents/Codex/2026-10-26/new-chat/work/atlas/apps/api
+
+
+ Test Files  7 passed (7)
+      Tests  57 passed (57)
+   Start at  09:06:51
+   Duration  5.41s (import 52%, tests 46%, transform 2%)
+
+
+> @seyra/ops@1.0.0 test
+> vitest run
+
+
+ RUN  v5.0.4 C:/Users/admin/Documents/Codex/2026-10-26/new-chat/work/atlas/apps/ops
+
+
+ Test Files  4 passed (4)
+      Tests  43 passed | 3 skipped (46)
+   Start at  09:06:57
+   Duration  1.05s (import 93%, transform 5%, tests 2%, worker 1%)
+
+
+> @atlas/ingest@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.4 C:/Users/admin/Documents/Codex/2026-10-26/new-chat/work/atlas/apps/ingest
+
+
+ Test Files  2 passed | 1 skipped (3)
+      Tests  9 passed | 7 skipped (16)
+   Start at  09:06:58
+   Duration  232ms (import 61%, transform 16%, tests 12%, worker 10%)
+
+
+> @atlas/builder@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.4 C:/Users/admin/Documents/Codex/2026-10-26/new-chat/work/atlas/apps/builder
+
+
+ Test Files  1 passed | 3 skipped (4)
+      Tests  6 passed | 32 skipped (38)
+   Start at  09:06:59
+   Duration  319ms (import 48%, transform 46%, worker 4%, tests 2%)
+
+npm notice
+npm notice New major version of npm available! 11.3.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
+npm notice
+npm notice New major version of npm available! 11.3.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

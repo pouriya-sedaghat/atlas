@@ -1,0 +1,309 @@
+{
+  "schema": "atlas.paused-final-health/1",
+  "at": "2026-10-29T06:06:52.119Z",
+  "pipeline_sha256": "3c429f78191c2286aa881e31af17765e59cde728d2086e876b7f4cafd539460e",
+  "units": {
+    "atlas-candidate-worker.service": "inactive",
+    "atlas-candidate-guard-recovery.timer": "active",
+    "atlas-intake-worker.service": "active",
+    "atlas-intake-signer.service": "active"
+  },
+  "old_containers": [
+    {
+      "name": "atlas-lab-db-1",
+      "id": "00feccadfee220561bc68966b1fc2c631943264d97940e48c48241269e4651b3",
+      "started_at": "2026-10-27T07:35:31.114460047Z",
+      "running": true,
+      "restarts": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "atlas-lab-martin-1",
+      "id": "4df9f2fdcaf224270eac55c584f4d5f16267e59edeead4064269fa4cc1b89720",
+      "started_at": "2026-10-27T07:42:20.261905854Z",
+      "running": true,
+      "restarts": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "atlas-lab-pgtileserv-1",
+      "id": "bf548271d9c148c0f01ce91d41b81ff3e280afb299a3cdd4af5b5ad742f41ff8",
+      "started_at": "2026-10-27T07:42:20.478682241Z",
+      "running": true,
+      "restarts": 0,
+      "oom_killed": false
+    }
+  ],
+  "post_diagnostic_probe": {
+    "requests": 23,
+    "errors": 0,
+    "samples": [
+      {
+        "site": "tehran",
+        "z": 6,
+        "x": 41,
+        "y": 25,
+        "status": 200,
+        "bytes": 947112,
+        "sha256": "ebb49477ec4a51c0179f4b22777d0dfd526860fcb02f572ed52243307b9a66fe",
+        "matches_previous": true,
+        "ms": 734.77
+      },
+      {
+        "site": "tehran",
+        "z": 10,
+        "x": 658,
+        "y": 403,
+        "status": 200,
+        "bytes": 852310,
+        "sha256": "f52449626e948a93e54d3de614a5cb6391c1046d581736afca83d6e91d2f7560",
+        "matches_previous": true,
+        "ms": 99.665
+      },
+      {
+        "site": "tehran",
+        "z": 14,
+        "x": 10530,
+        "y": 6451,
+        "status": 200,
+        "bytes": 158748,
+        "sha256": "16d8a7bd5573a5820c54efded54df47e6cd3e7965c015d1f1564f52dabe48be4",
+        "matches_previous": true,
+        "ms": 15.068
+      },
+      {
+        "site": "tehran",
+        "z": 16,
+        "x": 42123,
+        "y": 25804,
+        "status": 200,
+        "bytes": 14595,
+        "sha256": "13277ee9d32f6f790a71f38192e147d0e19a68c32d57bd93f94a6681d260a742",
+        "matches_previous": true,
+        "ms": 10.561
+      },
+      {
+        "site": "rural",
+        "z": 6,
+        "x": 42,
+        "y": 25,
+        "status": 200,
+        "bytes": 304845,
+        "sha256": "27a01edfe7da1fda4b24e500aadecccd4f28bce47bb6c640da56d7fd65312f5b",
+        "matches_previous": true,
+        "ms": 90.593
+      },
+      {
+        "site": "mashhad",
+        "z": 10,
+        "x": 681,
+        "y": 401,
+        "status": 200,
+        "bytes": 263745,
+        "sha256": "0706dd4b286df3030e67b631c928cc89f84fc81441a7d01d154c9b5fc352b4e6",
+        "matches_previous": true,
+        "ms": 39.421
+      },
+      {
+        "site": "mashhad",
+        "z": 14,
+        "x": 10904,
+        "y": 6419,
+        "status": 200,
+        "bytes": 66736,
+        "sha256": "767415072d363a76d27f4151b8a747cd1c50f08ac2e83c138b316f12544566fb",
+        "matches_previous": true,
+        "ms": 9.986
+      },
+      {
+        "site": "mashhad",
+        "z": 16,
+        "x": 43618,
+        "y": 25676,
+        "status": 200,
+        "bytes": 9759,
+        "sha256": "fe1f56a12dc1cc1bac50d6348a00ecb1a50f61f6f73d8d5fcbf32c31dbf1270f",
+        "matches_previous": true,
+        "ms": 802.082
+      },
+      {
+        "site": "shiraz",
+        "z": 6,
+        "x": 41,
+        "y": 26,
+        "status": 200,
+        "bytes": 525381,
+        "sha256": "fa59ded92225ec6e3b48424aef3d723f8d3f6b34fd43329d4046d61b6f7f941b",
+        "matches_previous": true,
+        "ms": 187.435
+      },
+      {
+        "site": "shiraz",
+        "z": 10,
+        "x": 661,
+        "y": 423,
+        "status": 200,
+        "bytes": 441090,
+        "sha256": "8b4ab3f792735ab04d88a15a2df16ad801ef8bac9d10ef283f55dc51571c9d95",
+        "matches_previous": true,
+        "ms": 71.309
+      },
+      {
+        "site": "shiraz",
+        "z": 14,
+        "x": 10582,
+        "y": 6781,
+        "status": 200,
+        "bytes": 141620,
+        "sha256": "e44754a7a0f11684cb2ca1609ab6d9892622d2bf545d404164ca2040bf920292",
+        "matches_previous": true,
+        "ms": 13.973
+      },
+      {
+        "site": "shiraz",
+        "z": 16,
+        "x": 42330,
+        "y": 27124,
+        "status": 200,
+        "bytes": 16308,
+        "sha256": "244fe4e8bf6c8fc4ccceeae65171ef710f9bc0b89a5f5dfe81146ad032132b87",
+        "matches_previous": true,
+        "ms": 23.403
+      },
+      {
+        "site": "tabriz",
+        "z": 6,
+        "x": 40,
+        "y": 24,
+        "status": 200,
+        "bytes": 525058,
+        "sha256": "8a90401461228b66ff15026f68c47d9e61a99af9dd50d19725fd1f8942030679",
+        "matches_previous": true,
+        "ms": 220.488
+      },
+      {
+        "site": "tabriz",
+        "z": 10,
+        "x": 643,
+        "y": 394,
+        "status": 200,
+        "bytes": 311631,
+        "sha256": "b6960d7c01607e476393b3713eb0ba55fc5d200b9230e8f3ff6d5fcdedea89f3",
+        "matches_previous": true,
+        "ms": 37.366
+      },
+      {
+        "site": "tabriz",
+        "z": 14,
+        "x": 10298,
+        "y": 6314,
+        "status": 200,
+        "bytes": 100171,
+        "sha256": "c9796d5181fd23cf650df50b56c711ec4a6edd0b6b85f5c79a6ec7c647e399aa",
+        "matches_previous": true,
+        "ms": 11.984
+      },
+      {
+        "site": "tabriz",
+        "z": 16,
+        "x": 41195,
+        "y": 25256,
+        "status": 200,
+        "bytes": 11650,
+        "sha256": "789dc7c4ef0b4e7afbac0eddda302df2d919e9c8dfa5d0014339d45248f325b6",
+        "matches_previous": true,
+        "ms": 7.638
+      },
+      {
+        "site": "ahvaz",
+        "z": 6,
+        "x": 40,
+        "y": 26,
+        "status": 200,
+        "bytes": 164539,
+        "sha256": "62acead809323ca79019272371479b05f71aa106b488cb65005f0c096d229119",
+        "matches_previous": true,
+        "ms": 84.834
+      },
+      {
+        "site": "ahvaz",
+        "z": 10,
+        "x": 650,
+        "y": 418,
+        "status": 200,
+        "bytes": 162320,
+        "sha256": "a812f7c455d5840b900d52ee9a404923fbda4968f144baacc3082d849fc51800",
+        "matches_previous": true,
+        "ms": 28.767
+      },
+      {
+        "site": "ahvaz",
+        "z": 14,
+        "x": 10406,
+        "y": 6689,
+        "status": 200,
+        "bytes": 48766,
+        "sha256": "9f100d5b3f228a1efbfc44244d5c06d675b8336a45f34936fcafe0bb057bedbb",
+        "matches_previous": true,
+        "ms": 11.78
+      },
+      {
+        "site": "ahvaz",
+        "z": 16,
+        "x": 41627,
+        "y": 26759,
+        "status": 200,
+        "bytes": 6735,
+        "sha256": "8e36740bb92f3bf8669a3e12f6472475e73470a1dd9160a78d6d1e2ae7d23933",
+        "matches_previous": true,
+        "ms": 7.796
+      },
+      {
+        "site": "rural",
+        "z": 10,
+        "x": 678,
+        "y": 414,
+        "status": 200,
+        "bytes": 1397,
+        "sha256": "6c6fad4feae9e2e7aad949f25ad0102fde5f56dc66d3b9a67423d46f032f5f52",
+        "matches_previous": true,
+        "ms": 8.725
+      },
+      {
+        "site": "rural",
+        "z": 14,
+        "x": 10854,
+        "y": 6631,
+        "status": 204,
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "matches_previous": true,
+        "ms": 4.012
+      },
+      {
+        "site": "rural",
+        "z": 16,
+        "x": 43417,
+        "y": 26527,
+        "status": 204,
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "matches_previous": true,
+        "ms": 7.791
+      }
+    ]
+  },
+  "runtime_files": {
+    "regular": 8247,
+    "links": 25,
+    "writable": 0,
+    "hardlinked": 0,
+    "external_links": 0
+  },
+  "filesystem": {
+    "size_bytes": 314346831872,
+    "available_bytes": 205669679104
+  },
+  "full_import_started": false,
+  "production_published": false
+}

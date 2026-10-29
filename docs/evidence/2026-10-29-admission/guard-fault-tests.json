@@ -1,0 +1,35 @@
+{
+  "schema": "atlas.serving-guard-fault-tests/1",
+  "passed": true,
+  "count": 6,
+  "tests": [
+    "foreign_worker_unit_refused_before_quarantine_or_stop",
+    "committed_guard_survives_observer_restart_before_unit_stop",
+    "changed_target_refused_without_releasing_admission",
+    "owned_import_and_tagged_admin_backends_terminated_unknown_backend_keeps_hold",
+    "recovery_disables_credentials_releases_once_and_never_requeues_failed_job",
+    "actual_http_observer_commits_incident_before_stopping_only_the_fixture_unit"
+  ],
+  "fictional_control_only": true,
+  "real_builder_unit_stopped": false,
+  "incident": "11e3c4331b3bd966c532368652091a7334fb95522095aeceea26591bea886b4e",
+  "root_sha256": "062a925c20abd2d791ef9bd46081e15c49b5cd11ed88622d3bdfa65988e2eac3",
+  "pipeline_sha256": "bcce0f2e583a21a130357ab1713127a2466b443e0b806c5621c589f8899b09c3",
+  "evidence_sha256": "31010b3792d960e3b9a72f7b4de0f50627d581347b2b0718702719508ea82028",
+  "job_id": "cc4dbbe08b18123bea3ef11656b7c194315f5fef33a99cbec6ed19dd4264c9da",
+  "attempt": "b425274310965b865e927a9d5b4980f8",
+  "final_state": "failed",
+  "final_stage": "guard_stopped",
+  "attempts": 1,
+  "failed_data_retained": true,
+  "wire_incident": "456b3badf3d0129a92a7f50af4dad9c21da19ffbef59d6f97c1f1bea042ab5b1",
+  "wire_probe_sha256": "a30b5fb43b3f4a35537b026165fb3e142ce1df9804e0676a443b0b62a5b1a142",
+  "source_files": {
+    "apps/builder/dist/guard.js": "bcddb7f8d7115fa3d509415244e608bb2b7b93be4d4ab890d7ac44206cd5e99d",
+    "apps/builder/dist/queue.js": "076c2be7ba035ad6e988f41c9ffb8e2c88a1af171875f135839069430967e67d",
+    "apps/builder/dist/data.js": "e6d8235205631874ae2b425442d32373bd8bf94ddd2f446d339fe40242964b8e",
+    "apps/builder/dist/schema.sql": "679d455f5d6067c2f90d739563d454070314f7117dc8d547e55a7e7739a7dcca",
+    "tools/check-serving-guard.mjs": "4369238ad11593f919f85679f11e5c92ab2b104ec88ebd27d3656c658788d827",
+    "tools/candidate-serving-probe.mjs": "30ffc7e207dd2daa333ba844e24efec670f2195bf8b937fa641c67c1ffe8c6be"
+  }
+}

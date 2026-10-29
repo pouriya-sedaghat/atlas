@@ -1,0 +1,17 @@
+{
+  "schema": "atlas.fictional-harness-cleanup/1",
+  "fixture_only": true,
+  "reason": "incorrect join in test harness before observer launch",
+  "job": "806398f7128c6bf4fe9671bd5c7f5a449ec89c53ffe374e8178447983b3d597f",
+  "attempt": "1fe5f374c83f435a42650ebc15ae045d",
+  "data_identity_verified": true,
+  "witness": {
+    "containers_stopped": true,
+    "backends_stopped": true,
+    "roles_disabled": true,
+    "data_allocated": true,
+    "system_identifier": "7701568481236377651",
+    "terminated_backends": 0
+  },
+  "production_state_modified": false
+}

@@ -1,0 +1,10 @@
+[Unit]
+Description=Atlas guarded build incident recovery timer
+
+[Timer]
+OnBootSec=15s
+OnUnitInactiveSec=10s
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,9 @@
+{
+  "schema": "atlas.guard-recovery-install/1",
+  "installed": true,
+  "pipeline_sha256": "3c429f78191c2286aa881e31af17765e59cde728d2086e876b7f4cafd539460e",
+  "timer_active": true,
+  "initial_recovery_exit": 0,
+  "recovery_requeues_failed_jobs": false,
+  "main_builder_started": false
+}

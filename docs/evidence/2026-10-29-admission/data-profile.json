@@ -1,0 +1,48 @@
+{
+  "legacy_candidate_identity_verified": true,
+  "legacy_job_state": "failed",
+  "legacy_manifest": null,
+  "profile": {
+    "container": "atlas-candidate-db",
+    "image": "sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095",
+    "limits": {
+      "memoryBytes": 3221225472,
+      "cpus": 1,
+      "cpuShares": 256,
+      "readBps": 8388608,
+      "writeBps": 8388608,
+      "devices": [
+        {
+          "path": "/dev/sda",
+          "majorMinor": "8:0"
+        },
+        {
+          "path": "/dev/dm-0",
+          "majorMinor": "252:0"
+        }
+      ]
+    },
+    "volumes": [
+      {
+        "name": "atlas-candidate-postgis-v1",
+        "type": "volume",
+        "destination": "/var/lib/postgresql/data"
+      }
+    ],
+    "io_max": "8:0 rbps=8388608 wbps=8388608 riops=max wiops=max\n252:0 rbps=8388608 wbps=8388608 riops=max wiops=max",
+    "cpu_max": "100000 100000",
+    "memory_max": "3221225472",
+    "memory_swap_max": "0",
+    "observed_io_devices": [
+      "8:0",
+      "252:0"
+    ],
+    "postgres_prerequisites": {
+      "client_connection_check_interval": "1000",
+      "fsync": "on",
+      "full_page_writes": "on",
+      "synchronous_commit": "on"
+    },
+    "public_ports": []
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schema": "atlas.observer-bundle/1",
+  "pipeline_sha256": "3c429f78191c2286aa881e31af17765e59cde728d2086e876b7f4cafd539460e",
+  "identity": "d1a23267dfacf1fef2612083b78808f0495a4f6e4a2999ba8565084299a34ab6",
+  "files": {
+    "candidate-serving-probe.mjs": "120395a7e6ec9a8af27ad5375e2e603e72bda2b02597c77e495b9f18e3a521a4",
+    "serving-observation.mjs": "1f43254a2ebd81814352d5099616cbc4fc42878aaf010de448cc27f73463e85f"
+  },
+  "path": "/home/owner/atlas-candidate-observers/d1a23267dfacf1fef2612083b78808f0495a4f6e4a2999ba8565084299a34ab6",
+  "app_runtime": "/home/owner/atlas-candidate-builds/3c429f78191c2286aa881e31af17765e59cde728d2086e876b7f4cafd539460e",
+  "links": {
+    "apps": "/home/owner/atlas-candidate-builds/3c429f78191c2286aa881e31af17765e59cde728d2086e876b7f4cafd539460e/apps",
+    "node_modules": "/home/owner/atlas-candidate-builds/3c429f78191c2286aa881e31af17765e59cde728d2086e876b7f4cafd539460e/node_modules"
+  },
+  "new_regular_files_readonly": true,
+  "old_runtime_modified": false,
+  "admission_enabled": false
+}
