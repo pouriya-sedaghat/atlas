@@ -1,5 +1,9 @@
 # Atlas
 
+[Stage seven](docs/ATLAS-STAGE-7-FA.md) adds a bounded external SSH/HTTP witness and read-only
+Windows/VMware host diagnostics. Low-load recordings passed; actual host evidence and the
+failed heavy-load condition remain unresolved. The main Iran build stays paused.
+
 [Stage six](docs/ATLAS-STAGE-6-FA.md) installs paused admission with a mandatory live observer,
 tests observer death and keeps recovery independent of the collector. The longer shared-disk
 experiment failed; full Iran import and publication remain blocked. The corrected observer

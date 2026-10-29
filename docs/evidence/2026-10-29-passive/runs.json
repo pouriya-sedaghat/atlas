@@ -1,0 +1,49 @@
+{
+  "schema": "atlas.passive-recordings/1",
+  "runs": [
+    {
+      "file": "passive-1.json.gz",
+      "json_sha256": "99dccadf9c2b8b951da086f754a655295dd3f644c203fe5a8d38b2544b30daa1",
+      "gzip_sha256": "d69ea7d94f079a8608287a8997d6551c28120c89c382c9a55ba63a57af0d27fc",
+      "requests": 103,
+      "errors": 0,
+      "guest_samples": 120,
+      "guest_source": "initial-guest-source.txt",
+      "external_source": "initial-external-source.txt",
+      "requested_seconds": 120
+    },
+    {
+      "file": "passive-2.json.gz",
+      "json_sha256": "0e7cbcd78186346a26969d4191599f8dddbee67a040dc8b4ca8ce4ffc692b82c",
+      "gzip_sha256": "067c5deb466e15f85d6ac0e2a02a5cfaabaafd61ad81c5185f8e1f69d9f8cf9c",
+      "requests": 48,
+      "errors": 0,
+      "guest_samples": 60,
+      "guest_source": "final-guest-source.txt",
+      "external_source": "intermediate-external-source.txt",
+      "requested_seconds": 60
+    },
+    {
+      "file": "passive-3.json.gz",
+      "json_sha256": "4ed3585333fe1e83639706455600a90f50d876e3e38ca1a19a33b39efa1bea9a",
+      "gzip_sha256": "5a7ee4b12f4a65ae474b1f27da7209cf923232c07eeb113f951fb1332dbdd88b",
+      "requests": 23,
+      "errors": 0,
+      "guest_samples": 30,
+      "guest_source": "final-guest-source.txt",
+      "external_source": "final-external-source.txt",
+      "requested_seconds": 30
+    }
+  ],
+  "actual_vm_host_evidence_available": false,
+  "source_files": {
+    "tools/diagnostics/passive-guest.py": "553f2bcc81d717164077b371dc6dfd63e51456782010d0a096d710b88772112f",
+    "tools/diagnostics/observe-external.mjs": "430a832ee4a66cf91127ceeb03e9d00509f728004fda99c11a096be9ad529361",
+    "tools/diagnostics/collect-windows-host.ps1": "c6deec4b33f80b1319d08b1d317f123fb96a2a0aee87850b5997716d1974303f",
+    "tools/diagnostics/diagnostics.test.mjs": "9cb1a38b92ba916215eb78b7692d34ac566e765fbc7702a2ad14d192c57de10a",
+    "tools/diagnostics/passive_guest_test.py": "4869b8d2f61c811e897597142c1d8a340b617a52b1c5ab861d0cd884436563ec",
+    "tools/serving-observation.mjs": "1f43254a2ebd81814352d5099616cbc4fc42878aaf010de448cc27f73463e85f"
+  },
+  "node_regressions_passed": 2,
+  "python_regressions_passed": 2
+}

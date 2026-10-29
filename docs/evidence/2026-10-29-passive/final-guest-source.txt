@@ -1,0 +1,87 @@
+"""Bounded read-only guest telemetry. No SQL, workload, service control or credentials."""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+NAMES = ('atlas-lab-db-1', 'atlas-lab-martin-1', 'atlas-lab-pgtileserv-1', 'atlas-candidate-db')
+
+def text(path, limit=16384):
+    try:
+        with open(path, encoding='ascii') as stream:
+            value = stream.read(limit + 1)
+        if len(value) > limit:
+            raise ValueError('telemetry field exceeds bound')
+        return {'value': value.strip()}
+    except (OSError, ValueError) as error:
+        return {'value': None, 'error': type(error).__name__}
+
+def snapshot(groups):
+    cpu = text('/proc/stat')
+    if cpu['value'] is not None:
+        cpu['value'] = '\n'.join(x for x in cpu['value'].splitlines() if x.startswith(('cpu ', 'ctxt ', 'procs_running ', 'procs_blocked ')))
+    memory = text('/proc/meminfo')
+    if memory['value'] is not None:
+        memory['value'] = '\n'.join(x for x in memory['value'].splitlines() if x.split(':')[0] in ('MemTotal', 'MemAvailable', 'SwapTotal', 'SwapFree', 'Dirty', 'Writeback'))
+    vm = text('/proc/vmstat')
+    if vm['value'] is not None:
+        vm['value'] = '\n'.join(x for x in vm['value'].splitlines() if x.split()[0] in ('pgfault', 'pgmajfault', 'pswpin', 'pswpout', 'oom_kill', 'pgscan_direct', 'pgscan_kswapd'))
+    return {'cpu': cpu, 'memory': memory, 'vm': vm,
+            'pressure': {kind: text('/proc/pressure/' + kind) for kind in ('cpu', 'memory', 'io')},
+            'disks': '\n'.join(x for x in Path('/proc/diskstats').read_text().splitlines() if x.split()[2] in ('sda', 'dm-0')),
+            'groups': {name: {key: text(path / key) for key in ('cpu.stat', 'io.stat', 'io.pressure', 'memory.events', 'memory.current')} for name, path in groups.items()}}
+
+def inventory():
+    result = subprocess.run(['docker', 'inspect', *NAMES], check=True, capture_output=True, timeout=10)
+    if len(result.stdout) > 262144:
+        raise ValueError('container inventory bound exceeded')
+    containers = json.loads(result.stdout)
+    records, groups = [], {}
+    for c in containers:
+        name = c['Name'].lstrip('/')
+        if name not in NAMES or not c['State']['Running']:
+            raise ValueError('expected running laboratory container missing')
+        relative = next(x[3:] for x in Path('/proc/' + str(c['State']['Pid']) + '/cgroup').read_text().splitlines() if x.startswith('0::'))
+        path = Path('/sys/fs/cgroup' + relative)
+        if '..' in path.parts or not relative.endswith('docker-' + c['Id'] + '.scope'):
+            raise ValueError('unexpected container cgroup')
+        groups[name] = path
+        records.append({'name': name, 'id': c['Id'], 'started_at': c['State']['StartedAt'], 'restarts': c['RestartCount'], 'oom_killed': c['State']['OOMKilled']})
+    if len(records) != len(NAMES):
+        raise ValueError('ambiguous container inventory')
+    return records, groups
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--seconds', type=int, default=120)
+    args = parser.parse_args()
+    if not 10 <= args.seconds <= 600:
+        parser.error('seconds must be 10..600')
+    records, groups = inventory()
+    def emit(row):
+        print(json.dumps(row, separators=(',', ':')), flush=True)
+    emit({'kind': 'identity', 'schema': 'atlas.passive-guest/1', 'tool_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), 'boot_id': Path('/proc/sys/kernel/random/boot_id').read_text().strip(), 'containers': records, 'seconds': args.seconds, 'interval_ms': 1000})
+    start = time.monotonic()
+    previous = None
+    n = 0
+    while time.monotonic() - start < args.seconds:
+        began = time.monotonic_ns()
+        values = snapshot(groups)
+        # Decimal strings preserve nanoseconds through JavaScript JSON parsers beyond 2**53.
+        row = {'kind': 'sample', 'sequence': n, 'wall_ns': str(time.time_ns()), 'monotonic_ns': str(began), 'previous_gap_ms': None if previous is None else (began - previous) / 1e6, 'collection_ms': (time.monotonic_ns() - began) / 1e6, 'values': values}
+        emit(row)
+        previous = began
+        n += 1
+        # Do not fabricate catch-up samples after a suspension.
+        time.sleep(1)
+    final, _ = inventory()
+    emit({'kind': 'complete', 'samples': n, 'original_containers_unchanged': final == records, 'elapsed_ms': (time.monotonic() - start) * 1000})
+
+if __name__ == '__main__':
+    try:
+        main()
+    except BrokenPipeError:
+        sys.exit(1)
