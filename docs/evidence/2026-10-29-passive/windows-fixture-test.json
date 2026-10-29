@@ -1,0 +1,15 @@
+{
+  "schema": "atlas.windows-host-collector-fixture-test/1",
+  "passed": true,
+  "fictional_vmx_and_log_only": true,
+  "actual_vm_host_measured": false,
+  "settings_unchanged": true,
+  "selected_hardware_fields_preserved": true,
+  "private_vmx_marker_withheld": true,
+  "sensitive_log_marker_withheld": true,
+  "unavailable_access_reported_not_zero": true,
+  "checksum_inventory_verified": true,
+  "existing_output_refused": true,
+  "output_inside_vm_refused": true,
+  "tool_sha256": "c6deec4b33f80b1319d08b1d317f123fb96a2a0aee87850b5997716d1974303f"
+}

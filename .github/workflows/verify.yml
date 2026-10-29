@@ -48,6 +48,13 @@ jobs:
         run: node tools/verify-admission-evidence.mjs
       - name: Refuse erasing I/O failures, admission policy and unknown collector totals
         run: node tools/fault-check-admission-evidence.mjs
+      - name: Check passive collector boundaries
+        run: |
+          node --test tools/diagnostics/diagnostics.test.mjs
+      - name: Verify guest history and independent low-load recordings
+        run: node tools/verify-passive-evidence.mjs
+      - name: Refuse incomplete recordings and fictional-host relabeling
+        run: node tools/fault-check-passive-evidence.mjs
   pbf-audit:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -62,6 +69,7 @@ jobs:
           /tmp/atlas-audit/bin/python tools/pbf-audit/build_conformance_fixture.py /tmp/conformance.osm.pbf
           /tmp/atlas-audit/bin/python tools/pbf-audit/audit.py /tmp/conformance.osm.pbf --out /tmp/conformance-audit.json
           python3 -m unittest discover -s apps/ingest/test
+          python3 -m unittest discover -s tools/diagnostics -p '*_test.py'
   audit-sandbox:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
