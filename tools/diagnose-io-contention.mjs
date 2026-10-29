@@ -10,8 +10,10 @@ import {observedLayerInserts} from '../apps/builder/dist/qa.js';
 import {secretFile} from '../apps/ingest/dist/config.js';
 import {execute} from '../apps/ingest/dist/process.js';
 import {sha256} from '../apps/ingest/dist/contracts.js';
-const [configPath,job,probePath,output]=process.argv.slice(2);
+import {classifyServingObservation} from './serving-observation.mjs';
+const [configPath,job,probePath,output,loadText='20000']=process.argv.slice(2);
 if(!configPath||!/^[a-f0-9]{64}$/.test(job??'')||!probePath||!output)throw Error('usage: diagnose-io-contention.mjs BUILD_CONFIG FAILED_JOB OLD_PROBE_CONFIG REPORT');
+const loadMs=Number(loadText);if(!Number.isInteger(loadMs)||loadMs<20000||loadMs>600000)throw Error('read load window must be 20000..600000 milliseconds');
 const config=await loadConfig(configPath),probe=JSON.parse(await secretFile(probePath));
 if(probe.root!==config.root||probe.jobId!==job||probe.controlDsnFile!==config.controlDsnFile)throw Error('diagnostic binding mismatch');
 const state=await execute('systemctl',['--user','show','atlas-candidate-worker.service','-p','ActiveState','-p','MainPID'],{timeoutMs:5000,maxOutput:65536});
@@ -36,7 +38,8 @@ await qa.query('SET default_transaction_read_only=on');
 const identity=(await qa.query('SELECT * FROM atlas_build.identity WHERE singleton')).rows[0];if(identity.build_id!==job||identity.token!==claim.token)throw Error('data identity changed');
 const sites={tehran:[51.389,35.6892],mashhad:[59.6062,36.2605],shiraz:[52.5311,29.5918],tabriz:[46.2919,38.0962],ahvaz:[48.6692,31.3183],rural:[58.5,32.4]};
 const cases=Object.entries(sites).flatMap(([site,[lon,lat]])=>[6,10,14,16].map(z=>({site,z,x:Math.floor((lon+180)/360*2**z),y:Math.floor((1-Math.asinh(Math.tan(lat*Math.PI/180))/Math.PI)/2*2**z)})));
-const resources=[],samples=[],baselines=new Map(),stages=[],started=new Date().toISOString();let phase='baseline',finished=false,abort=false,workload={result:'not_started'};
+const resources=[],samples=[],baselines=new Map(),stages=[],iterations=[],started=new Date().toISOString();let phase='baseline',finished=false,abort=false,abortReason=null;
+for(const signal of ['SIGTERM','SIGINT'])process.once(signal,()=>{abort=true;abortReason??='operator_stop';void qa.end().catch(()=>{});});
 const delay=monitorEventLoopDelay({resolution:20});delay.enable();
 const pause=async ms=>{for(let i=0;i<ms/100&&!abort;i++)await new Promise(r=>setTimeout(r,100));};
 const enter=name=>{phase=name;stages.push({phase,at:new Date().toISOString()});console.log(JSON.stringify({phase}));};
@@ -47,8 +50,8 @@ const observer=(async()=>{let n=0;while(!finished&&!abort){const t=cases[n++%cas
   const hash=sha256(Buffer.concat(chunks));if(!baselines.has(key))baselines.set(key,hash);
   row={...t,phase:samplePhase,completed_phase:phase,status:response.status,sha256:hash,bytes:length,matches_first_observation:baselines.get(key)===hash};
  }catch(error){row={...t,phase:samplePhase,completed_phase:phase,status:0,error:error.name};}
- row.ms=Math.round((performance.now()-start)*1000)/1000;samples.push(row);
- if(![200,204].includes(row.status)||row.matches_first_observation===false){abort=true;await qa.end().catch(()=>{});break;}
+ row=classifyServingObservation(row,performance.now()-start);samples.push(row);
+ if(![200,204].includes(row.status)||row.matches_first_observation===false){abort=true;abortReason='old_serving_failure';await qa.end().catch(()=>{});break;}
  await pause(1000);
 }})();
 const metrics=(async()=>{while(!finished&&!abort){try{
@@ -58,19 +61,24 @@ const metrics=(async()=>{while(!finished&&!abort){try{
 }})();
 try{
  enter('baseline');await pause(15000);
- if(!abort){enter('bounded_read');const start=performance.now();try{await qa.query('BEGIN READ ONLY');const counts=await observedLayerInserts(qa);await qa.query('ROLLBACK');workload={result:'completed',counts};}
- catch(error){workload={result:'sql_error',code:error.code??error.name};await qa.query('ROLLBACK').catch(()=>{});}workload.ms=Math.round((performance.now()-start)*1000)/1000;}
+ if(!abort){enter('bounded_read');const loadStarted=performance.now();
+  while(!abort&&performance.now()-loadStarted<loadMs){const start=performance.now();let result;
+   try{await qa.query('BEGIN READ ONLY');const counts=await observedLayerInserts(qa);await qa.query('ROLLBACK');result={result:'completed',counts};}
+   catch(error){result={result:'sql_error',code:error.code??error.name};await qa.query('ROLLBACK').catch(()=>{});if(!abort&&error.code!=='57014'){abort=true;abortReason='diagnostic_sql_error';}}
+   result.ms=Math.round((performance.now()-start)*1000)/1000;iterations.push(result);console.log(JSON.stringify({iteration:iterations.length,...result,counts:undefined}));await pause(250);
+  }
+ }
  enter('recovery');await pause(15000);
 }finally{finished=true;await qa.end().catch(()=>{});await Promise.all([observer,metrics]);delay.disable();}
 const after=await execute('docker',['inspect',...original.map(r=>r.name)],{timeoutMs:5000,maxOutput:65536});const current=after.code===0?JSON.parse(after.stdout.toString()):[];
 const unchanged=original.every(r=>current.some(x=>x.Id===r.id&&x.State.StartedAt===r.started_at&&x.State.Running));
 const summary=Object.fromEntries(['baseline','bounded_read','recovery'].map(phase=>{const group=samples.filter(s=>s.phase===phase),times=group.map(s=>s.ms).sort((a,b)=>a-b);return[phase,{requests:group.length,errors:group.filter(s=>![200,204].includes(s.status)).length,max_ms:times.at(-1)??null,p95_ms:times[Math.max(0,Math.ceil(times.length*.95)-1)]??null}];}));
-const report={schema:'atlas.bounded-io-diagnostic/1',tool_sha256:sha256(await readFile(new URL(import.meta.url))),qa_compiled_sha256:sha256(await readFile(new URL('../apps/builder/dist/qa.js',import.meta.url))),
+const report={schema:'atlas.bounded-io-diagnostic/2',tool_sha256:sha256(await readFile(new URL(import.meta.url))),qa_compiled_sha256:sha256(await readFile(new URL('../apps/builder/dist/qa.js',import.meta.url))),
  source_failed_job:job,source_attempt:claim.token,source_pipeline:claim.pipeline_sha256,started_at:started,ended_at:new Date().toISOString(),data_profile:profile,
- workload:{sql:'single aggregate of all layer outcome counters',statement_timeout_ms:20000,read_only:true,...workload},stages,summary,
- requests:samples.length,errors:samples.filter(s=>![200,204].includes(s.status)).length,aborted_on_serving_failure:abort,original_serving_unchanged:unchanged,
+ workload:{sql:'repeated aggregate of all layer outcome counters with a 250ms pause',statement_timeout_ms:20000,load_window_ms:loadMs,read_only:true,iterations},stages,summary,
+ requests:samples.length,errors:samples.filter(s=>![200,204].includes(s.status)).length,aborted_on_serving_failure:abortReason==='old_serving_failure',abort_reason:abortReason,original_serving_unchanged:unchanged,
  event_loop_delay_ms:{max:delay.max/1e6,p99:delay.percentile(99)/1e6},resources,samples,
  candidate_data_modified:false,full_import_repeated:false,production_acceptance_claim:false,
- interpretation:'One bounded sequential read on an already failed candidate. PSI includes deliberate cgroup throttling. Device counters are separate block layers, not additive physical-disk measurements. No concurrency/capacity or root-cause proof.'};
-await writeFile(output,JSON.stringify(report,null,2)+'\n',{flag:'wx',mode:0o600});console.log(JSON.stringify({recorded:true,requests:report.requests,errors:report.errors,workload:report.workload,summary}));
+ interpretation:'Bounded repeated sequential reads on an already failed candidate. Per-query deadline remains 20 seconds. PSI includes deliberate cgroup throttling. Device counters are separate block layers, not additive physical-disk measurements. No concurrency/capacity or root-cause proof.'};
+await writeFile(output,JSON.stringify(report,null,2)+'\n',{flag:'wx',mode:0o600});console.log(JSON.stringify({recorded:true,requests:report.requests,errors:report.errors,iterations:iterations.length,abort_reason:abortReason,summary}));
 if(abort||!unchanged)process.exitCode=1;

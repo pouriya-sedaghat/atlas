@@ -1,0 +1,55 @@
+{
+  "job": {
+    "id": "f0c512214b74a289fafdfad6d3e26e6da19820a13b5f77be25e7720dc65944ad",
+    "source_validation_id": "df5ed7ffabe9108dcf8288770104dabd",
+    "payload_sha256": "0319ad2dbe82cbad27e83889659b64d059958fa46d6b46ee99b719afa2b607b2",
+    "pipeline_sha256": "3c429f78191c2286aa881e31af17765e59cde728d2086e876b7f4cafd539460e",
+    "state": "queued",
+    "stage": "queued",
+    "attempts": 0,
+    "failures": 0,
+    "manifest_sha256": null
+  },
+  "policy": {
+    "singleton": true,
+    "root_sha256": "ae0bed5f37c25bdc153c6d93a8ec5e81c52bfda407100eb04175c3f4828fda10",
+    "id": "e5f05f2e197c460db8de46882c64a8ae",
+    "admission_enabled": false,
+    "serving_watch_required": true
+  },
+  "watch": {
+    "job_id": "f0c512214b74a289fafdfad6d3e26e6da19820a13b5f77be25e7720dc65944ad",
+    "root_sha256": "ae0bed5f37c25bdc153c6d93a8ec5e81c52bfda407100eb04175c3f4828fda10",
+    "pipeline_sha256": "3c429f78191c2286aa881e31af17765e59cde728d2086e876b7f4cafd539460e",
+    "observer_token": "f63a170ba283375c068ba7a1929f0459",
+    "endpoint_sha256": "b0c5d3ac726e3dbc65dc8f25e54a29d86b085d8a888ccecee6afc1d3ca821fb9",
+    "owner_until": "2026-10-29T06:12:29.667Z",
+    "ready_until": "2026-10-29T06:12:29.667Z",
+    "last_success_at": "2026-10-29T06:12:26.555Z",
+    "created_at": "2026-10-29T05:53:24.602Z",
+    "ready": false
+  },
+  "slot": {
+    "singleton": true,
+    "holder_kind": null,
+    "job_id": null,
+    "token": null,
+    "lease_until": null
+  },
+  "control_durability": [
+    {
+      "name": "fsync",
+      "setting": "on"
+    },
+    {
+      "name": "full_page_writes",
+      "setting": "on"
+    },
+    {
+      "name": "synchronous_commit",
+      "setting": "on"
+    }
+  ],
+  "scope": "experimental_source_only",
+  "publication_supported": false
+}

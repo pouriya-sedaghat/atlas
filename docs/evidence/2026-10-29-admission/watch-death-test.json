@@ -1,0 +1,43 @@
+{
+  "schema": "atlas.serving-watch-death-test/1",
+  "passed": true,
+  "fictional_control_only": true,
+  "real_builder_unit_stopped": false,
+  "admission_without_health_refused": true,
+  "paused_worker_skips_reconcile": true,
+  "observer_bound_to_claim": true,
+  "observer_killed_with": "SIGKILL",
+  "lease_ms": 30000,
+  "killed_at": "2026-10-29T05:37:25.598Z",
+  "loss_detected_after_ms": 29950,
+  "collector_final_report_available": false,
+  "collector_total_http_requests": null,
+  "collector_http_error_count": null,
+  "initial_ready": {
+    "schema": "atlas.serving-watch-ready/1",
+    "job_id": "f56345857d24445473e4281734a89adf1f2132e61f8bcf539770a6459d0681f2",
+    "pipeline": "f0f26b4dbc02607435d26ba1efd414410b0533ba1ba7abe185d1c780681cab0a",
+    "observer": "4b9ecfe9d419d9a1604b0c26ac1f4f40",
+    "at": "2026-10-29T05:37:21.401Z"
+  },
+  "incident": "a0593a5ccb1c40927d4e2895060e92d287f82073f9fbcf6ef3ee19e7fec1fcbe",
+  "evidence_sha256": "5b53c6b338aad0d0039a96f988a4fc9fec58cd75852f61373b2bfa9494156f68",
+  "evidence_text": "{\"schema\":\"atlas.serving-watch-loss/1\",\"root\":\"062a925c20abd2d791ef9bd46081e15c49b5cd11ed88622d3bdfa65988e2eac3\",\"pipeline\":\"f0f26b4dbc02607435d26ba1efd414410b0533ba1ba7abe185d1c780681cab0a\",\"job\":\"f56345857d24445473e4281734a89adf1f2132e61f8bcf539770a6459d0681f2\",\"token\":\"7628ef672cab5c7050c945c76aeb638d\",\"reason\":\"watch_deadline_lost\",\"observer\":\"4b9ecfe9d419d9a1604b0c26ac1f4f40\",\"last_success_at\":\"2026-10-29T05:37:25.474Z\",\"ready_until\":\"2026-10-29T05:37:55.474Z\",\"at\":\"2026-10-29T05:37:55.550Z\"}",
+  "shutdown_confirmed_at": "2026-10-29T05:37:55.925Z",
+  "final_state": "failed",
+  "attempts": 1,
+  "guarded_candidate_requeued": false,
+  "final_admission": {
+    "admission_enabled": false,
+    "serving_watch_required": true
+  },
+  "source_files": {
+    "apps/builder/dist/queue.js": "076c2be7ba035ad6e988f41c9ffb8e2c88a1af171875f135839069430967e67d",
+    "apps/builder/dist/guard.js": "bcddb7f8d7115fa3d509415244e608bb2b7b93be4d4ab890d7ac44206cd5e99d",
+    "apps/builder/dist/worker.js": "af865446986e446f5a9cb536460534cc79b3653dcdea02b323d086ad6bec2e22",
+    "apps/builder/dist/schema.sql": "679d455f5d6067c2f90d739563d454070314f7117dc8d547e55a7e7739a7dcca",
+    "tools/candidate-serving-probe.mjs": "30ffc7e207dd2daa333ba844e24efec670f2195bf8b937fa641c67c1ffe8c6be",
+    "tools/recover-serving-guard.mjs": "0ae862ff0e683ac04097f6096d031f023d368e8b1857f4ab2aa71d3bcad8fb17",
+    "tools/check-serving-watch.mjs": "709c35414cb71a29cd082d675cbea8170887d512c21a9676da0c2dc79ac80538"
+  }
+}

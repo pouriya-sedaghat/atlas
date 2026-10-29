@@ -1,5 +1,10 @@
 # Atlas
 
+[Stage six](docs/ATLAS-STAGE-6-FA.md) installs paused admission with a mandatory live observer,
+tests observer death and keeps recovery independent of the collector. The longer shared-disk
+experiment failed; full Iran import and publication remain blocked. The corrected observer
+rejects late HTTP 200 responses as well as transport/content errors.
+
 This repository preserves the supplied Seyra demo and develops its versioned map-data replacement.
 The first implementation stage adds a complete primitive archive, an isolated Martin/PostGIS
 comparison lab, and a transactional release/session/retention registry. See

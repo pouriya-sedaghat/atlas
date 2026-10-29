@@ -1,0 +1,12 @@
+[Unit]
+Description=Atlas guarded build incident recovery
+
+[Service]
+Type=oneshot
+Environment=PATH=@NODE_BIN@:/usr/local/bin:/usr/bin:/bin
+ExecStart=@NODE_BIN@/node @SOURCE_ROOT@/tools/recover-serving-guard.mjs @CONFIG@ pending
+TimeoutStartSec=90s
+UMask=0077
+NoNewPrivileges=true
+MemoryMax=512M
+CPUQuota=50%

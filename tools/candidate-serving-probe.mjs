@@ -1,11 +1,12 @@
 // A trusted lab observer. It may stop only the experimental builder on the first serving error.
 import {readFile,writeFile,statfs} from 'node:fs/promises';
-import {createHash} from 'node:crypto';
+import {createHash,randomBytes} from 'node:crypto';
 import pg from 'pg';
 import {execute} from '../apps/ingest/dist/process.js';
 import {secretFile} from '../apps/ingest/dist/config.js';
 import {loadConfig} from '../apps/builder/dist/config.js';
 import {ServingGuard} from '../apps/builder/dist/guard.js';
+import {classifyServingObservation} from './serving-observation.mjs';
 const[configPath,output]=process.argv.slice(2);if(!configPath||!output)throw Error('probe config and output required');
 const config=JSON.parse(await secretFile(configPath));if(!/^[0-9a-f]{64}$/.test(config.jobId))throw Error('invalid managed job');
 const uri=new URL(config.endpoint);if(uri.protocol!=='http:'||!/^\d+\.\d+\.\d+\.\d+$/.test(uri.hostname)||uri.port!=='3000')throw Error('probe requires the inspected private Martin address');
@@ -28,8 +29,12 @@ const tiles=Object.entries(sites).flatMap(([site,[lon,lat]])=>[6,10,14,16].map(z
 const before=await execute('docker',['inspect','atlas-lab-db-1','atlas-lab-martin-1','atlas-lab-pgtileserv-1'],{maxOutput:65536});
 if(before.code!==0)throw Error('baseline inspection failed');
 const identities=JSON.parse(before.stdout.toString()).map(r=>({name:r.Name.slice(1),id:r.Id,started_at:r.State.StartedAt}));
+const watchRequired=guard&&(await guard.queue.admissionStatus()).serving_watch_required,observerToken=randomBytes(16).toString('hex');
+let watchReady=false;
+let interrupted=false;process.once('SIGTERM',()=>{interrupted=true;});process.once('SIGINT',()=>{interrupted=true;});
+if(watchRequired)await guard.queue.beginServingWatch(guard.root,guard.pipeline,config.jobId,observerToken,digest(JSON.stringify({endpoint:config.endpoint,identities})));
 try{
-  while(performance.now()-started<2*3600_000){
+  while(!interrupted&&performance.now()-started<4*3600_000){
     // Capture authority before HTTP: a slow request must not borrow a replacement attempt's token.
     const authority=guard?await guard.queue.guardSnapshot(config.jobId,guard.pipeline):null;
     const t=tiles[index++%tiles.length],key=`${t.z}/${t.x}/${t.y}`,begin=performance.now();let row;
@@ -39,6 +44,7 @@ try{
       const hash=digest(Buffer.concat(parts));if(!baselines.has(key))baselines.set(key,hash);
       row={...t,status:response.status,bytes:size,ms:Math.round((performance.now()-begin)*1000)/1000,sha256:hash,bytes_match_first_sample:baselines.get(key)===hash};
     }catch{row={...t,status:0,bytes:0,ms:Math.round((performance.now()-begin)*1000)/1000};}
+    row=classifyServingObservation(row,performance.now()-begin);
     samples.push(row);consecutive=[200,204].includes(row.status)?0:consecutive+1;
     if(consecutive>=1&&!stopped&&guard&&authority){
       const incident=await guard.latch(config.jobId,authority.token,{at:new Date().toISOString(),site:t.site,z:t.z,x:t.x,y:t.y,status:row.status,ms:row.ms});
@@ -47,6 +53,13 @@ try{
       terminal={state:'failed',stage:'guard_stopped'};
       process.stderr.write(JSON.stringify({event:'serving_guard_stopped_experimental_builder',succeeded:true,incident:incident.id})+'\n');
       break;
+    }
+    if(watchRequired){
+      if(![200,204].includes(row.status)||row.bytes_match_first_sample===false){observerFailure='serving_baseline_unhealthy';break;}
+      const lost=await guard.queue.markServingHealthy(guard.root,guard.pipeline,config.jobId,observerToken);
+      if(lost){guardIncident=lost;await guard.recover(lost);stopped=true;terminal={state:'failed',stage:'guard_stopped'};break;}
+      if(!watchReady){watchReady=true;const ready={schema:'atlas.serving-watch-ready/1',job_id:config.jobId,pipeline:guard.pipeline,observer:observerToken,at:new Date().toISOString()};
+        await writeFile(output+'.ready',JSON.stringify(ready)+'\n',{flag:'wx',mode:0o600});console.log(JSON.stringify({event:'serving_watch_ready',...ready}));}
     }
     const rowState=(await pool.query('SELECT state,stage FROM atlas_control.candidate_jobs WHERE id=$1',[config.jobId])).rows[0];
     if(performance.now()-lastMetrics>=15000){
@@ -65,13 +78,19 @@ try{
     if(stopped){terminal=rowState??{state:'unknown'};break;}
     await new Promise(r=>setTimeout(r,1000));
   }
-}catch(error){observerFailure=error?.code??'observer_error';}finally{await pool.end().catch(()=>{});}
+}catch(error){observerFailure=error?.code??'observer_error';}finally{
+ if(watchRequired)try{
+   const lost=await guard.queue.closeServingWatch(guard.root,guard.pipeline,config.jobId,observerToken);
+   if(lost){guardIncident=lost;await guard.recover(lost);stopped=true;terminal={state:'failed',stage:'guard_stopped'};}
+ }catch(error){observerFailure??=error?.code??'observer_close_failed';}
+ await pool.end().catch(()=>{});
+}
 const after=await execute('docker',['inspect',...identities.map(r=>r.name)],{timeoutMs:5000,maxOutput:65536}).catch(()=>({code:-1,stdout:Buffer.alloc(0)}));
 const current=after.code===0?JSON.parse(after.stdout.toString()):[];
 const unchanged=identities.every(r=>current.some(x=>x.Id===r.id&&x.State.StartedAt===r.started_at));
 const times=samples.map(r=>r.ms).sort((a,b)=>a-b),percentile=p=>times[Math.max(0,Math.ceil(times.length*p)-1)]??null;
 const report={schema:'atlas.candidate-serving-probe/1',tool_sha256:digest(await readFile(new URL(import.meta.url))),node:process.versions.node,
-  guard_enabled:config.guard!==false,guard_incident:guardIncident,observer_failure:observerFailure,started_at:startedAt,ended_at:new Date().toISOString(),job_id:config.jobId,terminal,requests:samples.length,errors:samples.filter(r=>![200,204].includes(r.status)).length,
+  guard_enabled:config.guard!==false,guard_incident:guardIncident,serving_watch_required:Boolean(watchRequired),serving_watch_ready:watchReady,stopped_by_signal:interrupted,observer_failure:observerFailure,started_at:startedAt,ended_at:new Date().toISOString(),job_id:config.jobId,terminal,requests:samples.length,errors:samples.filter(r=>![200,204].includes(r.status)).length,
   byte_change_observations:samples.filter(r=>r.bytes_match_first_sample===false).length,latency_ms:{median:percentile(.5),p95:percentile(.95),max:times.at(-1)??null},
   old_containers:identities,old_container_ids_and_start_times_unchanged:unchanged,guard_stopped_experimental_builder:stopped,
   scope:/^atlas_test_ingest_e2e_[0-9a-f]{8}$/.test(controlDatabase)?'fictional HTTP endpoint for guard fault injection; not old-serving availability':'existing private laboratory Martin during candidate import and QA; not a public gateway, browser, publication, or capacity proof',

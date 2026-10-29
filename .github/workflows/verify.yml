@@ -42,6 +42,12 @@ jobs:
         run: node tools/fault-check-catalog-attempt-evidence.mjs
       - name: Verify recorded durable guard and bounded I/O evidence
         run: node tools/verify-serving-guard-evidence.mjs
+      - name: Reject a late successful HTTP observation after an event-loop stall
+        run: node tools/check-observer-deadline.mjs
+      - name: Verify recorded paused admission and rejected long I/O experiment
+        run: node tools/verify-admission-evidence.mjs
+      - name: Refuse erasing I/O failures, admission policy and unknown collector totals
+        run: node tools/fault-check-admission-evidence.mjs
   pbf-audit:
     runs-on: ubuntu-24.04
     timeout-minutes: 10

@@ -23,6 +23,13 @@ export class CandidateWorker {
     }return n;
   }
   private async artifact(value:unknown):Promise<string>{return this.files.putArtifact(Buffer.from(JSON.stringify(value,null,2)+'\n'));}
+  private async admissionPolicy():Promise<{admission_enabled:boolean;serving_watch_required:boolean}>{
+    const policy=await this.queue.admissionStatus();
+    if(!policy.serving_watch_required){
+      const name=(await this.pool.query('SELECT current_database() AS name')).rows[0].name;
+      if(this.config.source.policy.provider!=='fixture'||!/^atlas_test_ingest_e2e_[0-9a-f]{8}$/.test(name))throw new IntakeError('unguarded_admission_forbidden');
+    }return policy;
+  }
   async reap():Promise<void>{
     const listed=await execute('docker',['container','ls','--all','--filter',`label=atlas.candidate.root=${sha256(this.config.root)}`,'--format','{{.Names}}'],{maxOutput:65536});
     if(listed.code!==0)throw new IntakeError('candidate_inspection_failed');
@@ -39,6 +46,8 @@ export class CandidateWorker {
   }
   async once(parentSignal:AbortSignal):Promise<boolean>{
     if((await pipeline(this.config)).sha256!==this.spec.sha256)throw new IntakeError('candidate_pipeline_changed');
+    const policy=await this.admissionPolicy();
+    if(!policy.admission_enabled){await this.reap();await this.queue.claim(this.spec.sha256);return false;}
     await this.reconcile();await this.reap();
     const free=await statfs(this.config.root,{bigint:true});if(free.bavail*free.bsize<BigInt(this.config.minFreeBytes)){await this.queue.waitCapacity(this.spec.sha256);return false;}
     const started=performance.now(),claim=await this.queue.claim(this.spec.sha256);if(!claim)return false;
@@ -80,10 +89,12 @@ export class CandidateWorker {
       const tileSha=await this.artifact(tiles),review=[...featureReport.review_reasons];if(!tiles.passed)review.push('no_rendered_features');
       await this.queue.stage(claim,'seal');
       await this.gate.verify(claim.source_validation_id,claim.payload_sha256);await data.assertOwned();const dataProfile=await data.verifyDataProfile();await this.queue.assertLive(claim);
+      const admission=await this.admissionPolicy();
       if((await pipeline(this.config)).sha256!==this.spec.sha256)throw new IntakeError('candidate_pipeline_changed');
       const manifest={schema:'atlas.candidate-manifest/1',id:claim.id,attempt:claim.token,scope:'experimental_source_only',publishable:false,map_release_ready:false,
         source:{validation_id:source.validation.id,sha256:source.validation.source_sha256,payload_sha256:claim.payload_sha256,bundle_sha256:source.validation.bundle_sha256,public_key_sha256:source.validation.public_key_sha256},
         pipeline_sha256:this.spec.sha256,specification:this.spec.specification,
+        admission,
         postgis:{database:claim.database_name,identity_token:claim.token,read_only:true,target:data.dataTarget(),runtime_profile:dataProfile,...database},
         serving:{engine:'Martin',image:this.config.martinImage,container:data.endpointName(),endpoint:'http://'+data.endpointName()+':3000',network:this.config.network,public_ports:[]},
         qa:{canonical_roundtrip:rawSha,feature_coverage:coverageSha,tile_parity:tileSha,review_reasons:review},

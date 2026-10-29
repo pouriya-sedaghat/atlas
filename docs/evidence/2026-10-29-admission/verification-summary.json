@@ -1,0 +1,21 @@
+{
+  "schema": "atlas.admission-verification-summary/1",
+  "local_build": "passed",
+  "local_typecheck": "passed",
+  "local_tests_passed": 136,
+  "local_environment_dependent_skipped": 48,
+  "builder_tests_in_pg_environment_passed": 38,
+  "new_watch_admission_cases": 8,
+  "fictional_e2e_cases": 10,
+  "guard_runtime_fault_cases_before_and_after_tool_fix": 6,
+  "main_runtime_upgraded": true,
+  "main_admission_enabled": false,
+  "country_import_repeated": false,
+  "production_approved": false,
+  "long_io_accepted": false,
+  "preflight_readonly_errors": [
+    "intake_jobs.stage column absent; used state",
+    "release defaults relation absent; captured null"
+  ],
+  "postfix_harness_error": "incorrect join before observer launch; exact owned fictional attempt quiesced and retained failed before retrying new fixture identities"
+}

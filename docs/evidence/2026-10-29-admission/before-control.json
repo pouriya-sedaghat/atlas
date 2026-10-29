@@ -1,0 +1,95 @@
+{
+  "jobs": [
+    {
+      "id": "19de6e4d63d5fe35b69b6355240310774902418091017871061f4eeaf6204ff5",
+      "state": "review_required",
+      "stage": "complete",
+      "attempts": 1,
+      "failures": 0,
+      "manifest_sha256": "6df315b82336143feafb3153d65984ec3009f15613a808bbae301863ab766a71",
+      "pipeline_sha256": "81a533df3752cb70527a863ff221e5c4720f63e2d6fa6e0387c3d628e1652165"
+    },
+    {
+      "id": "470d654a7c292befe3a912a76113fc417b16957512b2b96b310b1d0b48e917b8",
+      "state": "failed",
+      "stage": "import",
+      "attempts": 2,
+      "failures": 2,
+      "manifest_sha256": null,
+      "pipeline_sha256": "1e26eacbbb9f49fc83a7894f46839d1f12978b7c3cf4f8d5f3d04588ce2b961a"
+    },
+    {
+      "id": "60d8775805189b4c9c18065931546200ff2133f01111e4b572391693c0d80182",
+      "state": "failed",
+      "stage": "import",
+      "attempts": 2,
+      "failures": 2,
+      "manifest_sha256": null,
+      "pipeline_sha256": "863eff574c4946f1a6821076c36c28826baa2640b4b1d08a830d2ef7493cd2ee"
+    },
+    {
+      "id": "88647b8c8ea8f01d79bef5858222518eeeceba352d92cb76ffc44ad57665df26",
+      "state": "failed",
+      "stage": "feature_coverage",
+      "attempts": 1,
+      "failures": 1,
+      "manifest_sha256": null,
+      "pipeline_sha256": "d9a36c16263640f6e63843d3a288102adae6d95c79d61934c27bfb5a611cd3a5"
+    },
+    {
+      "id": "a8513936e0c6d34d2821242587959b3ce7fda328431ae428b1795b9137a07632",
+      "state": "failed",
+      "stage": "import",
+      "attempts": 1,
+      "failures": 1,
+      "manifest_sha256": null,
+      "pipeline_sha256": "d2a448bf150132cee372503dbfb42da4f1486947a33f58a92427f8f25263a9d4"
+    },
+    {
+      "id": "e5139b4aef800ceecfe9aa5b1bd8c57166737915149c8b4fd0c704da0da5af42",
+      "state": "failed",
+      "stage": "feature_coverage",
+      "attempts": 1,
+      "failures": 1,
+      "manifest_sha256": null,
+      "pipeline_sha256": "32590f3516d833ae9a773fb27488d66b4790026d5478a34e7c149621d8406e64"
+    },
+    {
+      "id": "eed1511100ff70724022558187223d10c57855ede6c432c47d04b0d6e567f0e4",
+      "state": "failed",
+      "stage": "martin_qa",
+      "attempts": 1,
+      "failures": 1,
+      "manifest_sha256": null,
+      "pipeline_sha256": "b9df97c35fa085773c9b36a0008695bce0fb83f8bddf83123f2989d6d3fc23f4"
+    },
+    {
+      "id": "f67075415ab7a63fca8b2e4c3f1df8508d01e0a3287bcfcc43add768610483cf",
+      "state": "failed",
+      "stage": "source_verification",
+      "attempts": 2,
+      "failures": 2,
+      "manifest_sha256": null,
+      "pipeline_sha256": "5821ea6ad3bcb12a5d6d7efaebec3b0462d482bd404abb3dd0241372321cb328"
+    }
+  ],
+  "instance": [
+    {
+      "singleton": true,
+      "root_sha256": "ae0bed5f37c25bdc153c6d93a8ec5e81c52bfda407100eb04175c3f4828fda10",
+      "id": "e5f05f2e197c460db8de46882c64a8ae"
+    }
+  ],
+  "slot": [
+    {
+      "singleton": true,
+      "holder_kind": null,
+      "job_id": null,
+      "token": null,
+      "lease_until": null
+    }
+  ],
+  "source_running": [],
+  "defaults_relation": null,
+  "defaults": null
+}
