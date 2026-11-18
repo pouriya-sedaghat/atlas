@@ -1,0 +1,8 @@
+Django==5.2.19
+gunicorn==27.0.1
+psycopg[binary]==3.3.9
+whitenoise==6.12.0
+
+# Transitive dependencies on the pinned Python/Linux image.
+asgiref==3.13.0
+sqlparse==0.6.1

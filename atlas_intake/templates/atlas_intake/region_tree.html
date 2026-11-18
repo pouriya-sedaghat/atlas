@@ -1,0 +1,29 @@
+{% for region in nodes %}
+    <li data-region data-search="{{ region.search }}">
+        <div class="region-row">
+            {% if region.pbf_url %}
+                <label class="region-name">
+                    <input type="checkbox" name="pbf_ids" value="{{ region.id }}"{% if region.checked %} checked{% endif %}>
+                    <span><strong>{{ region.name }}</strong> <code>{{ region.id }}</code></span>
+                </label>
+            {% else %}
+                <span class="region-name unavailable">
+                    <span><strong>{{ region.name }}</strong> <code>{{ region.id }}</code></span>
+                    <span class="badge">POLY only</span>
+                </span>
+            {% endif %}
+            {% if region.children %}
+                <button type="button" class="quiet tree-toggle" aria-expanded="true"
+                        aria-label="Toggle subregions of {{ region.name }}" data-toggle-branch
+                        data-expand="{% if region.expand %}true{% else %}false{% endif %}" hidden>
+                    <span aria-hidden="true">⌄</span>
+                </button>
+            {% endif %}
+        </div>
+        {% if region.children %}
+            <ul class="region-children">
+                {% include "atlas_intake/region_tree.html" with nodes=region.children only %}
+            </ul>
+        {% endif %}
+    </li>
+{% endfor %}

@@ -1,0 +1,187 @@
+{% extends "atlas_intake/base.html" %}
+{% load tz %}
+{% block title %}Retrievals · Atlas Intake{% endblock %}
+{% block main %}
+    <div class="page-heading">
+        <div>
+            <h1>Retrievals</h1>
+            <p class="muted">Save the PBF selection, then start a retrieval or schedule it for later.</p>
+        </div>
+        <span class="badge mode">{{ state.get_mode_display }} mode</span>
+    </div>
+
+    <div class="dashboard-grid">
+        <section class="card region-card" aria-labelledby="catalog-heading">
+            <div class="section-heading">
+                <div>
+                    <h2 id="catalog-heading">Region catalog</h2>
+                    <p class="muted">{{ region_count }} region{{ region_count|pluralize }} · {{ state.selection|length }} saved PBF selection{{ state.selection|length|pluralize }}</p>
+                </div>
+                <form action="{% url 'atlas_intake:refresh_catalog' %}" method="post">
+                    {% csrf_token %}
+                    <button class="secondary">Refresh catalog</button>
+                </form>
+            </div>
+            {% if state.catalog_error %}<p class="notice error" role="alert">{{ state.catalog_error }}</p>{% endif %}
+            {% if state.catalog_refresh_requested %}
+                <p class="muted">Catalog refresh requested.</p>
+            {% endif %}
+            {% if state.catalog_id %}
+                <details class="catalog-revision">
+                    <summary>Catalog revision</summary>
+                    <code>{{ state.catalog_id }}</code>
+                    {% if state.catalog_checked_at %}
+                        <p class="muted">Last checked {{ state.catalog_checked_at|date:"Y-m-d H:i:s e" }}</p>
+                    {% endif %}
+                </details>
+            {% endif %}
+            <form action="{% url 'atlas_intake:save_selection' %}" method="post">
+                {% csrf_token %}
+                {{ selection_form.selection_token }}
+                {% if region_tree %}
+                    <div class="tree-picker" data-region-picker>
+                        <label class="search-field" hidden>
+                            <span>Search regions</span>
+                            <input type="search" data-region-search placeholder="Name, region ID, or parent">
+                        </label>
+                        <p class="muted">Choose each PBF individually. Every region has a POLY retrieval intent.</p>
+                        <p data-region-results role="status" class="muted" hidden></p>
+                        <ul class="region-tree" aria-label="Geofabrik region hierarchy">
+                            {% include "atlas_intake/region_tree.html" with nodes=region_tree only %}
+                        </ul>
+                    </div>
+                {% else %}
+                    <p class="muted">No validated catalog is available. Request a catalog refresh.</p>
+                {% endif %}
+                {% if selection_form.unavailable %}
+                    <fieldset class="unavailable-selection">
+                        <legend>Unavailable saved PBFs</legend>
+                        <p class="muted">These selections will block retrieval until the PBF returns or you remove the selection.</p>
+                        {% for region_id in selection_form.unavailable %}
+                            <label>
+                                <input type="checkbox" name="remove_unavailable" value="{{ region_id }}">
+                                Remove <code>{{ region_id }}</code>
+                            </label>
+                        {% endfor %}
+                    </fieldset>
+                {% endif %}
+                {% if region_tree or selection_form.unavailable %}
+                    <div class="form-actions"><button>Save PBF selection</button></div>
+                {% endif %}
+            </form>
+        </section>
+
+        <section class="card schedule-card" aria-labelledby="retrieval-heading">
+            <h2 id="retrieval-heading">Launch and schedule</h2>
+            <dl class="metadata">
+                <div>
+                    <dt>Next occurrence</dt>
+                    <dd>
+                        {% if pending %}
+                            <strong>{{ pending.wall_date|date:"Y-m-d" }} {{ pending.wall_time|time:"H:i" }} {{ pending.zone }}</strong>
+                            <span class="muted">{{ pending.due_at|date:"Y-m-d H:i e" }} · {{ pending.selection|length }} frozen PBF selection{{ pending.selection|length|pluralize }}</span>
+                            {% if pending.selection %}
+                                <details>
+                                    <summary>Frozen PBF IDs</summary>
+                                    <ul class="compact-list">
+                                        {% for region_id in pending.selection %}<li><code>{{ region_id }}</code></li>{% endfor %}
+                                    </ul>
+                                </details>
+                            {% endif %}
+                        {% else %}
+                            None scheduled
+                        {% endif %}
+                    </dd>
+                </div>
+                <div><dt>Manual run time zone</dt><dd>{{ atlas_zone }}</dd></div>
+                <div>
+                    <dt>Worker heartbeat</dt>
+                    <dd>{{ state.worker_heartbeat|date:"Y-m-d H:i:s e"|default:"Awaiting heartbeat" }}</dd>
+                </div>
+            </dl>
+            <div class="inline-actions">
+                <form action="{% url 'atlas_intake:launch' %}" method="post">
+                    {% csrf_token %}
+                    {{ launch_form.request_key }}
+                    <button{% if not state.catalog_id %} disabled{% endif %}>Start retrieval</button>
+                </form>
+                {% if state.mode == "automatic" %}
+                    <form action="{% url 'atlas_intake:manual_mode' %}" method="post">
+                        {% csrf_token %}
+                        <button class="secondary">Switch to Manual mode</button>
+                    </form>
+                {% endif %}
+            </div>
+            <form class="schedule-form" action="{% url 'atlas_intake:schedule' %}" method="post">
+                {% csrf_token %}
+                <h3>{% if pending %}Replace scheduled retrieval{% else %}Schedule one-time retrieval{% endif %}</h3>
+                <p class="muted" id="schedule-selection">The schedule freezes the current saved PBF selection.</p>
+                {{ schedule_form.non_field_errors }}
+                <div class="schedule-fields">
+                    {% for field in schedule_form %}
+                        <div class="schedule-field field-{{ field.name }}">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.help_text %}<p id="{{ field.auto_id }}_helptext" class="muted">{{ field.help_text }}</p>{% endif %}
+                            {{ field.errors }}
+                        </div>
+                    {% endfor %}
+                </div>
+                <button>Save schedule</button>
+            </form>
+        </section>
+    </div>
+
+    <section class="card runs-card" aria-labelledby="runs-heading">
+        <h2 id="runs-heading">Run history</h2>
+        {% regroup run_page.object_list by local_date as date_groups %}
+        {% for group in date_groups %}
+            <h3 class="date-group">{{ group.grouper|date:"F j, Y" }}</h3>
+            <ul class="run-list">
+                {% for run in group.list %}
+                    <li>
+                        <div>
+                            <a class="run-link" href="{% url 'atlas_intake:run_detail' run.pk %}">{{ run.pk }}</a>
+                            {% timezone run.zone %}
+                                <p class="muted">{{ run.get_origin_display }} · {{ run.created_at|date:"H:i:s" }} {{ run.zone }} · {{ run.selection|length }} PBF selection{{ run.selection|length|pluralize }}</p>
+                            {% endtimezone %}
+                        </div>
+                        <span class="progress-label">{{ run.finished_count }} / {{ run.file_count }} files resolved</span>
+                        <span class="badge status-{{ run.status }}">{{ run.get_status_display }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% empty %}
+            <p class="muted">No retrievals yet.</p>
+        {% endfor %}
+        {% if run_page.has_other_pages %}
+            <nav class="pagination" aria-label="Run history pages">
+                {% if run_page.has_previous %}<a href="?page={{ run_page.previous_page_number }}#runs-heading">Newer runs</a>{% endif %}
+                <span>Page {{ run_page.number }} of {{ run_page.paginator.num_pages }}</span>
+                {% if run_page.has_next %}<a href="?page={{ run_page.next_page_number }}#runs-heading">Older runs</a>{% endif %}
+            </nav>
+        {% endif %}
+    </section>
+
+    <section class="card history-card" aria-labelledby="system-heading">
+        <h2 id="system-heading">Control history</h2>
+        <details open>
+            <summary>Recent occurrences</summary>
+            <ul class="schedule-history">
+                {% for occurrence in schedule_history %}
+                    <li>
+                        <span>{{ occurrence.wall_date|date:"Y-m-d" }} {{ occurrence.wall_time|time:"H:i" }} {{ occurrence.zone }}</span>
+                        <span class="muted">{{ occurrence.due_at|date:"Y-m-d H:i e" }}</span>
+                        <span class="badge status-{{ occurrence.status }}">{{ occurrence.get_status_display }}</span>
+                    </li>
+                {% empty %}
+                    <li class="muted">No past occurrences.</li>
+                {% endfor %}
+            </ul>
+        </details>
+        <details>
+            <summary>Recent control activity</summary>
+            <ul class="activity">{% include "atlas_intake/activity.html" %}</ul>
+        </details>
+    </section>
+{% endblock %}

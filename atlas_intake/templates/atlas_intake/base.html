@@ -1,0 +1,41 @@
+{% load static tz %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Atlas Intake{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'atlas_intake/panel.css' %}">
+    <script src="{% static 'atlas_intake/panel.js' %}" defer></script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-content">
+            <a class="wordmark" href="{% url 'atlas_intake:dashboard' %}">Atlas <span>Intake</span></a>
+            {% if request.user.is_authenticated %}
+                <div class="account">
+                    <span>{{ request.user.get_username }}</span>
+                    <form method="post" action="{% url 'atlas_intake:logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="quiet">Sign out</button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+    </header>
+    <main class="container">
+        {% if messages %}
+            <ul class="messages" aria-label="Action results">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}" role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% timezone "UTC" %}{% block main %}{% endblock %}{% endtimezone %}
+    </main>
+    <footer class="container site-footer">
+        <span>Data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL)</span>
+        <span>Extracts and clipping boundaries by <a href="https://download.geofabrik.de/">Geofabrik</a></span>
+    </footer>
+</body>
+</html>
