@@ -1,6 +1,6 @@
 # Atlas Phase 1 — architecture and first delivery brief
 
-**Status** — The intake baseline at `9756b144` passed review and VM acceptance. The recurring Automatic design has been reviewed and approved for implementation on the designated Atlas VM. Acceptance of recurrence is required before the Part 1A pilot. Continue work in [draft PR #1](https://github.com/pouriya-sedaghat/atlas/pull/1).
+**Status** — Part 1A, including recurring Automatic retrieval, passed VM pilot acceptance and was merged in [PR #1](https://github.com/pouriya-sedaghat/atlas/pull/1). The [Part 1B input verification brief](phase-1b-input-verification.md) is ready for Codex design review.
 
 ## Purpose and delivery order
 
@@ -32,7 +32,7 @@ Group inbox paths by run creation date in the configured Atlas timezone for manu
 ```text
 inbox/asia/iran/YYYY-MM-DD/<run-id>/iran.osm.pbf
 inbox/asia/iran/YYYY-MM-DD/<run-id>/iran.poly
-inbox/asia/iran/YYYY-MM-DD/<run-id>/manifest.json
+verification/YYYY-MM-DD/<run-id>/<verification-id>/manifest.json
 database/YYYY-MM-DD/<release-id>/README.md
 ```
 
@@ -111,6 +111,8 @@ The designated VM review confirmed that GitHub reads and bounded Geofabrik reque
 - Deliver reproducible VM setup and recovery instructions, including service and worker health, a sanitized operator walkthrough, a capacity calculation for the chosen limits, and the automated test commands and results. Record registry and Git push checks, persistence proven by a Compose restart and any remaining backup or host-reboot verification gaps. Source and small synthetic fixtures belong in Git. Keep real extracts, secrets, private host details and raw production logs outside the repository.
 
 ## Codex prompt — implement recurring Automatic retrieval
+
+Part 1A implementation record. The current assignment is in the [Part 1B review brief](phase-1b-input-verification.md#codex-prompt--review-only).
 
 > Work in the designated Atlas VM checkout for https://github.com/pouriya-sedaghat/atlas. Fetch `origin/main` and the branch of draft PR #1, `feat/phase-1a-intake`. Read this approved brief at the supplied documentation revision. Use the reviewed baseline `9756b1442b2be4e018128d03d650a7bca9fdda53` and update the same PR branch. Preserve unrelated work in the checkout. The development authorization covers this recurrence change, its migration, operator UI and documentation, and its tests.
 >
