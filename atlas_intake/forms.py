@@ -35,27 +35,48 @@ class SelectionForm(forms.Form):
 
 
 class ScheduleForm(forms.Form):
-    wall_date = forms.DateField(
-        label="Local date",
+    activation_date = forms.DateField(
+        label="Activation date",
         input_formats=["%Y-%m-%d"],
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
     )
-    wall_time = forms.TimeField(
-        label="Local time",
+    activation_time = forms.TimeField(
+        label="Activation time",
         input_formats=["%H:%M"],
         widget=forms.TimeInput(format="%H:%M", attrs={"type": "time"}),
+    )
+    activation_offset = forms.CharField(
+        required=False,
+        label="Activation UTC offset",
+        max_length=6,
+        widget=forms.TextInput(attrs={"placeholder": "-04:00", "spellcheck": "false"}),
+    )
+    expiry_date = forms.DateField(
+        label="Expiry date",
+        input_formats=["%Y-%m-%d"],
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
+    )
+    expiry_time = forms.TimeField(
+        label="Expiry time",
+        input_formats=["%H:%M"],
+        widget=forms.TimeInput(format="%H:%M", attrs={"type": "time"}),
+    )
+    expiry_offset = forms.CharField(
+        required=False,
+        label="Expiry UTC offset",
+        max_length=6,
+        widget=forms.TextInput(attrs={"placeholder": "-05:00", "spellcheck": "false"}),
     )
     zone = forms.CharField(
         label="IANA time zone",
         max_length=128,
         widget=forms.TextInput(attrs={"placeholder": "Asia/Tehran", "spellcheck": "false"}),
     )
-    offset = forms.CharField(
-        required=False,
-        label="UTC offset for an ambiguous time",
-        max_length=6,
-        widget=forms.TextInput(attrs={"placeholder": "−04:00", "spellcheck": "false"}),
-        help_text="Enter a signed offset such as -04:00 if the local time occurs twice.",
+    interval_minutes = forms.IntegerField(
+        label="Elapsed interval in minutes",
+        min_value=1,
+        initial=1440,
+        help_text="1440 minutes is 24 hours.",
     )
 
 

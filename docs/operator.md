@@ -98,9 +98,18 @@ For operator access, terminate TLS at a VM-local reverse proxy on the private op
 3. Open the run detail to inspect progress, the source and checksum records, relative paths, and any incomplete files. Use **Retry file** for an eligible individual failure. A PBF retry retains its saved dated target and any established validators. A vanished or changed dated file requires a new run. A stale boundary shows its previous retrieval date and cannot satisfy the current run. A transient POLY discovery error appears on the dashboard while the last validated catalog remains available.
 
 When an artifact shows **Publication paused**, resolve the filesystem issue and choose **Resume publication** on the run page. Each publication cycle allows up to three attempts. The worker keeps the staged file and verified intent, and the run can release the retrieval queue while waiting for publication. A paused file remains in the inbox budget until publication succeeds.
-4. For a one-off automatic retrieval, save the desired selection and schedule a local date and time with its IANA zone. The form asks for a UTC offset when the wall time occurs twice and rejects a nonexistent time. The worker dispatches a pending occurrence within 24 hours after its due time. Switching to Manual supersedes a pending occurrence. Each dispatched run keeps its saved zone and groups by the local date on which it was created.
 
 Record the frozen revision, selection and region counts, checksums, relevant validators, relative inbox paths and seal status. Only a sealed run with verified current integrity can feed a later phase. Review capacity before a second intentional launch. Keep finalized assets and manifests throughout Part 1A.
+
+## Schedule recurring retrieval
+
+1. Save the desired PBF selection on the dashboard. For the Iran pilot, select Iran and leave Monaco unselected. Every occurrence includes a POLY intent for each region of its frozen catalog.
+2. In the Automatic schedule form, enter the local activation and expiry dates and times, an IANA timezone, and the elapsed interval in whole minutes. The defaults are `Asia/Tehran` and 1440 minutes (24 hours). Enter the applicable UTC offset separately for each bound that occurs twice. The form rejects nonexistent local times.
+3. Save the revision. The first planned time is one interval after activation and must be at or after the save time. For example, activation at 02:00 on January 6 and expiry at 02:00 on January 9 with a 24-hour interval in `Asia/Tehran` gives planned times at 02:00 on January 7 and January 8. Every planned time must be strictly before expiry. Atlas adds elapsed intervals in UTC, so the displayed local hour can change across a daylight-saving transition.
+4. Check the schedule on the dashboard and the outcomes in **Schedule history**. A due occurrence can wait for the retrieval slot or a validated catalog until the earliest of the next planned time, 24 hours after its own planned time, and expiry. Queued work has priority. When polling resumes after a delay, Atlas records elapsed unserved windows as missed and considers the latest eligible occurrence. On a run page, compare its planned time with its actual admission time in the saved zone. Atlas uses the local date of admission for the inbox path, and late admissions keep the original cadence.
+5. At expiry, reload the dashboard to see **Expired** with no next occurrence, including when the worker is offline. The mode stays Automatic. Save a replacement revision or switch to Manual to supersede remaining slots. To change the selection for future occurrences, save the selection and then save a new schedule revision. Previously admitted runs keep their frozen catalog, settings and selection.
+
+An existing one-off from the previous release retains its original planned time and at most one admission within its original 24-hour window. You can replace it with a recurring revision or switch to Manual.
 
 ## Check health and recover after a restart
 
@@ -117,34 +126,62 @@ Database health uses an authenticated query as `atlas_app`. Web health verifies 
 atlas_compose exec -T web sha256sum /inbox/asia/iran/YYYY-MM-DD/RUN_ID/iran.osm.pbf
 ```
 
-Use the actual path from the run. On restart, the worker reconciles durable publication intents, expired claims, and existing final files. If a completed file is absent or its fingerprint has changed, keep the original record and the affected bytes for review. If an update includes a migration, stop the web and worker, build the new image, apply migrations explicitly, then start both services and check health. If the database failed during its first initialization, check its logs and the host secret ownership. After correcting the cause, preserve the partially initialized directory and point Compose to a new, empty directory. Recover a database that already contains operator data from the matching backup.
+Use the actual path from the run. On restart, the worker reconciles durable publication intents, expired claims, and existing final files. If a completed file is absent or its fingerprint has changed, keep the original record and the affected bytes for review. If the database failed during its first initialization, check its logs and the host secret ownership. After correcting the cause, preserve the partially initialized directory and point Compose to a new, empty directory. Recover a database that already contains operator data from the matching backup.
 
-For a consistent operator backup, set `ATLAS_BACKUP_DIR` to an existing private backup directory outside the checkout, on persistent storage. Use a new destination for each backup. Stop both app processes while capturing the matching database dump and inbox tree. Include the VM deployment configuration and secret files in the VM's private backup procedure.
+## Back up before upgrading from schema 0002
+
+Record the existing checkout revision and check that a known run and its inbox files are readable. Set `ATLAS_BACKUP_DIR` to a new, private directory outside the checkout on persistent backup storage. Stop both app processes while capturing the matching database dump and inbox tree. Include deployment configuration and secret files in the VM's private backup procedure.
 
 ```sh
 (
-    set -eu
-    test -d "${ATLAS_BACKUP_DIR:?Set a private backup directory}"
+    set -euC
+    test -d "${ATLAS_BACKUP_DIR:?Set the private backup directory}"
     atlas_compose stop web worker
     umask 077
+    git rev-parse HEAD > "$ATLAS_BACKUP_DIR/atlas-revision"
     atlas_compose exec -T db pg_dump -U atlas_bootstrap -d atlas -Fc > "$ATLAS_BACKUP_DIR/atlas.dump"
     sudo tar --numeric-owner -C /srv/atlas/data/inbox -cf - . > "$ATLAS_BACKUP_DIR/inbox.tar"
-    atlas_compose up -d --wait web worker
+    test -s "$ATLAS_BACKUP_DIR/atlas.dump"
+    test -s "$ATLAS_BACKUP_DIR/inbox.tar"
 )
 ```
 
-Restore into fresh PostgreSQL and inbox directories with the stopped stack and keep the prior directories for diagnosis. Initialize the fresh database with `atlas_compose up -d --wait db`. Restore the matching dump with `pg_restore` as bootstrap using the application role and extract the trusted inbox archive preserving numeric ownership. Apply migrations with the matching application checkout, start the services, then recheck health, a known run and its artifact digests. Adjust the inbox path in the archive commands when using an alternate mount.
+Use the configured inbox mount in the archive commands if it differs from `/srv/atlas/data/inbox`. For a backup outside an upgrade, bring the app processes back up with `atlas_compose up -d --wait web worker` after the backup finishes.
+
+Keep web and worker stopped for the upgrade. Switch the checkout to the approved release, build its application image and migrate the existing database explicitly.
+
+```sh
+atlas_compose build web
+atlas_compose run --rm -T web python manage.py migrate --plan
+atlas_compose run --rm -T web python manage.py migrate --noinput
+atlas_compose run --rm -T web python manage.py migrate --check
+atlas_compose up -d --no-build --wait web worker
+```
+
+Check service health. Reopen a historical scheduled run and verify its original ID, planned instant, catalog and artifact paths. Check the queue and any still-pending legacy schedule. Its original 24-hour window still governs admission, so elapsed windows may have closed during maintenance.
+
+## Restore a matched database and inbox
+
+To roll back the recurrence upgrade after multiple runs share a schedule revision, restore the matched pre-upgrade dump and inbox archive with the checkout revision recorded in that backup. The old database schema permits one run per schedule. Keep the upgraded database and inbox directories for diagnosis and recovery of runs created after the backup.
+
+Stop the stack before switching its mounts. Prepare fresh PostgreSQL and inbox directories with the ownership and permissions from **Prepare the VM**, point Compose at both directories, and set the application's checkout to the recorded revision. Initialize the fresh PostgreSQL directory, then restore the matching database dump and trusted inbox archive. Adjust the inbox path below to the fresh configured mount.
 
 ```sh
 (
     set -eu
+    test -s "${ATLAS_BACKUP_DIR:?Set the private backup directory}/atlas.dump"
+    test -s "$ATLAS_BACKUP_DIR/inbox.tar"
+    atlas_compose up -d --wait db
     atlas_compose exec -T db pg_restore -U atlas_bootstrap --role=atlas_app --no-owner \
         --single-transaction --exit-on-error -d atlas < "$ATLAS_BACKUP_DIR/atlas.dump"
     sudo tar --numeric-owner -xpf "$ATLAS_BACKUP_DIR/inbox.tar" -C /srv/atlas/data/inbox
-    atlas_compose run --rm web python manage.py migrate --noinput
-    atlas_compose up -d --wait web worker
+    atlas_compose build web
+    atlas_compose run --rm -T web python manage.py migrate --noinput
+    atlas_compose up -d --no-build --wait web worker
 )
 ```
+
+Check service health, the restored schedule and queue state, and a known run's metadata and artifact digests.
 
 ## Run the deterministic checks
 
@@ -154,5 +191,15 @@ Use an isolated Compose project and database mount. Start its `db` service, buil
 atlas_compose exec -T db createdb -U atlas_bootstrap -O atlas_app test_atlas
 atlas_compose run --rm -T web python manage.py check
 atlas_compose run --rm -T web python manage.py makemigrations --check --dry-run
+atlas_compose run --rm -T web python manage.py migrate --noinput
+atlas_compose run --rm -T web python manage.py migrate --check
 atlas_compose run --rm -T worker python manage.py test --keepdb
 ```
+
+## Verify the 24-hour cadence on the VM
+
+Use a fresh loopback-only Compose project and persistent mounts prepared as above. Build from the candidate commit and keep the VM clock synchronized. Wait for the catalog, save the Iran PBF selection, and create a 1440-minute schedule with its activation in the future. Leave at least three planned occurrences before expiry to exercise a missed window.
+
+Drive admissions at controlled UTC instants through `atlas_intake.control.dispatch_due(now=...)` in a Django shell in the candidate container. Poll the first planned instant concurrently from separate database connections and replay it to confirm exactly one run is admitted. Let the normal worker use the live provider and finish the run. Record the schedule cursor, run metadata, status and artifact hashes. Restart Compose, check service health and persistence, then repeat the exact-time admission at the next planned instant, 24 hours after the first.
+
+Compare both runs' catalog intent counts and verify their final paths and bytes against their recorded hashes. Recheck the first run's hashes after the second run settles. To model an offline window, stop the isolated worker, skip polling the third slot, and poll at expiry. Confirm the dashboard shows expiry at the controlled time while the worker is offline. After polling at expiry, confirm the missed slot appears in the audit, the cursor advances and the run count stays at two. Record the controlled admission times and wall-clock transfer times separately.

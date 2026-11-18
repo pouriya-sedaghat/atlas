@@ -11,21 +11,53 @@ class CatalogRevision(models.Model):
 
 
 class Schedule(models.Model):
+    class Kind(models.TextChoices):
+        LEGACY = "legacy", "Legacy one-off"
+        RECURRING = "recurring", "Recurring"
+
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         DISPATCHED = "dispatched", "Dispatched"
         MISSED = "missed", "Missed"
         SUPERSEDED = "superseded", "Superseded"
+        EXPIRED = "expired", "Expired"
 
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    kind = models.CharField(max_length=12, choices=Kind.choices, default=Kind.LEGACY)
     wall_date = models.DateField()
     wall_time = models.TimeField()
     zone = models.CharField(max_length=128)
     offset = models.CharField(max_length=6, blank=True)
     due_at = models.DateTimeField()
+    expiry_date = models.DateField(null=True)
+    expiry_time = models.TimeField(null=True)
+    expiry_offset = models.CharField(max_length=6, blank=True)
+    activation_at = models.DateTimeField(null=True)
+    expires_at = models.DateTimeField(null=True)
+    interval_minutes = models.PositiveBigIntegerField(null=True)
+    last_resolved = models.PositiveBigIntegerField(default=0)
+    blocked_reason = models.CharField(max_length=64, blank=True)
     selection = models.JSONField(default=list)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(kind="legacy") | models.Q(
+                    kind="recurring",
+                    expiry_date__isnull=False,
+                    expiry_time__isnull=False,
+                    activation_at__isnull=False,
+                    activation_at__lt=models.F("due_at"),
+                    expires_at__isnull=False,
+                    expires_at__gt=models.F("due_at"),
+                    interval_minutes__isnull=False,
+                    interval_minutes__gt=0,
+                ),
+                name="schedule_has_valid_recurrence",
+            ),
+        ]
 
 
 class Control(models.Model):
@@ -61,7 +93,8 @@ class Run(models.Model):
     origin = models.CharField(max_length=12, choices=Control.Mode.choices)
     actor = models.CharField(max_length=150)
     catalog = models.ForeignKey(CatalogRevision, on_delete=models.PROTECT)
-    schedule = models.OneToOneField(Schedule, on_delete=models.PROTECT, null=True)
+    schedule = models.ForeignKey(Schedule, on_delete=models.PROTECT, null=True, related_name="runs")
+    scheduled_for = models.DateTimeField(null=True)
     selection = models.JSONField(default=list)
     limits = models.JSONField(default=dict)
     zone = models.CharField(max_length=128)
@@ -73,6 +106,13 @@ class Run(models.Model):
     preflight_passed = models.BooleanField(default=False)
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["schedule", "scheduled_for"],
+                condition=models.Q(schedule__isnull=False, scheduled_for__isnull=False),
+                name="unique_schedule_occurrence",
+            ),
+        ]
         indexes = [models.Index(fields=["status", "created_at"])]
 
 

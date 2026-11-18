@@ -1,8 +1,9 @@
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from hashlib import sha256
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
@@ -10,7 +11,8 @@ from django.contrib.auth.models import Permission
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from atlas_intake.models import Artifact, Audit, CatalogRevision, Control, Run
+from atlas_intake.control import dispatch_due
+from atlas_intake.models import Artifact, Audit, CatalogRevision, Control, Run, Schedule
 
 
 def region(region_id, name, parent=None, pbf=True):
@@ -43,8 +45,13 @@ class OperatorPanelTests(TestCase):
         )
         Control.objects.update_or_create(pk=1, defaults={"catalog": cls.catalog, "selection": []})
 
-    def dashboard(self):
-        return self.client.get(reverse("atlas_intake:dashboard"))
+    def dashboard(self, *, at=None):
+        url = reverse("atlas_intake:dashboard")
+        if at is None:
+            return self.client.get(url)
+        with patch("atlas_intake.views.timezone") as clock:
+            clock.now.return_value = at
+            return self.client.get(url)
 
     def save_selection(self, selected=(), remove=()):
         snapshot = self.dashboard().context["selection_form"]["selection_token"].value()
@@ -57,6 +64,19 @@ class OperatorPanelTests(TestCase):
         response = self.client.post(reverse("atlas_intake:launch"), {"request_key": uuid4()})
         self.assertEqual(response.status_code, 302)
         return Run.objects.get(pk=response["Location"].rstrip("/").rsplit("/", 1)[-1])
+
+    def post_schedule(self, **values):
+        form = {
+            "activation_date": "2030-11-04",
+            "activation_time": "02:30",
+            "expiry_date": "2030-11-08",
+            "expiry_time": "02:30",
+            "zone": "Asia/Tehran",
+            "interval_minutes": "1440",
+        }
+        with patch("atlas_intake.control.timezone") as clock:
+            clock.now.return_value = datetime(2030, 1, 1, tzinfo=UTC)
+            return self.client.post(reverse("atlas_intake:schedule"), {**form, **values})
 
     def test_panel_redirects_anonymous_visitors(self):
         self.assertRedirects(
@@ -139,27 +159,142 @@ class OperatorPanelTests(TestCase):
         intentional_second = self.launch_run()
         self.assertNotEqual(run.pk, intentional_second.pk)
 
-    def test_schedule_form_rejects_nonexistent_wall_time(self):
+    def test_schedule_form_uses_the_configured_zone_and_daily_interval(self):
         self.client.force_login(self.operator)
-        response = self.client.post(
-            reverse("atlas_intake:schedule"),
-            {"wall_date": "2030-03-10", "wall_time": "02:30", "zone": "America/New_York"},
-        )
-        self.assertEqual(response.status_code, 400)
+        form = self.dashboard().context["schedule_form"]
+        self.assertEqual(form["zone"].value(), "Asia/Tehran")
+        self.assertEqual(form["interval_minutes"].value(), 1440)
+
+    def test_schedule_form_rejects_a_nonexistent_activation_or_expiry(self):
+        self.client.force_login(self.operator)
+        for bound, other in (("activation", "expiry"), ("expiry", "activation")):
+            with self.subTest(bound=bound):
+                response = self.post_schedule(
+                    zone="America/New_York",
+                    **{f"{bound}_date": "2030-03-10", f"{bound}_time": "02:30", f"{other}_date": "2030-03-09"},
+                )
+                self.assertContains(response, "does not exist", status_code=400)
         self.assertEqual(Control.objects.get(pk=1).mode, "manual")
 
-    def test_schedule_requires_chosen_offset_and_shows_next_occurrence(self):
+    def test_schedule_requires_chosen_offset_for_each_ambiguous_bound(self):
         self.client.force_login(self.operator)
-        form = {"wall_date": "2030-11-03", "wall_time": "01:30", "zone": "America/New_York"}
-        url = reverse("atlas_intake:schedule")
-        self.assertEqual(self.client.post(url, form).status_code, 400)
-        self.assertRedirects(self.client.post(url, {**form, "offset": "-04:00"}), reverse("atlas_intake:dashboard"))
-        control = Control.objects.select_related("schedule").get(pk=1)
-        self.assertEqual(control.mode, "automatic")
-        self.assertEqual(control.schedule.due_at.isoformat(), "2030-11-03T05:30:00+00:00")
-        response = self.dashboard()
+        form = {
+            "activation_date": "2030-11-03",
+            "activation_time": "01:30",
+            "expiry_date": "2030-11-03",
+            "expiry_time": "01:30",
+            "zone": "America/New_York",
+            "interval_minutes": "30",
+        }
+        self.assertContains(self.post_schedule(**form), "UTC offset", status_code=400)
+        self.assertContains(self.post_schedule(**form, activation_offset="-04:00"), "UTC offset", status_code=400)
+        self.assertRedirects(
+            self.post_schedule(**form, activation_offset="-04:00", expiry_offset="-05:00"),
+            reverse("atlas_intake:dashboard"),
+        )
+        schedule = Control.objects.select_related("schedule").get(pk=1).schedule
+        self.assertEqual(schedule.activation_at.isoformat(), "2030-11-03T05:30:00+00:00")
+        self.assertEqual(schedule.due_at.isoformat(), "2030-11-03T06:00:00+00:00")
+        self.assertEqual(schedule.expires_at.isoformat(), "2030-11-03T06:30:00+00:00")
+        response = self.dashboard(at=datetime(2030, 11, 3, 4, tzinfo=UTC))
         self.assertContains(response, "America/New_York")
-        self.assertContains(response, "Next occurrence")
+        self.assertContains(response, "Next planned occurrence")
+
+    def test_schedule_rejects_nonpositive_and_fractional_intervals(self):
+        self.client.force_login(self.operator)
+        for interval in ("0", "-1", "1.5"):
+            with self.subTest(interval=interval):
+                self.assertEqual(self.post_schedule(interval_minutes=interval).status_code, 400)
+        self.assertFalse(Schedule.objects.exists())
+
+    def test_dashboard_shows_expiry_at_the_exact_instant_without_worker_poll(self):
+        self.client.force_login(self.operator)
+        self.assertEqual(self.post_schedule(zone="UTC").status_code, 302)
+        schedule = Control.objects.get(pk=1).schedule
+        response = self.dashboard(at=datetime(2030, 11, 3, 2, 30, tzinfo=UTC))
+        self.assertContains(response, "Waiting for activation")
+        self.assertContains(response, "2030-11-05 02:30")
+        self.assertEqual(response.context["schedule_preview"]["next_due_at"], schedule.due_at)
+        response = self.dashboard(at=schedule.expires_at)
+        self.assertContains(response, "Automatic mode")
+        self.assertContains(response, "Expired")
+        self.assertIsNone(response.context["schedule_preview"]["next_due_at"])
+        schedule.refresh_from_db()
+        self.assertEqual(schedule.status, Schedule.Status.PENDING)
+        self.assertFalse(Audit.objects.filter(action="schedule.expired").exists())
+
+    def test_dashboard_distinguishes_a_blocked_occurrence_from_the_next_planned_slot(self):
+        self.client.force_login(self.operator)
+        self.launch_run()  # Accepted manual work has priority over Automatic admission.
+        self.assertEqual(self.post_schedule(zone="UTC").status_code, 302)
+        schedule = Control.objects.get(pk=1).schedule
+        self.assertIsNone(dispatch_due(now=schedule.due_at))
+        response = self.dashboard(at=schedule.due_at)
+        self.assertContains(response, "Waiting occurrence")
+        self.assertContains(response, "The retrieval slot is busy.")
+        self.assertEqual(response.context["schedule_preview"]["waiting_at"], schedule.due_at)
+        self.assertEqual(response.context["schedule_preview"]["next_due_at"], schedule.due_at + timedelta(days=1))
+
+    def test_current_revision_history_shows_outcomes_and_per_run_local_times(self):
+        self.client.force_login(self.operator)
+        self.assertEqual(self.post_schedule(activation_time="00:30", expiry_time="00:30").status_code, 302)
+        revision = Control.objects.get(pk=1).schedule
+        scheduled_for = datetime(2030, 11, 5, 21, tzinfo=UTC)
+        admitted_at = datetime(2030, 11, 5, 21, 10, tzinfo=UTC)
+        run = Run.objects.create(
+            request_key="second-occurrence",
+            origin=Control.Mode.AUTOMATIC,
+            actor="scheduler",
+            catalog=self.catalog,
+            schedule=revision,
+            scheduled_for=scheduled_for,
+            zone="Asia/Tehran",
+            created_at=admitted_at,
+            local_date=date(2030, 11, 6),
+        )
+        Audit.objects.create(action="schedule.dispatched", actor="scheduler", run=run, detail={"schedule": str(revision.pk)})
+        Audit.objects.create(
+            action="schedule.missed",
+            actor="scheduler",
+            detail={
+                "schedule": str(revision.pk),
+                "first_planned": "2030-11-04T21:00:00+00:00",
+                "last_planned": "2030-11-04T21:00:00+00:00",
+                "count": 1,
+                "reason": "retrieval_slot_busy",
+                "first_index": 1,
+                "last_index": 1,
+            },
+        )
+        response = self.dashboard()
+        self.assertContains(response, "Admitted")
+        self.assertContains(response, "Missed")
+        self.assertContains(response, "The retrieval slot is busy.")
+        self.assertContains(response, "November 6, 2030")
+        detail = self.client.get(reverse("atlas_intake:run_detail", args=[run.pk]))
+        self.assertContains(detail, "Planned occurrence")
+        self.assertContains(detail, "Actual admission")
+        self.assertContains(detail, "2030-11-06 00:30:00")
+        self.assertContains(detail, "2030-11-06 00:40:00")
+
+    def test_legacy_supersession_history_without_range_data_is_visible(self):
+        self.client.force_login(self.operator)
+        legacy = Schedule.objects.create(
+            kind="legacy",
+            wall_date=date(2030, 11, 5),
+            wall_time=time(12),
+            zone="UTC",
+            due_at=datetime(2030, 11, 5, 12, tzinfo=UTC),
+            status=Schedule.Status.SUPERSEDED,
+        )
+        Audit.objects.create(
+            action="schedule.superseded", actor="operator", detail={"schedule": str(legacy.pk)}
+        )
+        self.assertEqual(self.post_schedule().status_code, 302)
+        response = self.client.get(reverse("atlas_intake:dashboard"), {"revision": legacy.pk})
+        self.assertContains(response, "Legacy one-off")
+        self.assertContains(response, "Superseded")
+        self.assertContains(response, "2030-11-05 12:00:00")
 
     def test_retry_requeues_the_artifact_once_and_records_operator(self):
         self.client.force_login(self.operator)
@@ -228,10 +363,7 @@ class OperatorPanelTests(TestCase):
         original_key = uuid4()
         first = self.client.post(url, {"request_key": original_key})
         self.assertEqual(first.status_code, 302)
-        schedule = self.client.post(
-            reverse("atlas_intake:schedule"),
-            {"wall_date": "2030-11-04", "wall_time": "02:30", "zone": "Asia/Tehran"},
-        )
+        schedule = self.post_schedule()
         self.assertEqual(schedule.status_code, 302)
         replay = self.client.post(url, {"request_key": original_key})
         self.assertEqual(replay.status_code, 302)

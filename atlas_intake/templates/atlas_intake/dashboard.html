@@ -74,25 +74,62 @@
         <section class="card schedule-card" aria-labelledby="retrieval-heading">
             <h2 id="retrieval-heading">Launch and schedule</h2>
             <dl class="metadata">
+                {% if current_schedule %}
+                    <div>
+                        <dt>Automatic schedule</dt>
+                        <dd>
+                            <strong>{{ schedule_preview.state }}</strong>
+                            {% if current_schedule.kind == "legacy" %}<span class="muted">Legacy one-off</span>{% endif %}
+                        </dd>
+                    </div>
+                    {% if schedule_preview.waiting_at %}
+                        <div>
+                            <dt>Waiting occurrence</dt>
+                            <dd>
+                                {% include "atlas_intake/schedule_instant.html" with instant=schedule_preview.waiting_at zone=current_schedule.zone only %}
+                                {% if schedule_preview.blocker %}<span class="muted">{{ schedule_preview.blocker }}</span>{% endif %}
+                            </dd>
+                        </div>
+                    {% endif %}
+                {% endif %}
                 <div>
-                    <dt>Next occurrence</dt>
+                    <dt>Next planned occurrence</dt>
                     <dd>
-                        {% if pending %}
-                            <strong>{{ pending.wall_date|date:"Y-m-d" }} {{ pending.wall_time|time:"H:i" }} {{ pending.zone }}</strong>
-                            <span class="muted">{{ pending.due_at|date:"Y-m-d H:i e" }} · {{ pending.selection|length }} frozen PBF selection{{ pending.selection|length|pluralize }}</span>
-                            {% if pending.selection %}
-                                <details>
-                                    <summary>Frozen PBF IDs</summary>
-                                    <ul class="compact-list">
-                                        {% for region_id in pending.selection %}<li><code>{{ region_id }}</code></li>{% endfor %}
-                                    </ul>
-                                </details>
-                            {% endif %}
+                        {% if schedule_preview.next_due_at %}
+                            {% include "atlas_intake/schedule_instant.html" with instant=schedule_preview.next_due_at zone=current_schedule.zone only %}
                         {% else %}
                             None scheduled
                         {% endif %}
                     </dd>
                 </div>
+                {% if current_schedule.kind == "recurring" %}
+                    <div>
+                        <dt>Activation</dt>
+                        <dd>{% include "atlas_intake/schedule_instant.html" with instant=current_schedule.activation_at zone=current_schedule.zone only %}</dd>
+                    </div>
+                    <div>
+                        <dt>Expiry</dt>
+                        <dd>{% include "atlas_intake/schedule_instant.html" with instant=current_schedule.expires_at zone=current_schedule.zone only %}</dd>
+                    </div>
+                    <div><dt>Elapsed interval</dt><dd>{{ current_schedule.interval_minutes }} minutes</dd></div>
+                {% endif %}
+                {% if current_schedule %}
+                    <div>
+                        <dt>Frozen PBF selection</dt>
+                        <dd>
+                            {% if current_schedule.selection %}
+                                <details>
+                                    <summary>{{ current_schedule.selection|length }} selected PBF{{ current_schedule.selection|length|pluralize }}</summary>
+                                    <ul class="compact-list">
+                                        {% for region_id in current_schedule.selection %}<li><code>{{ region_id }}</code></li>{% endfor %}
+                                    </ul>
+                                </details>
+                            {% else %}
+                                No PBFs selected
+                            {% endif %}
+                        </dd>
+                    </div>
+                {% endif %}
                 <div><dt>Manual run time zone</dt><dd>{{ atlas_zone }}</dd></div>
                 <div>
                     <dt>Worker heartbeat</dt>
@@ -115,18 +152,25 @@
             </div>
             <form class="schedule-form" action="{% url 'atlas_intake:schedule' %}" method="post">
                 {% csrf_token %}
-                <h3>{% if pending %}Replace scheduled retrieval{% else %}Schedule one-time retrieval{% endif %}</h3>
-                <p class="muted" id="schedule-selection">The schedule freezes the current saved PBF selection.</p>
+                <h3>{% if current_schedule %}Replace Automatic schedule{% else %}Schedule recurring retrieval{% endif %}</h3>
+                <p class="muted">The first occurrence is one interval after activation. The revision freezes the saved PBF selection.</p>
                 {{ schedule_form.non_field_errors }}
+                <fieldset class="schedule-fields schedule-bound">
+                    <legend>Activation</legend>
+                    {% include "atlas_intake/schedule_field.html" with field=schedule_form.activation_date only %}
+                    {% include "atlas_intake/schedule_field.html" with field=schedule_form.activation_time only %}
+                    {% include "atlas_intake/schedule_field.html" with field=schedule_form.activation_offset only %}
+                </fieldset>
+                <fieldset class="schedule-fields schedule-bound">
+                    <legend>Expiry</legend>
+                    {% include "atlas_intake/schedule_field.html" with field=schedule_form.expiry_date only %}
+                    {% include "atlas_intake/schedule_field.html" with field=schedule_form.expiry_time only %}
+                    {% include "atlas_intake/schedule_field.html" with field=schedule_form.expiry_offset only %}
+                </fieldset>
+                <p class="muted">For each local time that occurs twice, enter a signed UTC offset such as -04:00.</p>
                 <div class="schedule-fields">
-                    {% for field in schedule_form %}
-                        <div class="schedule-field field-{{ field.name }}">
-                            {{ field.label_tag }}
-                            {{ field }}
-                            {% if field.help_text %}<p id="{{ field.auto_id }}_helptext" class="muted">{{ field.help_text }}</p>{% endif %}
-                            {{ field.errors }}
-                        </div>
-                    {% endfor %}
+                    {% include "atlas_intake/schedule_field.html" with field=schedule_form.zone only %}
+                    {% include "atlas_intake/schedule_field.html" with field=schedule_form.interval_minutes only %}
                 </div>
                 <button>Save schedule</button>
             </form>
@@ -144,8 +188,11 @@
                         <div>
                             <a class="run-link" href="{% url 'atlas_intake:run_detail' run.pk %}">{{ run.pk }}</a>
                             {% timezone run.zone %}
-                                <p class="muted">{{ run.get_origin_display }} · {{ run.created_at|date:"H:i:s" }} {{ run.zone }} · {{ run.selection|length }} PBF selection{{ run.selection|length|pluralize }}</p>
+                                <p class="muted">{{ run.get_origin_display }} · {% if run.scheduled_for %}Admitted {% endif %}{{ run.created_at|date:"H:i:s" }} {{ run.zone }} · {{ run.selection|length }} PBF selection{{ run.selection|length|pluralize }}</p>
                             {% endtimezone %}
+                            {% if run.scheduled_for %}
+                                <p class="muted">Planned {% include "atlas_intake/schedule_instant.html" with instant=run.scheduled_for zone=run.zone only %}</p>
+                            {% endif %}
                         </div>
                         <span class="progress-label">{{ run.finished_count }} / {{ run.file_count }} files resolved</span>
                         <span class="badge status-{{ run.status }}">{{ run.get_status_display }}</span>
@@ -164,22 +211,10 @@
         {% endif %}
     </section>
 
+    {% include "atlas_intake/schedule_history.html" %}
+
     <section class="card history-card" aria-labelledby="system-heading">
         <h2 id="system-heading">Control history</h2>
-        <details open>
-            <summary>Recent occurrences</summary>
-            <ul class="schedule-history">
-                {% for occurrence in schedule_history %}
-                    <li>
-                        <span>{{ occurrence.wall_date|date:"Y-m-d" }} {{ occurrence.wall_time|time:"H:i" }} {{ occurrence.zone }}</span>
-                        <span class="muted">{{ occurrence.due_at|date:"Y-m-d H:i e" }}</span>
-                        <span class="badge status-{{ occurrence.status }}">{{ occurrence.get_status_display }}</span>
-                    </li>
-                {% empty %}
-                    <li class="muted">No past occurrences.</li>
-                {% endfor %}
-            </ul>
-        </details>
         <details>
             <summary>Recent control activity</summary>
             <ul class="activity">{% include "atlas_intake/activity.html" %}</ul>

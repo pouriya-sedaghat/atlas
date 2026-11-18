@@ -29,6 +29,18 @@ def install_catalog():
     return catalog
 
 
+def install_pending_legacy(wall_date, wall_time, zone="Asia/Tehran"):
+    control = get_control()
+    schedule = Schedule.objects.create(
+        kind=Schedule.Kind.LEGACY, wall_date=wall_date, wall_time=wall_time, zone=zone,
+        due_at=resolve_wall(wall_date, wall_time, zone), selection=control.selection,
+    )
+    control.schedule = schedule
+    control.mode = "automatic"
+    control.save(update_fields=["schedule", "mode"])
+    return schedule
+
+
 class ControlTests(TestCase):
     def setUp(self):
         self.catalog = install_catalog()
@@ -56,11 +68,14 @@ class ControlTests(TestCase):
         self.assertEqual(artifact.status, Artifact.Status.UNAVAILABLE)
 
     def test_replaced_and_manual_schedule_are_superseded(self):
-        one = save_schedule(date(2030, 1, 1), time(4), "Asia/Tehran", "", "operator")
-        two = save_schedule(date(2030, 1, 2), time(4), "Asia/Tehran", "", "operator")
+        one = install_pending_legacy(date(2030, 1, 1), time(4))
+        two = save_schedule(
+            date(2030, 1, 1), time(4), date(2030, 1, 4), time(4),
+            "Asia/Tehran", "", "", 1440, "operator", now=one.due_at - timedelta(minutes=1),
+        )
         one.refresh_from_db()
         self.assertEqual(one.status, Schedule.Status.SUPERSEDED)
-        set_manual("operator")
+        set_manual("operator", now=two.due_at)
         two.refresh_from_db()
         self.assertEqual(two.status, Schedule.Status.SUPERSEDED)
         self.assertIsNone(dispatch_due(two.due_at))
@@ -68,7 +83,7 @@ class ControlTests(TestCase):
     @override_settings(ATLAS_ZONE="Asia/Tehran")
     def test_dispatch_once_with_local_creation_date_and_frozen_selection(self):
         set_selection(["iran"], "operator")
-        schedule = save_schedule(date(2030, 1, 1), time(23, 50), "Asia/Tehran", "", "operator")
+        schedule = install_pending_legacy(date(2030, 1, 1), time(23, 50))
         set_selection(["monaco"], "operator")
         now = schedule.due_at + timedelta(minutes=30)
         run = dispatch_due(now)
@@ -79,7 +94,7 @@ class ControlTests(TestCase):
         self.assertEqual(Run.objects.count(), 1)
 
     def test_grace_period_excludes_exactly_24_hours(self):
-        schedule = save_schedule(date(2030, 1, 1), time(4), "Asia/Tehran", "", "operator")
+        schedule = install_pending_legacy(date(2030, 1, 1), time(4))
         self.assertIsNone(dispatch_due(schedule.due_at + timedelta(hours=24)))
         schedule.refresh_from_db()
         self.assertEqual(schedule.status, Schedule.Status.MISSED)

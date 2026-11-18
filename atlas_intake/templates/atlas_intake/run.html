@@ -16,19 +16,25 @@
         <dl class="metadata metadata-grid">
             <div><dt>Origin</dt><dd>{{ run.get_origin_display }} · {{ run.actor }}</dd></div>
             <div>
-                <dt>Created</dt>
+                <dt>{% if run.scheduled_for %}Actual admission{% else %}Created{% endif %}</dt>
                 <dd>
-                    {% timezone run.zone %}<strong>{{ run.created_at|date:"Y-m-d H:i:s" }} {{ run.zone }}</strong>{% endtimezone %}
+                    <strong>{% include "atlas_intake/schedule_instant.html" with instant=run.created_at zone=run.zone only %}</strong>
                     <span class="muted">{{ run.created_at|date:"Y-m-d H:i:s e" }}</span>
                 </dd>
             </div>
-            {% if run.schedule %}
+            {% if run.scheduled_for %}
                 <div>
-                    <dt>Scheduled occurrence</dt>
+                    <dt>Planned occurrence</dt>
                     <dd>
-                        <strong>{{ run.schedule.wall_date|date:"Y-m-d" }} {{ run.schedule.wall_time|time:"H:i" }} {{ run.schedule.zone }}</strong>
-                        <span class="muted">{{ run.schedule.due_at|date:"Y-m-d H:i e" }}</span>
+                        <strong>{% include "atlas_intake/schedule_instant.html" with instant=run.scheduled_for zone=run.zone only %}</strong>
+                        <span class="muted">{{ run.scheduled_for|date:"Y-m-d H:i:s e" }}</span>
                     </dd>
+                </div>
+            {% endif %}
+            {% if run.schedule_id %}
+                <div>
+                    <dt>Schedule revision</dt>
+                    <dd><a href="{% url 'atlas_intake:dashboard' %}?revision={{ run.schedule_id }}#occurrences-heading"><code>{{ run.schedule_id }}</code></a></dd>
                 </div>
             {% endif %}
             <div><dt>Catalog revision</dt><dd><code>{{ run.catalog_id }}</code></dd></div>

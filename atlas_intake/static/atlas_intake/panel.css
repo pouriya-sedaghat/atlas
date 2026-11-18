@@ -95,9 +95,9 @@ main { padding-block: 1.75rem; }
     font-weight: 650;
     white-space: nowrap;
 }
-.mode, .status-running, .status-transferring, .status-prepared { color: #1b4887; background: #e7f0fb; }
+.mode, .status-active, .status-running, .status-transferring, .status-prepared { color: #1b4887; background: #e7f0fb; }
 .status-complete, .status-sealed, .status-dispatched { color: #175b43; background: #e5f4ec; }
-.status-incomplete, .status-unavailable, .status-excepted, .status-missed { color: #78500a; background: #fcf1d8; }
+.status-incomplete, .status-unavailable, .status-excepted, .status-missed, .status-waiting, .status-waiting-for-activation { color: #78500a; background: #fcf1d8; }
 .status-failed, .status-integrity_failed { color: #902e2d; background: #fae8e6; }
 .notice, .messages li, .errorlist {
     padding: 0.65rem 0.85rem;
@@ -139,7 +139,9 @@ label.region-name { cursor: pointer; }
 .schedule-form { border-top: 1px solid var(--border); margin-top: 1rem; padding-top: 1rem; }
 .schedule-form > p { margin-top: 0.3rem; }
 .schedule-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; margin-block: 0.85rem; }
-.field-zone, .field-offset { grid-column: 1 / -1; }
+.schedule-bound { min-width: 0; padding: 0.65rem 0.75rem; border: 1px solid var(--border); border-radius: 0.45rem; }
+.schedule-bound legend { padding-inline: 0.25rem; font-weight: 650; }
+.field-activation_offset, .field-expiry_offset, .field-zone, .field-interval_minutes { grid-column: 1 / -1; }
 .inline-actions { flex-wrap: wrap; }
 .metadata, .event-detail { margin: 0.8rem 0; }
 .metadata > div + div { margin-top: 0.65rem; }
@@ -163,6 +165,10 @@ label.region-name { cursor: pointer; }
 .progress-label { font-size: 0.88rem; }
 .history-card > details { margin-top: 0.65rem; }
 .history-card > details > summary { margin-bottom: 0.45rem; }
+.schedule-history li { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+.schedule-history a[aria-current] { font-weight: 650; }
+.occurrence-history { margin-top: 1rem; }
+.occurrence-history > p { margin: 0.25rem 0; }
 .activity > li, .attempts > li { border-bottom: 1px solid var(--border); padding: 0.55rem 0; }
 .event-heading { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; }
 .event-heading time, .event-heading span, .attempts span { font-size: 0.88rem; color: var(--ink-muted); }

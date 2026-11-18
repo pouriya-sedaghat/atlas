@@ -28,9 +28,10 @@ class Command(BaseCommand):
             self.stdout.write("Atlas intake worker started.")
             while True:
                 heartbeat()
+                dispatch_due()
                 if due_refresh():
                     refresh_catalog(Client())
-                dispatch_due()
+                    dispatch_due()
                 worker.reclaim_expired()
                 worker.recover_publications()
                 worker.integrity_tick(startup)
@@ -38,9 +39,10 @@ class Command(BaseCommand):
                     worker.clean_staging()
                     worker.next_sweep = monotonic() + 300
                 did_work = worker.work_tick()
+                admitted = dispatch_due()
                 if options["once"]:
                     break
-                if not did_work:
+                if not did_work and admitted is None:
                     sleep(2)
         finally:
             connection.close()

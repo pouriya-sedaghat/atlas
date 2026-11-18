@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from hashlib import sha256
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -8,6 +8,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from .models import Artifact, Audit, Control, Run, Schedule
+from .scheduling import MINUTE, closed_through, occurrence_count, planned_instant
 
 
 def get_control():
@@ -34,8 +35,12 @@ def resolve_wall(wall_date, wall_time, zone, offset=""):
     candidates = {}
     for fold in (0, 1):
         zoned = wall.replace(tzinfo=tz, fold=fold)
-        instant = zoned.astimezone(UTC)
-        if instant.astimezone(tz).replace(tzinfo=None) == wall:
+        try:
+            instant = zoned.astimezone(UTC)
+            local = instant.astimezone(tz).replace(tzinfo=None)
+        except OverflowError:
+            raise ValidationError("This local time is outside the supported UTC range.") from None
+        if local == wall:
             raw = zoned.strftime("%z")
             label = raw[:3] + ":" + raw[3:]
             candidates[label] = instant
@@ -66,33 +71,114 @@ def set_selection(ids, actor, *, expected_catalog_id=None, expected_selection=No
     audit("selection.saved", actor, pbf_ids=selected)
 
 
-def supersede(control, actor):
-    if control.schedule_id and Schedule.objects.filter(
-        pk=control.schedule_id, status=Schedule.Status.PENDING,
-    ).update(status=Schedule.Status.SUPERSEDED):
-        audit("schedule.superseded", actor, schedule=str(control.schedule_id))
+def _read_clock(now):
+    return (timezone.now() if now is None else now).astimezone(UTC)
+
+
+def _audit_missed(schedule, first, last, reason, actor):
+    audit(
+        "schedule.missed", actor, schedule=str(schedule.pk), reason=reason,
+        first_index=first, last_index=last, count=last - first + 1,
+        first_planned=planned_instant(schedule, first).isoformat(),
+        last_planned=planned_instant(schedule, last).isoformat(),
+    )
+
+
+def _record_closed(schedule, now, actor="scheduler"):
+    last = closed_through(schedule, now)
+    first = schedule.last_resolved + 1
+    if first > last:
+        return
+    # A blocker belonged to the one occurrence observed while it was open.
+    # Keep it separate from any unobserved part of a long missed range.
+    if schedule.blocked_reason:
+        _audit_missed(schedule, first, first, schedule.blocked_reason, actor)
+        first += 1
+    if first <= last:
+        _audit_missed(schedule, first, last, "admission_window_elapsed", actor)
+    schedule.last_resolved = last
+    schedule.blocked_reason = ""
+    fields = ["last_resolved", "blocked_reason"]
+    if schedule.kind == Schedule.Kind.LEGACY:
+        schedule.status = Schedule.Status.MISSED
+        fields.append("status")
+    schedule.save(update_fields=fields)
+
+
+def _expire_if_due(schedule, now, actor):
+    if schedule.kind != Schedule.Kind.RECURRING or now < schedule.expires_at:
+        return False
+    schedule.status = Schedule.Status.EXPIRED
+    schedule.save(update_fields=["status"])
+    audit("schedule.expired", actor, schedule=str(schedule.pk), expires_at=schedule.expires_at.isoformat())
+    return True
+
+
+def _end_schedule(control, actor, now):
+    if not control.schedule_id:
+        return
+    schedule = control.schedule
+    if schedule.status != Schedule.Status.PENDING:
+        return
+    _record_closed(schedule, now, actor)
+    if schedule.status != Schedule.Status.PENDING or _expire_if_due(schedule, now, actor):
+        return
+    schedule.status = Schedule.Status.SUPERSEDED
+    schedule.blocked_reason = ""
+    schedule.save(update_fields=["status", "blocked_reason"])
+    audit(
+        "schedule.superseded", actor, schedule=str(schedule.pk),
+        remaining_count=occurrence_count(schedule) - schedule.last_resolved,
+    )
+
+
+def _resolve_schedule_bound(field, wall_date, wall_time, zone, offset):
+    try:
+        return resolve_wall(wall_date, wall_time, zone, offset)
+    except ValidationError as error:
+        raise ValidationError({field: error.messages}) from error
 
 
 @transaction.atomic
-def save_schedule(wall_date, wall_time, zone, offset, actor):
-    due = resolve_wall(wall_date, wall_time, zone, offset)
+def save_schedule(
+    activation_date, activation_time, expiry_date, expiry_time,
+    zone, activation_offset, expiry_offset, interval_minutes, actor, *, now=None,
+):
+    activation = _resolve_schedule_bound("activation_time", activation_date, activation_time, zone, activation_offset)
+    expiry = _resolve_schedule_bound("expiry_time", expiry_date, expiry_time, zone, expiry_offset)
+    if type(interval_minutes) is not int or interval_minutes <= 0:
+        raise ValidationError("Enter a positive elapsed interval in whole minutes.")
+    # Compare before constructing a timedelta so unbounded input cannot overflow.
+    if interval_minutes > (expiry - activation - datetime.resolution) // MINUTE:
+        raise ValidationError("The first due occurrence must be strictly before expiry.")
+    due = activation + MINUTE * interval_minutes
+
     control = lock_control()
-    supersede(control, actor)
+    now = _read_clock(now)
+    if due < now:
+        raise ValidationError("The first due occurrence must be at or after the schedule is saved.")
+    _end_schedule(control, actor, now)
     schedule = Schedule.objects.create(
-        wall_date=wall_date, wall_time=wall_time, zone=zone, offset=offset or "",
+        kind=Schedule.Kind.RECURRING,
+        wall_date=activation_date, wall_time=activation_time, offset=activation_offset or "",
+        expiry_date=expiry_date, expiry_time=expiry_time, expiry_offset=expiry_offset or "",
+        zone=zone, activation_at=activation, expires_at=expiry, interval_minutes=interval_minutes,
         due_at=due, selection=control.selection,
     )
     control.mode = Control.Mode.AUTOMATIC
     control.schedule = schedule
     control.save(update_fields=["mode", "schedule"])
-    audit("schedule.saved", actor, schedule=str(schedule.pk), due_at=due.isoformat(), zone=zone)
+    audit(
+        "schedule.saved", actor, schedule=str(schedule.pk), due_at=due.isoformat(), zone=zone,
+        activation_at=activation.isoformat(), expires_at=expiry.isoformat(), interval_minutes=interval_minutes,
+    )
     return schedule
 
 
 @transaction.atomic
-def set_manual(actor):
+def set_manual(actor, *, now=None):
     control = lock_control()
-    supersede(control, actor)
+    _end_schedule(control, actor, _read_clock(now))
     control.mode = Control.Mode.MANUAL
     control.save(update_fields=["mode"])
     audit("mode.manual", actor)
@@ -117,15 +203,15 @@ def _artifact(run, region, kind, url):
     )
 
 
-def _new_run(control, key, origin, actor, now, schedule=None):
+def _new_run(control, key, origin, actor, now, *, schedule=None, scheduled_for=None, status=Run.Status.QUEUED):
     if not control.catalog_id:
         raise ValidationError("A validated catalog is required before dispatch.")
     zone = schedule.zone if schedule else settings.ATLAS_ZONE
     selection = schedule.selection if schedule else control.selection
     run = Run.objects.create(
-        catalog=control.catalog, request_key=key, origin=origin, schedule=schedule,
+        catalog=control.catalog, request_key=key, origin=origin, schedule=schedule, scheduled_for=scheduled_for,
         selection=selection, limits=dict(settings.ATLAS_LIMITS), actor=actor, zone=zone,
-        created_at=now, local_date=now.astimezone(ZoneInfo(zone)).date(),
+        created_at=now, local_date=now.astimezone(ZoneInfo(zone)).date(), status=status,
     )
     existing = {}
     artifacts = []
@@ -185,20 +271,50 @@ def dispatch_due(now=None):
     if control.mode != Control.Mode.AUTOMATIC or not control.schedule_id:
         return None
     schedule = control.schedule
-    now = now or timezone.now()
-    if schedule.status != Schedule.Status.PENDING or now < schedule.due_at:
+    if schedule.status != Schedule.Status.PENDING:
         return None
-    if now >= schedule.due_at + timedelta(hours=24):
-        schedule.status = Schedule.Status.MISSED
-        schedule.save(update_fields=["status"])
-        audit("schedule.missed", schedule=str(schedule.pk), reason="24-hour dispatch window closed")
+
+    now = _read_clock(now)
+    _record_closed(schedule, now)
+    if schedule.status != Schedule.Status.PENDING or _expire_if_due(schedule, now, "scheduler"):
         return None
-    if not control.catalog_id:
+    index = schedule.last_resolved + 1
+    if index > occurrence_count(schedule):
         return None
-    run = _new_run(control, f"schedule:{schedule.pk}", Control.Mode.AUTOMATIC, "scheduler", now, schedule)
-    schedule.status = Schedule.Status.DISPATCHED
-    schedule.save(update_fields=["status"])
-    audit("schedule.dispatched", "scheduler", run, schedule=str(schedule.pk))
+    due = planned_instant(schedule, index)
+    if now < due:
+        return None
+
+    blocker = ""
+    # Queue claims and insertions that affect admission also hold Control.
+    # A queued run already accepted by the operator gets the slot first.
+    if Run.objects.filter(status__in=(Run.Status.QUEUED, Run.Status.RUNNING)).exists():
+        blocker = "retrieval_slot_busy"
+    elif not control.catalog_id:
+        blocker = "catalog_unavailable"
+    if blocker:
+        if schedule.blocked_reason != blocker:
+            schedule.blocked_reason = blocker
+            schedule.save(update_fields=["blocked_reason"])
+            audit("schedule.waiting", schedule=str(schedule.pk), planned_at=due.isoformat(), reason=blocker)
+        return None
+
+    legacy = schedule.kind == Schedule.Kind.LEGACY
+    key = f"schedule:{schedule.pk}" if legacy else f"schedule:{schedule.pk}:{due.isoformat()}"
+    run = _new_run(
+        control, key, Control.Mode.AUTOMATIC, "scheduler", now, schedule=schedule,
+        scheduled_for=due, status=Run.Status.RUNNING,
+    )
+    schedule.last_resolved = index
+    schedule.blocked_reason = ""
+    fields = ["last_resolved", "blocked_reason"]
+    if legacy:
+        schedule.status = Schedule.Status.DISPATCHED
+        fields.append("status")
+    schedule.save(update_fields=fields)
+    audit("schedule.dispatched", "scheduler", run, schedule=str(schedule.pk),
+          planned_at=due.isoformat(), admitted_at=now.isoformat(), index=index)
+    audit("run.started", "scheduler", run)
     return run
 
 
