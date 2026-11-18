@@ -1,0 +1,7 @@
+<details class="boundary-preview" data-boundary-url="{% url 'atlas_intake:boundary' run_id file.pk %}" hidden>
+    <summary>{% if stale %}Preview last successful boundary{% else %}Preview boundary{% endif %}</summary>
+    <p class="muted">Geofabrik clipping area · Longitude and latitude</p>
+    {% if stale %}<p class="muted">Stale boundary from <a href="{% url 'atlas_intake:run_detail' run_id %}">another run</a>.</p>{% endif %}
+    <p data-boundary-status role="status"></p>
+    <canvas width="640" height="320" role="img" aria-label="{% if stale %}Stale {% endif %}Geofabrik clipping area for {{ file.region_name }}" hidden></canvas>
+</details>

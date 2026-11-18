@@ -1,0 +1,47 @@
+<details class="artifact-meta">
+    <summary>Inspect {{ file.get_kind_display }}</summary>
+    <dl class="metadata">
+        {% if file.error_code %}<div><dt>Error code</dt><dd><code>{{ file.error_code }}</code></dd></div>{% endif %}
+        {% if file.relative_path %}<div><dt>Inbox path</dt><dd><code>{{ file.relative_path }}</code></dd></div>{% endif %}
+        {% if file.requested_url %}<div><dt>Requested URL</dt><dd><code>{{ file.requested_url }}</code></dd></div>{% endif %}
+        {% if file.resolved_url %}<div><dt>Resolved URL</dt><dd><code>{{ file.resolved_url }}</code></dd></div>{% endif %}
+        {% if file.resolved_at %}<div><dt>Resolved at</dt><dd>{{ file.resolved_at|date:"Y-m-d H:i:s e" }}</dd></div>{% endif %}
+        {% if file.pinned_at %}<div><dt>Pinned at</dt><dd>{{ file.pinned_at|date:"Y-m-d H:i:s e" }}</dd></div>{% endif %}
+        {% if file.finished_at %}<div><dt>Finished at</dt><dd>{{ file.finished_at|date:"Y-m-d H:i:s e" }}</dd></div>{% endif %}
+        {% if file.expected_length is not None %}<div><dt>Expected bytes</dt><dd>{{ file.expected_length }}</dd></div>{% endif %}
+        {% if file.actual_length is not None %}<div><dt>Stored bytes</dt><dd>{{ file.actual_length }}</dd></div>{% endif %}
+        {% if file.checksum_status %}<div><dt>Provider checksum</dt><dd>{{ file.checksum_status }}</dd></div>{% endif %}
+        {% if file.sha256 %}<div><dt>SHA-256</dt><dd><code>{{ file.sha256 }}</code></dd></div>{% endif %}
+        {% if file.http_last_modified %}<div><dt>HTTP Last-Modified</dt><dd>{{ file.http_last_modified }}</dd></div>{% endif %}
+        {% if file.kind == "pbf" %}
+            <div><dt>PBF content timestamp</dt><dd>{{ file.content_timestamp|date:"Y-m-d H:i:s e"|default:"Unavailable" }}</dd></div>
+        {% endif %}
+        {% if file.pin.etag %}<div><dt>ETag</dt><dd><code>{{ file.pin.etag }}</code></dd></div>{% endif %}
+        {% if file.pin.md5 %}<div><dt>Expected MD5</dt><dd><code>{{ file.pin.md5 }}</code></dd></div>{% endif %}
+        {% if file.exception %}
+            <div><dt>Approved exception</dt><dd>
+                <dl class="event-detail">
+                    {% for name, value in file.exception.items %}<div><dt>{{ name }}</dt><dd>{{ value }}</dd></div>{% endfor %}
+                </dl>
+            </dd></div>
+        {% endif %}
+        <div><dt>Claim generation</dt><dd>{{ file.generation }}</dd></div>
+        {% if file.lease_until %}<div><dt>Worker lease until</dt><dd>{{ file.lease_until|date:"Y-m-d H:i:s e" }}</dd></div>{% endif %}
+        {% if file.retry_at %}<div><dt>Next automatic retry</dt><dd>{{ file.retry_at|date:"Y-m-d H:i:s e" }}</dd></div>{% endif %}
+        {% if file.integrity_checked_at %}
+            <div><dt>Last integrity check</dt><dd>{{ file.integrity_checked_at|date:"Y-m-d H:i:s e" }}</dd></div>
+        {% endif %}
+    </dl>
+    {% if file.attempt_count %}
+        <h3>Transfer attempts ({{ file.attempt_count }})</h3>
+        <ul class="attempts">
+            {% for attempt in file.attempts.all %}
+                <li>
+                    <strong>Generation {{ attempt.generation }} · {{ attempt.status }}</strong>
+                    <span>{{ attempt.started_at|date:"Y-m-d H:i:s e" }}{% if attempt.finished_at %} → {{ attempt.finished_at|date:"Y-m-d H:i:s e" }}{% endif %}</span>
+                    {% if attempt.error %}<span class="file-error">{{ attempt.error }}</span>{% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</details>

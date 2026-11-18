@@ -1,0 +1,2 @@
+{% load tz %}
+{% timezone zone %}<time datetime="{{ instant|date:'c' }}">{{ instant|date:"Y-m-d H:i:s" }} {{ zone }} (UTC{{ instant|date:"O" }})</time>{% endtimezone %}

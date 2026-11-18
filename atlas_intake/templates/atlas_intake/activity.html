@@ -1,0 +1,18 @@
+{% for event in activity %}
+    <li>
+        <div class="event-heading">
+            <strong>{{ event.action }}</strong>
+            <time datetime="{{ event.created_at|date:'c' }}">{{ event.created_at|date:"Y-m-d H:i:s e" }}</time>
+            <span>{{ event.actor }}</span>
+        </div>
+        {% if event.detail %}
+            <dl class="event-detail">
+                {% for name, value in event.detail.items %}
+                    <div><dt>{{ name }}</dt><dd>{{ value }}</dd></div>
+                {% endfor %}
+            </dl>
+        {% endif %}
+    </li>
+{% empty %}
+    <li class="muted">No activity recorded.</li>
+{% endfor %}

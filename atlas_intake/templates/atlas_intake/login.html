@@ -1,0 +1,13 @@
+{% extends "atlas_intake/base.html" %}
+{% block title %}Sign in · Atlas Intake{% endblock %}
+{% block main %}
+    <section class="card sign-in" aria-labelledby="sign-in-heading">
+        <h1 id="sign-in-heading">Sign in</h1>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_div }}
+            <input type="hidden" name="next" value="{{ next }}">
+            <button>Sign in</button>
+        </form>
+    </section>
+{% endblock %}

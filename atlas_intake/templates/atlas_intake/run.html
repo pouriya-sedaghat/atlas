@@ -1,0 +1,157 @@
+{% extends "atlas_intake/base.html" %}
+{% load tz %}
+{% block title %}Run {{ run.pk }} · Atlas Intake{% endblock %}
+{% block main %}
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="{% url 'atlas_intake:dashboard' %}">Retrievals</a> / Run</nav>
+    <div class="page-heading">
+        <div>
+            <h1>Retrieval run</h1>
+            <p class="run-id"><code>{{ run.pk }}</code></p>
+        </div>
+        <span class="badge status-{{ run.status }}">{{ run.get_status_display }}</span>
+    </div>
+    {% if run.issue %}<p class="notice error" role="alert">{{ run.issue }}</p>{% endif %}
+    <section class="card" aria-labelledby="run-heading">
+        <h2 id="run-heading">Run metadata</h2>
+        <dl class="metadata metadata-grid">
+            <div><dt>Origin</dt><dd>{{ run.get_origin_display }} · {{ run.actor }}</dd></div>
+            <div>
+                <dt>{% if run.scheduled_for %}Actual admission{% else %}Created{% endif %}</dt>
+                <dd>
+                    <strong>{% include "atlas_intake/schedule_instant.html" with instant=run.created_at zone=run.zone only %}</strong>
+                    <span class="muted">{{ run.created_at|date:"Y-m-d H:i:s e" }}</span>
+                </dd>
+            </div>
+            {% if run.scheduled_for %}
+                <div>
+                    <dt>Planned occurrence</dt>
+                    <dd>
+                        <strong>{% include "atlas_intake/schedule_instant.html" with instant=run.scheduled_for zone=run.zone only %}</strong>
+                        <span class="muted">{{ run.scheduled_for|date:"Y-m-d H:i:s e" }}</span>
+                    </dd>
+                </div>
+            {% endif %}
+            {% if run.schedule_id %}
+                <div>
+                    <dt>Schedule revision</dt>
+                    <dd><a href="{% url 'atlas_intake:dashboard' %}?revision={{ run.schedule_id }}#occurrences-heading"><code>{{ run.schedule_id }}</code></a></dd>
+                </div>
+            {% endif %}
+            <div><dt>Catalog revision</dt><dd><code>{{ run.catalog_id }}</code></dd></div>
+            <div><dt>Files resolved</dt><dd>{{ finished_count }} of {{ records|length }}</dd></div>
+            <div>
+                <dt>Frozen PBF selection</dt>
+                <dd>
+                    {% if run.selection %}
+                        <ul class="compact-list">
+                            {% for region_id in run.selection %}<li><code>{{ region_id }}</code></li>{% endfor %}
+                        </ul>
+                    {% else %}
+                        No PBFs selected
+                    {% endif %}
+                </dd>
+            </div>
+            {% if run.sealed_at %}<div><dt>Sealed at</dt><dd>{{ run.sealed_at|date:"Y-m-d H:i:s e" }}</dd></div>{% endif %}
+            {% if run.limits %}
+                <div>
+                    <dt>Frozen byte limits</dt>
+                    <dd>
+                        <details>
+                            <summary>View capacity policy</summary>
+                            <dl class="event-detail">
+                                {% for name, size in run.limits.items %}
+                                    <div><dt>{{ name }}</dt><dd>{{ size|filesizeformat }}</dd></div>
+                                {% endfor %}
+                            </dl>
+                        </details>
+                    </dd>
+                </div>
+            {% endif %}
+        </dl>
+    </section>
+
+    <section class="card artifacts-card" aria-labelledby="artifacts-heading" data-file-list>
+        <div class="section-heading">
+            <h2 id="artifacts-heading">File intents</h2>
+            <div class="file-filters" hidden>
+                <label>Search files <input type="search" data-file-search placeholder="Region, status, or error"></label>
+                <label><input type="checkbox" data-file-problems> Show failures</label>
+            </div>
+        </div>
+        <p data-file-results role="status" class="muted" hidden></p>
+        <div class="table-scroll">
+            <table class="files-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Region</th>
+                        <th scope="col">File</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Transfer</th>
+                        <th scope="col">Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                        {% with file=record.artifact %}
+                            <tr data-file-row data-status="{{ file.status }}"
+                                data-search="{{ file.region_name }} {{ file.region_id }} {{ file.get_kind_display }} {{ file.get_status_display }} {{ file.error_code }} {{ file.error }}">
+                                <th scope="row"><strong>{{ file.region_name }}</strong> <code>{{ file.region_id }}</code></th>
+                                <td>{{ file.get_kind_display }}</td>
+                                <td>
+                                    <span class="badge status-{{ file.status }}">{{ file.get_status_display }}</span>
+                                    {% if record.stale %}<span class="badge status-unavailable stale-badge">Stale fallback</span>{% endif %}
+                                </td>
+                                <td>
+                                    {% if file.status == "complete" %}
+                                        {{ file.actual_length|filesizeformat }}
+                                    {% elif file.expected_length %}
+                                        {{ file.bytes_received|filesizeformat }} / {{ file.expected_length|filesizeformat }}
+                                        <progress value="{{ file.bytes_received }}" max="{{ file.expected_length }}" aria-label="{{ file.region_name }} {{ file.get_kind_display }} transferred"></progress>
+                                    {% else %}
+                                        {{ file.bytes_received|filesizeformat }}
+                                    {% endif %}
+                                </td>
+                                <td class="file-detail">
+                                    {% if file.error %}<p class="file-error">{{ file.error }}</p>{% endif %}
+                                    {% if record.stale %}
+                                        {% with stale=record.stale %}
+                                            {% timezone stale.run.zone %}
+                                                <p class="stale-date">Last successful boundary retrieval {{ stale.finished_at|date:"Y-m-d" }} {{ stale.run.zone }}</p>
+                                            {% endtimezone %}
+                                            {% include "atlas_intake/boundary.html" with run_id=stale.run_id file=stale stale=True only %}
+                                        {% endwith %}
+                                    {% elif file.kind == "poly" and file.status == "complete" %}
+                                        {% include "atlas_intake/boundary.html" with run_id=run.pk file=file only %}
+                                    {% endif %}
+                                    {% include "atlas_intake/artifact.html" %}
+                                    {% if file.retryable and run.status != "sealed" and run.status != "integrity_failed" %}
+                                        {% if file.status == "failed" or file.status == "publication_paused" %}
+                                            <form method="post" action="{% url 'atlas_intake:retry' run.pk file.pk %}">
+                                                {% csrf_token %}
+                                                <button class="secondary">{% if file.status == "publication_paused" %}Resume publication{% else %}Retry file{% endif %}</button>
+                                            </form>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endwith %}
+                    {% empty %}
+                        <tr><td colspan="5" class="muted">No file intents were created.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card history-card" aria-labelledby="audit-heading">
+        <h2 id="audit-heading">Run activity</h2>
+        <ul class="activity">{% include "atlas_intake/activity.html" with activity=activity_page.object_list %}</ul>
+        {% if activity_page.has_other_pages %}
+            <nav class="pagination" aria-label="Run activity pages">
+                {% if activity_page.has_previous %}<a href="?activity={{ activity_page.previous_page_number }}#audit-heading">Newer activity</a>{% endif %}
+                <span>Page {{ activity_page.number }} of {{ activity_page.paginator.num_pages }}</span>
+                {% if activity_page.has_next %}<a href="?activity={{ activity_page.next_page_number }}#audit-heading">Older activity</a>{% endif %}
+            </nav>
+        {% endif %}
+    </section>
+{% endblock %}

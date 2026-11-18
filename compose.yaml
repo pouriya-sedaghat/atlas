@@ -1,0 +1,115 @@
+x-app: &app
+  image: ${COMPOSE_PROJECT_NAME:-atlas}-intake:local
+  init: true
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+  networks:
+    - default
+    - control
+  environment:
+    POSTGRES_DB: atlas
+    POSTGRES_USER: atlas_app
+    POSTGRES_HOST: db
+    POSTGRES_PORT: '5432'
+    POSTGRES_PASSWORD_FILE: /run/secrets/postgres_app_password
+    DJANGO_SECRET_KEY_FILE: /run/secrets/django_secret_key
+    ATLAS_INBOX: /inbox
+    ATLAS_ZONE: ${ATLAS_ZONE:-Asia/Tehran}
+    ATLAS_MAX_PBF_BYTES: ${ATLAS_MAX_PBF_BYTES:-1073741824}
+    ATLAS_MAX_POLY_BYTES: ${ATLAS_MAX_POLY_BYTES:-2097152}
+    ATLAS_MAX_RUN_BYTES: ${ATLAS_MAX_RUN_BYTES:-2147483648}
+    ATLAS_MAX_INBOX_BYTES: ${ATLAS_MAX_INBOX_BYTES:-53687091200}
+    ATLAS_MIN_FREE_BYTES: ${ATLAS_MIN_FREE_BYTES:-21474836480}
+    ATLAS_ALLOWED_HOSTS: ${ATLAS_ALLOWED_HOSTS:-localhost,127.0.0.1}
+    ATLAS_CSRF_TRUSTED_ORIGINS: ${ATLAS_CSRF_TRUSTED_ORIGINS:-}
+    ATLAS_SECURE_COOKIES: ${ATLAS_SECURE_COOKIES:-0}
+    ATLAS_TRUST_FORWARDED_PROTO: ${ATLAS_TRUST_FORWARDED_PROTO:-0}
+    ATLAS_SSL_REDIRECT: ${ATLAS_SSL_REDIRECT:-0}
+  secrets:
+    - postgres_app_password
+    - django_secret_key
+
+services:
+  db:
+    image: docker.io/library/postgres:17.12-bookworm@sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536
+    restart: unless-stopped
+    networks:
+      - control
+    environment:
+      POSTGRES_DB: atlas
+      POSTGRES_USER: atlas_bootstrap
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_bootstrap_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    secrets:
+      - postgres_app_password
+      - postgres_bootstrap_password
+    volumes:
+      - type: bind
+        source: ${ATLAS_POSTGRES_DIR:-/srv/atlas/data/postgres}
+        target: /var/lib/postgresql/data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./deploy/init-db.sh
+        target: /docker-entrypoint-initdb.d/10-atlas.sh
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: [CMD-SHELL, 'PGPASSWORD="$$(cat /run/secrets/postgres_app_password)" psql --no-psqlrc --no-password -h 127.0.0.1 -U atlas_app -d atlas -Atqc "SELECT 1"']
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  web:
+    <<: *app
+    build: .
+    ports:
+      - '127.0.0.1:${ATLAS_WEB_PORT:-8000}:8000'
+    volumes:
+      - type: bind
+        source: ${ATLAS_INBOX_DIR:-/srv/atlas/data/inbox}
+        target: /inbox
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: [CMD, python, -c, 'from http.client import HTTPConnection; conn = HTTPConnection("127.0.0.1", 8000, timeout=3); conn.request("GET", "/health/", headers={"Host": "localhost"}); raise SystemExit(conn.getresponse().status != 200)']
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 15s
+
+  worker:
+    <<: *app
+    command: [python, manage.py, atlas_worker]
+    stop_grace_period: 30s
+    cpus: 1.0
+    mem_limit: 512m
+    volumes:
+      - type: bind
+        source: ${ATLAS_INBOX_DIR:-/srv/atlas/data/inbox}
+        target: /inbox
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: [CMD, python, manage.py, atlas_worker_health]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 30s
+
+networks:
+  control:
+    internal: true
+
+secrets:
+  postgres_app_password:
+    file: ${ATLAS_SECRET_DIR:-/srv/atlas/secrets}/postgres_app_password
+  postgres_bootstrap_password:
+    file: ${ATLAS_SECRET_DIR:-/srv/atlas/secrets}/postgres_bootstrap_password
+  django_secret_key:
+    file: ${ATLAS_SECRET_DIR:-/srv/atlas/secrets}/django_secret_key

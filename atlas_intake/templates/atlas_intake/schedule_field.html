@@ -1,0 +1,6 @@
+<div class="schedule-field field-{{ field.name }}">
+    {{ field.label_tag }}
+    {{ field }}
+    {% if field.help_text %}<p id="{{ field.auto_id }}_helptext" class="muted">{{ field.help_text }}</p>{% endif %}
+    {{ field.errors }}
+</div>

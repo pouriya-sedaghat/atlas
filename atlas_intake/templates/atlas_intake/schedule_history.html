@@ -1,0 +1,74 @@
+<section class="card history-card" aria-labelledby="schedule-history-heading">
+    <h2 id="schedule-history-heading">Schedule history</h2>
+    <details open>
+        <summary>Schedule revisions</summary>
+        <ul class="schedule-history">
+            {% for entry in revision_entries %}
+                {% with revision=entry.revision %}
+                    <li>
+                        <div>
+                            <a href="{% querystring revision=revision.pk occurrences_page=None %}#occurrences-heading"
+                               {% if revision.pk == history_revision.pk %}aria-current="true"{% endif %}>
+                                {% if revision.kind == "legacy" %}Legacy one-off{% else %}Recurring revision{% endif %}
+                                <code>{{ revision.pk }}</code>
+                            </a>
+                            {% if revision.pk == current_schedule.pk %}<span class="muted">Current</span>{% endif %}
+                        </div>
+                        <span class="muted">
+                            {% if revision.kind == "legacy" %}Planned{% else %}First planned{% endif %}
+                            {% include "atlas_intake/schedule_instant.html" with instant=revision.due_at zone=revision.zone only %}
+                        </span>
+                        <span class="badge status-{{ entry.status|slugify }}">{{ entry.status }}</span>
+                    </li>
+                {% endwith %}
+            {% empty %}
+                <li class="muted">No schedule revisions.</li>
+            {% endfor %}
+        </ul>
+        {% if revision_page.has_other_pages %}
+            <nav class="pagination" aria-label="Schedule revision pages">
+                {% if revision_page.has_previous %}<a href="{% querystring revisions_page=revision_page.previous_page_number %}#schedule-history-heading">Newer revisions</a>{% endif %}
+                <span>Page {{ revision_page.number }} of {{ revision_page.paginator.num_pages }}</span>
+                {% if revision_page.has_next %}<a href="{% querystring revisions_page=revision_page.next_page_number %}#schedule-history-heading">Older revisions</a>{% endif %}
+            </nav>
+        {% endif %}
+    </details>
+    {% if history_revision %}
+        <div class="occurrence-history">
+            <h3 id="occurrences-heading">Occurrence history</h3>
+            <p class="muted">Revision <code>{{ history_revision.pk }}</code></p>
+            <ul class="activity">
+                {% for item in outcomes %}
+                    <li>
+                        <div class="event-heading">
+                            <strong>{{ item.label }}</strong>
+                            {% if item.event.detail.count %}<span>{{ item.event.detail.count }} occurrence{{ item.event.detail.count|pluralize }}</span>{% endif %}
+                            {% if item.remaining is not None %}<span>{{ item.remaining }} remaining occurrence{{ item.remaining|pluralize }}</span>{% endif %}
+                            <span>{{ item.event.actor }} · {{ item.event.created_at|date:"Y-m-d H:i:s e" }}</span>
+                        </div>
+                        {% if item.first %}
+                            <p>Planned {% include "atlas_intake/schedule_instant.html" with instant=item.first zone=history_revision.zone only %}
+                                {% if item.last %} to {% include "atlas_intake/schedule_instant.html" with instant=item.last zone=history_revision.zone only %}{% endif %}
+                            </p>
+                        {% endif %}
+                        {% if item.event.run %}
+                            <p>Actual admission {% include "atlas_intake/schedule_instant.html" with instant=item.event.run.created_at zone=item.event.run.zone only %} ·
+                                <a href="{% url 'atlas_intake:run_detail' item.event.run.pk %}">View run</a>
+                            </p>
+                        {% endif %}
+                        {% if item.reason %}<p class="muted">{{ item.reason }}</p>{% endif %}
+                    </li>
+                {% empty %}
+                    <li class="muted">No occurrence outcomes recorded.</li>
+                {% endfor %}
+            </ul>
+            {% if occurrence_page.has_other_pages %}
+                <nav class="pagination" aria-label="Occurrence history pages">
+                    {% if occurrence_page.has_previous %}<a href="{% querystring occurrences_page=occurrence_page.previous_page_number %}#occurrences-heading">Newer outcomes</a>{% endif %}
+                    <span>Page {{ occurrence_page.number }} of {{ occurrence_page.paginator.num_pages }}</span>
+                    {% if occurrence_page.has_next %}<a href="{% querystring occurrences_page=occurrence_page.next_page_number %}#occurrences-heading">Older outcomes</a>{% endif %}
+                </nav>
+            {% endif %}
+        </div>
+    {% endif %}
+</section>
