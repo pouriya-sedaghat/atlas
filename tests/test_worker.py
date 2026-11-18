@@ -6,8 +6,8 @@ from tempfile import TemporaryDirectory
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from atlas_intake.control import launch_manual, set_selection
-from atlas_intake.models import Artifact, Run
+from atlas_intake.control import launch_manual, retry_artifact, set_selection
+from atlas_intake.models import Artifact, Audit, Run
 from atlas_intake.provider import ProviderError
 from atlas_intake.worker import Worker
 from tests.test_control import install_catalog
@@ -189,3 +189,63 @@ class WorkerTests(TestCase):
         run.artifacts.filter(pk=changed.pk).update(retry_at=timezone.now())
         self.assertEqual(self.run_fixture("rotate-poly").status, Run.Status.SEALED)
         self.assertTrue(changed.attempts.filter(status="auto_retry").exists())
+
+    def test_publication_retries_are_bounded_and_operator_can_resume_without_redownloading(self):
+        import errno
+        import os
+        from unittest.mock import patch
+
+        first = launch_manual("publication-failure", "operator")
+        later = launch_manual("later-run", "operator")
+        install = self.worker.install_link
+
+        def failing_link(artifact):
+            if artifact.run_id == first.pk and artifact.kind == Artifact.Kind.PBF:
+                raise OSError(errno.EIO, "fixture publication failure")
+            return install(artifact)
+
+        with patch.object(self.worker, "install_link", side_effect=failing_link) as link:
+            self.worker.work_tick(parallel=False)
+            pbf = first.artifacts.get(kind="pbf")
+            stage = self.root / pbf.stage_path
+            committed_intent = pbf.intent
+            generation = pbf.generation
+
+            # The running retrieval slot must be released even during backoff.
+            self.assertEqual(self.run_fixture("later-run").status, Run.Status.SEALED)
+            first.refresh_from_db()
+            self.assertEqual(first.status, Run.Status.INCOMPLETE)
+
+            for _ in range(2):
+                Artifact.objects.filter(pk=pbf.pk).update(retry_at=timezone.now())
+                self.worker.recover_publications()
+            pbf.refresh_from_db()
+            self.assertEqual(pbf.status, "publication_paused")
+            self.assertTrue(pbf.retryable)
+            self.assertIsNone(pbf.retry_at)
+            calls = link.call_count
+            self.worker.recover_publications()
+            self.assertEqual(link.call_count, calls)
+
+        old = (timezone.now() - timedelta(hours=25)).timestamp()
+        os.utime(stage, (old, old))
+        self.worker.clean_staging()
+        self.assertEqual(stage.read_bytes(), PBF)
+        self.assertEqual(pbf.intent, committed_intent)
+
+        reads = self.provider.body_reads
+        retry_artifact(first.pk, pbf.pk, "operator")
+        retry_artifact(first.pk, pbf.pk, "operator")
+        queued = launch_manual("third-run", "operator")
+        self.assertEqual(self.worker.active_run().pk, queued.pk)
+        self.worker.recover_publications()
+        pbf.refresh_from_db()
+        first.refresh_from_db()
+        later.refresh_from_db()
+        self.assertEqual(pbf.generation, generation)
+        self.assertEqual(pbf.intent, committed_intent)
+        self.assertEqual((self.root / pbf.relative_path).read_bytes(), PBF)
+        self.assertEqual(self.provider.body_reads, reads)
+        self.assertEqual(first.status, Run.Status.SEALED)
+        self.assertEqual(later.status, Run.Status.SEALED)
+        self.assertEqual(Audit.objects.filter(run=first, actor="operator", action="artifact.publication_resumed").count(), 1)

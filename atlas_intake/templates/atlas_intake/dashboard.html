@@ -100,12 +100,13 @@
                 </div>
             </dl>
             <div class="inline-actions">
-                <form action="{% url 'atlas_intake:launch' %}" method="post">
-                    {% csrf_token %}
-                    {{ launch_form.request_key }}
-                    <button{% if not state.catalog_id %} disabled{% endif %}>Start retrieval</button>
-                </form>
-                {% if state.mode == "automatic" %}
+                {% if state.mode == "manual" %}
+                    <form action="{% url 'atlas_intake:launch' %}" method="post">
+                        {% csrf_token %}
+                        {{ launch_form.request_key }}
+                        <button{% if not state.catalog_id %} disabled{% endif %}>Start retrieval</button>
+                    </form>
+                {% else %}
                     <form action="{% url 'atlas_intake:manual_mode' %}" method="post">
                         {% csrf_token %}
                         <button class="secondary">Switch to Manual mode</button>

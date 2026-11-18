@@ -374,7 +374,8 @@ class Client:
                         "page_missing": "The Geofabrik region page is unavailable.",
                         "catalog_missing": "The Geofabrik catalog is unavailable.",
                     }[missing]
-                    raise ProviderError(missing, message, retryable=missing != "target_missing")
+                    retired_page = missing == "page_missing" and status == 410
+                    raise ProviderError(missing, message, retryable=missing != "target_missing" and not retired_page)
                 if status == 412:
                     raise ProviderError("validator_changed", "Geofabrik rejected the pinned HTTP validator.")
                 if status != 200:

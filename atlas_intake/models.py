@@ -85,6 +85,7 @@ class Artifact(models.Model):
         PENDING = "pending", "Pending"
         TRANSFERRING = "transferring", "Transferring"
         PREPARED = "prepared", "Prepared"
+        PUBLICATION_PAUSED = "publication_paused", "Publication paused"
         COMPLETE = "complete", "Complete"
         FAILED = "failed", "Failed"
         UNAVAILABLE = "unavailable", "Unavailable"
@@ -106,6 +107,7 @@ class Artifact(models.Model):
     exception = models.JSONField(default=dict)
     stage_path = models.TextField(blank=True)
     intent = models.JSONField(default=dict)
+    publication_failures = models.PositiveSmallIntegerField(default=0)
     expected_length = models.PositiveBigIntegerField(null=True)
     actual_length = models.PositiveBigIntegerField(null=True)
     sha256 = models.CharField(max_length=64, blank=True)

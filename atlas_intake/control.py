@@ -174,6 +174,8 @@ def launch_manual(request_key, actor):
     previous = Run.objects.filter(request_key=key).first()
     if previous:
         return previous
+    if control.mode != Control.Mode.MANUAL:
+        raise ValidationError("Switch to Manual mode before starting a new manual retrieval.")
     return _new_run(control, key, Control.Mode.MANUAL, actor, timezone.now())
 
 
@@ -207,10 +209,21 @@ def retry_artifact(run_id, artifact_id, actor):
     artifact = Artifact.objects.select_for_update().get(pk=artifact_id, run=run)
     if artifact.status in {Artifact.Status.PENDING, Artifact.Status.TRANSFERRING, Artifact.Status.PREPARED}:
         return artifact
-    if (
-        run.status in {Run.Status.SEALED, Run.Status.INTEGRITY_FAILED}
-        or artifact.status != Artifact.Status.FAILED or not artifact.retryable
-    ):
+    if run.status in {Run.Status.SEALED, Run.Status.INTEGRITY_FAILED} or not artifact.retryable:
+        raise ValidationError("This artifact is ineligible for retry.")
+    if artifact.status == Artifact.Status.PUBLICATION_PAUSED:
+        artifact.status = Artifact.Status.PREPARED
+        artifact.publication_failures = 0
+        artifact.retry_at = None
+        artifact.retryable = False
+        artifact.error_code = artifact.error = ""
+        artifact.save(update_fields=[
+            "status", "publication_failures", "retry_at", "retryable", "error_code", "error",
+        ])
+        artifact.attempts.filter(generation=artifact.generation).update(status="prepared", error="")
+        audit("artifact.publication_resumed", actor, run, artifact=artifact.pk, generation=artifact.generation)
+        return artifact
+    if artifact.status != Artifact.Status.FAILED:
         raise ValidationError("This artifact is ineligible for retry.")
     artifact.status = Artifact.Status.PENDING
     artifact.retry_at = None

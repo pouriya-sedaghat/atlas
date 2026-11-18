@@ -156,6 +156,16 @@ class CatalogTests(unittest.TestCase):
 
 
 class DiscoveryTests(unittest.TestCase):
+    def test_retired_region_page_is_permanent_but_a_missing_page_is_retryable(self):
+        for status, retryable in ((404, True), (410, False)):
+            with self.subTest(status=status):
+                opener = FixtureHTTP({("GET", "/asia/iran.html"): Reply(status)})
+                client = Client(opener=opener)
+                with self.assertRaises(ProviderError) as error:
+                    client.discover_poly({"pbf_url": BASE + LATEST})
+                self.assertEqual(error.exception.code, "page_missing")
+                self.assertEqual(error.exception.retryable, retryable)
+
     def test_shared_page_reads_once_and_resolves_only_actual_links(self):
         html = b'<a href="iran.poly"><a href="/asia/iran.poly"><a href="iran.poly.md5">'
         opener = FixtureHTTP({("GET", "/asia/iran.html"): Reply(body=html)})

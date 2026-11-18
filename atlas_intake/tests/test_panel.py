@@ -221,3 +221,53 @@ class OperatorPanelTests(TestCase):
 
         self.client.force_login(self.staff)
         self.assertEqual(self.client.get(url).status_code, 403)
+
+    def test_automatic_mode_rejects_new_manual_post_but_returns_existing_run(self):
+        self.client.force_login(self.operator)
+        url = reverse("atlas_intake:launch")
+        original_key = uuid4()
+        first = self.client.post(url, {"request_key": original_key})
+        self.assertEqual(first.status_code, 302)
+        schedule = self.client.post(
+            reverse("atlas_intake:schedule"),
+            {"wall_date": "2030-11-04", "wall_time": "02:30", "zone": "Asia/Tehran"},
+        )
+        self.assertEqual(schedule.status_code, 302)
+        replay = self.client.post(url, {"request_key": original_key})
+        self.assertEqual(replay.status_code, 302)
+        self.assertEqual(replay["Location"], first["Location"])
+        new_key = uuid4()
+        rejected = self.client.post(url, {"request_key": new_key})
+        self.assertContains(rejected, "Switch to Manual mode", status_code=400)
+        self.assertNotContains(self.dashboard(), 'name="request_key"')
+        self.assertEqual(Run.objects.count(), 1)
+
+        self.client.post(reverse("atlas_intake:manual_mode"))
+        self.assertEqual(self.client.post(url, {"request_key": new_key}).status_code, 302)
+        self.assertEqual(Run.objects.count(), 2)
+
+    def test_publication_pause_offers_resume_via_the_operator_panel(self):
+        self.client.force_login(self.operator)
+        run = self.launch_run()
+        Run.objects.filter(pk=run.pk).update(status=Run.Status.INCOMPLETE)
+        file = run.artifacts.first()
+        Artifact.objects.filter(pk=file.pk).update(
+            status=Artifact.Status.PUBLICATION_PAUSED, retryable=True, publication_failures=3,
+        )
+        detail = reverse("atlas_intake:run_detail", args=[run.pk])
+        self.assertContains(self.client.get(detail), "Resume publication")
+        action = reverse("atlas_intake:retry", args=[run.pk, file.pk])
+        self.assertRedirects(self.client.post(action), detail)
+        file.refresh_from_db()
+        run.refresh_from_db()
+        self.assertEqual(file.status, Artifact.Status.PREPARED)
+        self.assertEqual(file.publication_failures, 0)
+        self.assertEqual(run.status, Run.Status.INCOMPLETE)
+        self.assertEqual(Audit.objects.get(run=run, action="artifact.publication_resumed").actor, "operator")
+
+    def test_catalog_refresh_error_is_visible_with_the_saved_catalog(self):
+        self.client.force_login(self.operator)
+        Control.objects.filter(pk=1).update(catalog_error="POLY discovery failed for Iran: timed out")
+        response = self.dashboard()
+        self.assertContains(response, "POLY discovery failed for Iran: timed out")
+        self.assertContains(response, 'value="asia/iran"')

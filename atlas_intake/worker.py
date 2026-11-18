@@ -22,7 +22,9 @@ from .storage import below, inbox_usage, make_directories, matches, sync_directo
 logger = logging.getLogger(__name__)
 LEASE = timedelta(minutes=3)
 RETRY_DELAYS = (5, 25)
-ACTIVE = (Artifact.Status.PENDING, Artifact.Status.TRANSFERRING, Artifact.Status.PREPARED)
+PUBLICATION_RETRY_DELAYS = (5, 30)
+RETRIEVAL_ACTIVE = (Artifact.Status.PENDING, Artifact.Status.TRANSFERRING)
+PUBLICATION_INTENT = (Artifact.Status.PREPARED, Artifact.Status.PUBLICATION_PAUSED)
 SUCCEEDED = (Artifact.Status.COMPLETE, Artifact.Status.EXCEPTED)
 STAGE_NAME = re.compile(r"([0-9]+)-([0-9]+)-[0-9a-f]{32}\.part")
 
@@ -280,7 +282,8 @@ class Worker:
         }
         row.status = Artifact.Status.PREPARED
         row.bytes_received = result["length"]
-        row.save(update_fields=["intent", "status", "bytes_received"])
+        row.lease_until = None
+        row.save(update_fields=["intent", "status", "bytes_received", "lease_until"])
         row.attempts.filter(generation=row.generation).update(status="prepared")
 
     def install_link(self, row):
@@ -311,6 +314,7 @@ class Worker:
             row.status != Artifact.Status.PREPARED or row.generation != generation
             or row.intent.get("generation") != generation or row.intent.get("target") != row.relative_path
             or row.intent.get("stage") != row.stage_path
+            or (row.retry_at is not None and row.retry_at > timezone.now())
         ):
             return False
         try:
@@ -318,14 +322,7 @@ class Worker:
         except (FileNotFoundError, NotADirectoryError, IsADirectoryError, ValueError):
             valid = False
         except OSError:
-            row.retry_at = timezone.now() + timedelta(seconds=30)
-            row.error_code = "publication_io"
-            row.error = "Publication could not finish. The verified staging file is retained for recovery."
-            row.save(update_fields=["retry_at", "error_code", "error"])
-            if not row.attempts.filter(generation=generation, status="publication_io").exists():
-                row.attempts.filter(generation=generation).update(status="publication_io")
-                audit("artifact.publication_io", "worker", run, artifact=row.pk)
-            logger.warning("Publication I/O failed for artifact %s; intent remains prepared.", artifact_id)
+            self._defer_publication(run, row)
             return False
         if not valid:
             self._integrity_failure(run, row, "Publication bytes conflict with the committed intent.")
@@ -346,10 +343,33 @@ class Worker:
             "actual_length", "sha256", "http_last_modified", "checksum_status", "status", "finished_at",
             "integrity_checked_at", "reserved_bytes", "lease_until", "retryable", "retry_at", "error", "error_code",
         ])
-        row.attempts.filter(generation=generation).update(status="complete", finished_at=row.finished_at)
+        row.attempts.filter(generation=generation).update(status="complete", finished_at=row.finished_at, error="")
         audit("artifact.completed", "worker", run, artifact=row.pk, region=row.region_id, kind=row.kind)
+        self._settle(run)
         transaction.on_commit(lambda: self._remove_stage(stage), robust=True)
         return True
+
+    def _defer_publication(self, run, row):
+        failures = row.publication_failures + 1
+        paused = failures > len(PUBLICATION_RETRY_DELAYS)
+        row.publication_failures = failures
+        row.error_code = "publication_io"
+        row.retryable = paused
+        if paused:
+            row.status = Artifact.Status.PUBLICATION_PAUSED
+            row.retry_at = None
+            row.error = "Publication paused after repeated I/O failures. The verified staging file is ready to resume."
+        else:
+            row.retry_at = timezone.now() + timedelta(seconds=PUBLICATION_RETRY_DELAYS[failures - 1])
+            row.error = "Publication could not finish. The verified staging file is retained for retry."
+        row.save(update_fields=[
+            "publication_failures", "status", "retry_at", "error_code", "error", "retryable",
+        ])
+        action = "publication_paused" if paused else "publication_io"
+        row.attempts.filter(generation=row.generation).update(status=action, error=row.error)
+        audit(f"artifact.{action}", "worker", run, artifact=row.pk, generation=row.generation, failures=failures)
+        logger.warning("Publication I/O failure %s for artifact %s (%s).", failures, row.pk, row.status)
+        self._settle(run)
 
     @staticmethod
     def _remove_stage(stage):
@@ -463,7 +483,7 @@ class Worker:
             row = Artifact.objects.select_for_update().filter(pk=int(match[1])).first()
             relative = stage.relative_to(self.root).as_posix()
             if row and row.stage_path == relative and (
-                row.status == Artifact.Status.PREPARED or
+                row.status in PUBLICATION_INTENT or
                 (row.status == Artifact.Status.TRANSFERRING and row.lease_until > timezone.now())
             ):
                 continue
@@ -476,17 +496,25 @@ class Worker:
 
     @transaction.atomic
     def settle(self, run):
-        row = Run.objects.select_for_update().get(pk=run.pk)
-        if row.status != Run.Status.RUNNING or row.artifacts.filter(status__in=ACTIVE).exists():
+        self._settle(Run.objects.select_for_update().get(pk=run.pk))
+
+    @staticmethod
+    def _settle(run):
+        if run.status not in {Run.Status.RUNNING, Run.Status.INCOMPLETE}:
             return
-        if row.artifacts.exclude(status__in=SUCCEEDED).exists():
-            row.status = Run.Status.INCOMPLETE
-            row.issue = row.issue or "One or more frozen retrieval intents remain incomplete."
+        if run.artifacts.filter(status__in=RETRIEVAL_ACTIVE).exists():
+            return
+        if run.artifacts.exclude(status__in=SUCCEEDED).exists():
+            if run.status == Run.Status.INCOMPLETE:
+                return
+            run.status = Run.Status.INCOMPLETE
+            run.issue = run.issue or "One or more frozen retrieval intents remain incomplete."
         else:
-            row.status = Run.Status.SEALED
-            row.sealed_at = timezone.now()
-        row.save(update_fields=["status", "sealed_at", "issue"])
-        audit(f"run.{row.status}", "worker", row)
+            run.status = Run.Status.SEALED
+            run.sealed_at = timezone.now()
+            run.issue = ""
+        run.save(update_fields=["status", "sealed_at", "issue"])
+        audit(f"run.{run.status}", "worker", run)
 
     def _in_thread(self, artifact):
         close_old_connections()

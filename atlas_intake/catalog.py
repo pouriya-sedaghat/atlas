@@ -33,25 +33,40 @@ def _mapping_key(region):
                        region.get("poly_exception")], sort_keys=True)
 
 
+@transaction.atomic
+def _record_failure(error, *, region=None):
+    control = lock_control()
+    message = str(error)
+    detail = {"code": error.code}
+    if region is not None:
+        message = f"POLY discovery failed for {region}. {message}"
+        detail["region"] = region
+    control.catalog_error = message
+    control.catalog_refresh_requested = False
+    control.catalog_checked_at = timezone.now()
+    control.save(update_fields=["catalog_error", "catalog_refresh_requested", "catalog_checked_at"])
+    audit("catalog.failed", **detail)
+
+
 def refresh_catalog(client):
     try:
         source_digest, regions = client.catalog()
     except ProviderError as exc:
-        with transaction.atomic():
-            control = lock_control()
-            control.catalog_error = str(exc)
-            control.catalog_refresh_requested = False
-            control.catalog_checked_at = timezone.now()
-            control.save(update_fields=["catalog_error", "catalog_refresh_requested", "catalog_checked_at"])
-            audit("catalog.failed", code=exc.code)
+        _record_failure(exc)
         return None
 
     current = Control.objects.select_related("catalog").get(pk=1)
     previous = current.catalog
+    reuse_mapping = (
+        previous
+        and previous.source_digest == source_digest
+        and not current.catalog_refresh_requested
+        and not current.catalog_error
+    )
     cache = {
         _mapping_key(row): row for row in previous.regions
         if row.get("poly_url") or row.get("exception")
-    } if previous and previous.source_digest == source_digest and not current.catalog_refresh_requested else {}
+    } if reuse_mapping else {}
 
     def resolve(region):
         row = dict(region)
@@ -66,15 +81,25 @@ def refresh_catalog(client):
                 url, sidecar = client.discover_poly(row)
                 row.update(poly_url=url, sidecar_url=sidecar)
             except ProviderError as exc:
+                if exc.retryable:
+                    return row, exc
                 row.update(poly_url="", sidecar_url="", poly_error=str(exc), poly_error_code=exc.code)
-        return row
+        return row, None
 
     results = []
+    first_failure = None
     with ThreadPoolExecutor(max_workers=8) as pool:
-        for index, row in enumerate(pool.map(resolve, regions), start=1):
+        for index, (row, error) in enumerate(pool.map(resolve, regions), start=1):
             results.append(row)
+            if error is not None and first_failure is None:
+                first_failure = (error, row["id"])
             if index % 8 == 0:
                 heartbeat()
+
+    if first_failure is not None:
+        error, region = first_failure
+        _record_failure(error, region=region)
+        return None
 
     results.sort(key=lambda row: row["id"])
     digest = hashlib.sha256(

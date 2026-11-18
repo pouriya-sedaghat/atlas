@@ -118,11 +118,13 @@
                                         {% include "atlas_intake/boundary.html" with run_id=run.pk file=file only %}
                                     {% endif %}
                                     {% include "atlas_intake/artifact.html" %}
-                                    {% if file.retryable and file.status == "failed" and run.status != "sealed" and run.status != "integrity_failed" %}
-                                        <form method="post" action="{% url 'atlas_intake:retry' run.pk file.pk %}">
-                                            {% csrf_token %}
-                                            <button class="secondary">Retry file</button>
-                                        </form>
+                                    {% if file.retryable and run.status != "sealed" and run.status != "integrity_failed" %}
+                                        {% if file.status == "failed" or file.status == "publication_paused" %}
+                                            <form method="post" action="{% url 'atlas_intake:retry' run.pk file.pk %}">
+                                                {% csrf_token %}
+                                                <button class="secondary">{% if file.status == "publication_paused" %}Resume publication{% else %}Retry file{% endif %}</button>
+                                            </form>
+                                        {% endif %}
                                     {% endif %}
                                 </td>
                             </tr>
