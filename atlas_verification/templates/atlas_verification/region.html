@@ -1,0 +1,10 @@
+{% extends "atlas_intake/base.html" %}
+{% block title %}{{ region.region_id }} verification · Atlas{% endblock %}
+{% block main %}
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="{% url 'verification:index' %}">Verification</a> / <a href="{% url 'verification:attempt_detail' attempt.pk %}">Attempt</a> / Region</nav>
+<div class="page-heading"><div><h1>Regional verification</h1><p><code>{{ region.region_id }}</code></p></div></div>
+<section class="card"><h2>Registered result</h2><dl class="metadata metadata-grid"><div><dt>Verification attempt</dt><dd><code>{{ attempt.pk }}</code></dd></div><div><dt>Regional manifest SHA-256</dt><dd><code>{{ manifest_sha256 }}</code></dd></div><div><dt>Schema / policy</dt><dd>{{ region.schema_version }} / {{ region.policy_version }}</dd></div></dl>
+    {% for kind, check in region.checks.items %}<h3>{{ kind }} · {{ check.status }}</h3>{% if check.reasons %}<ul>{% for reason in check.reasons %}<li>{{ reason.code }} · {{ reason.message }}</li>{% endfor %}</ul>{% endif %}{% endfor %}
+    <details open><summary>Source identities, checks and output fingerprints</summary><pre>{{ report_json }}</pre></details>
+</section>
+{% endblock %}

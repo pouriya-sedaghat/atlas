@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Atlas PBF primitive block precision, version 1",
+  "type": "object",
+  "required": ["schema_version", "block", "encoding", "raw_size", "granularity", "date_granularity", "lat_offset", "lon_offset", "missing"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "block": {"type": "integer", "minimum": 2},
+    "encoding": {"enum": ["raw", "zlib"]},
+    "raw_size": {"type": "integer", "minimum": 0, "exclusiveMaximum": 33554432},
+    "granularity": {"type": "string", "pattern": "^[1-9][0-9]*$"},
+    "date_granularity": {"type": "string", "pattern": "^[1-9][0-9]*$"},
+    "lat_offset": {"type": "string", "pattern": "^(0|-?[1-9][0-9]*)$"},
+    "lon_offset": {"type": "string", "pattern": "^(0|-?[1-9][0-9]*)$"},
+    "missing": {"type": "array", "uniqueItems": true, "items": {"enum": ["granularity", "date_granularity", "lat_offset", "lon_offset"]}},
+    "indexdata_hex": {"type": "string", "pattern": "^([0-9a-f]{2})*$"}
+  },
+  "additionalProperties": false
+}

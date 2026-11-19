@@ -1,0 +1,34 @@
+{% extends "atlas_intake/base.html" %}
+{% block title %}Verification {{ attempt.pk }} · Atlas{% endblock %}
+{% block main %}
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="{% url 'verification:index' %}">Verification</a> / <a href="{% url 'verification:run' attempt.run_id %}">Retrieval run</a> / Attempt</nav>
+<div class="page-heading"><div><h1>Input verification attempt</h1><p><code>{{ attempt.pk }}</code></p></div><span class="badge status-{{ attempt.status }}">{{ attempt.get_status_display }}</span></div>
+{% if attempt.error %}<p class="notice error" role="alert">{{ attempt.error }}</p>{% endif %}
+<section class="card"><h2>Attempt identity</h2><dl class="metadata metadata-grid">
+    <div><dt>Retrieval run</dt><dd><code>{{ attempt.run_id }}</code> · {{ snapshot.retrieval_local_date }} · {{ snapshot.zone }}</dd></div>
+    <div><dt>Requested</dt><dd>{{ attempt.created_at|date:"Y-m-d H:i:s e" }} · {{ attempt.requested_by }}</dd></div>
+    <div><dt>Frozen catalog</dt><dd><code>{{ snapshot.catalog_digest }}</code></dd></div>
+    <div><dt>Input fingerprint</dt><dd><code>{{ attempt.input_fingerprint }}</code></dd></div>
+    <div><dt>Policy</dt><dd>{{ attempt.policy_version }}</dd></div>
+    <div><dt>Execution generation</dt><dd>{{ attempt.generation }}{% if attempt.lease_until %} · lease until {{ attempt.lease_until|date:"Y-m-d H:i:s e" }}{% endif %}</dd></div>
+    <div><dt>Build eligible</dt><dd>{% if handoff_eligible %}Yes{% else %}No{% endif %}</dd></div>
+</dl>
+{% if attempt.status == 'operational_failed' %}<form method="post" action="{% url 'verification:retry' attempt.pk %}">{% csrf_token %}<button>Retry operational failure</button></form><p class="muted">The retry keeps this attempt's original input snapshot and records another execution generation.</p>{% endif %}
+</section>
+<section class="card"><h2>Progress and outcomes</h2><pre>{{ progress_json }}</pre><h3>Completed and incomplete checks</h3><pre>{{ summary_json }}</pre>
+    <details><summary>Tool versions</summary><pre>{{ tools_json }}</pre></details>
+    <h3>Execution history</h3><ul class="activity">{% for execution in executions %}<li>Generation {{ execution.generation }} · {{ execution.status }} · {{ execution.started_at|date:"Y-m-d H:i:s e" }}{% if execution.finished_at %} to {{ execution.finished_at|date:"Y-m-d H:i:s e" }}{% endif %}<details><summary>Generation report</summary><pre>{{ execution.report }}</pre></details></li>{% empty %}<li>Awaiting the verifier.</li>{% endfor %}</ul>
+</section>
+{% if regional_results %}<section class="card"><h2>Regional outcomes</h2><div class="table-scroll"><table class="files-table">
+    <thead><tr><th scope="col">Region</th><th scope="col">Completed input checks</th><th scope="col">Report</th></tr></thead><tbody>
+    {% for region in regional_results %}<tr><th scope="row"><code>{{ region.region_id }}</code></th><td>{% for kind, outcome in region.checks.items %}<p>{{ kind }} · {{ outcome }}</p>{% empty %}Recorded in the generation report{% endfor %}</td><td>{% if manifest and region.key %}<a href="{% url 'verification:region_manifest' attempt.pk region.key %}">View regional manifest</a>{% else %}Retained with this execution{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div></section>{% endif %}
+<section class="card"><h2>Published manifest</h2>
+    {% if manifest_error %}<p class="notice error" role="alert">{{ manifest_error }} Build handoff is unavailable.</p>
+    {% elif manifest %}<p><a href="{% url 'verification:manifest' attempt.pk %}">Read authenticated batch manifest</a></p><dl class="metadata"><div><dt>Manifest SHA-256</dt><dd><code>{{ attempt.manifest_sha256 }}</code></dd></div><div><dt>Published path</dt><dd><code>{{ attempt.manifest_path }}</code></dd></div></dl><details><summary>Regional and batch results</summary><pre>{{ manifest_json }}</pre></details>
+    {% else %}<p>No successful output has been registered for this attempt.</p>{% endif %}
+</section>
+<section class="card"><h2>Accepted input fingerprints</h2><div class="table-scroll"><table class="files-table"><thead><tr><th scope="col">Region / kind</th><th scope="col">Path</th><th scope="col">Accepted identity</th><th scope="col">Provider provenance</th></tr></thead><tbody>
+{% for artifact in snapshot.artifacts %}<tr><th scope="row"><code>{{ artifact.region_id }}</code> · {{ artifact.kind }}</th><td><code>{{ artifact.path }}</code></td><td>{{ artifact.length }} bytes<br><code>{{ artifact.sha256 }}</code>{% if artifact.exception %}<p>{{ artifact.exception }}</p>{% endif %}</td><td>{{ artifact.provider_checksum_status }}<details><summary>Source records</summary><p>{{ artifact.requested_url }}</p><p>{{ artifact.resolved_url }}</p><p>Pin: {{ artifact.pin }}</p><p>Received: {{ artifact.received_at }}</p><p>HTTP Last-Modified: {{ artifact.http_last_modified }}</p></details></td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}

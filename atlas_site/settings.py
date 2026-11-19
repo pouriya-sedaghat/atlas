@@ -33,7 +33,7 @@ WSGI_APPLICATION = "atlas_site.wsgi.application"
 
 INSTALLED_APPS = [
     "django.contrib.auth", "django.contrib.contenttypes", "django.contrib.sessions",
-    "django.contrib.messages", "django.contrib.staticfiles", "atlas_intake",
+    "django.contrib.messages", "django.contrib.staticfiles", "atlas_intake", "atlas_verification",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -93,3 +93,14 @@ ATLAS_LIMITS = {
     "inbox": byte_limit("MAX_INBOX", 50 * GIB),
     "free": byte_limit("MIN_FREE", 20 * GIB),
 }
+
+ATLAS_VERIFICATION_ROOT = Path(os.environ.get("ATLAS_VERIFICATION_ROOT", "/verification"))
+ATLAS_VERIFICATION_ATTEMPT_BYTES = byte_limit("VERIFICATION_ATTEMPT", 20 * GIB)
+ATLAS_VERIFICATION_ROOT_BYTES = byte_limit("VERIFICATION_ROOT", 60 * GIB)
+ATLAS_VERIFICATION_TIMEOUT = int(os.environ.get("ATLAS_VERIFICATION_TIMEOUT", "3600"))
+
+if ATLAS_VERIFICATION_ATTEMPT_BYTES > 20 * GIB or ATLAS_VERIFICATION_ROOT_BYTES > 60 * GIB:
+    raise ImproperlyConfigured("Verification storage limits exceed the approved pilot caps.")
+
+if not 0 < ATLAS_VERIFICATION_TIMEOUT <= 3600:
+    raise ImproperlyConfigured("Verification timeout exceeds the approved one-hour execution cap.")

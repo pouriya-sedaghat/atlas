@@ -5,7 +5,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DJANGO_SETTINGS_MODULE=atlas_site.settings
 
 RUN groupadd --gid 10001 atlas \
-    && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin atlas
+    && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin atlas \
+    && groupadd --gid 10002 atlas-verifier \
+    && useradd --uid 10002 --gid 10002 --groups 10001 --no-create-home --shell /usr/sbin/nologin atlas-verifier
+
+# Pin the native verifier tools as well as the Python runtime. GEOS is loaded by
+# Django's GEOS bindings; Osmium reconciles the same private, fingerprinted spool.
+COPY requirements-native.txt /tmp/atlas-native-packages.txt
+RUN apt-get update \
+    && sed '/^#/d; /^$/d' /tmp/atlas-native-packages.txt \
+        | xargs apt-get install --yes --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* /tmp/atlas-native-packages.txt
 
 WORKDIR /app
 COPY requirements.txt .

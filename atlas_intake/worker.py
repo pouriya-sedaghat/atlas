@@ -219,7 +219,15 @@ class Worker:
             outstanding += max(allocated(prior.reserved_bytes) - allocated(staged), 0)
         usage = inbox_usage(self.root)
         free = shutil.disk_usage(self.root).free
+        # Both reservation paths hold Control. Verification may share this filesystem.
+        from atlas_verification.models import VerificationAttempt
+        verification_root = Path(settings.ATLAS_VERIFICATION_ROOT)
+        verifier_remaining = 0
+        if not verification_root.exists() or verification_root.stat().st_dev == self.root.stat().st_dev:
+            for reservation in VerificationAttempt.objects.filter(reserved_bytes__gt=0).only("reserved_bytes"):
+                verifier_remaining += reservation.reserved_bytes
         projected = outstanding + allocated(budget)
+        free -= verifier_remaining
         if usage + projected > run.limits["inbox"] or free - projected < run.limits["free"]:
             raise ProviderError("disk_pressure", "Inbox budget or filesystem free-space reserve would be exceeded.",
                                 retryable=True)

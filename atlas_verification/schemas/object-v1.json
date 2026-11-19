@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.invalid/schemas/object-v1.json",
+  "title": "Atlas exact OSM snapshot object, version 1",
+  "description": "Source int64 values and exact nanodegrees are decimal strings. The metadata missing array distinguishes absence from explicit zero or empty user. Repeated proto2 fields preserve order and values; their empty/absent distinction is unavailable from proto2.",
+  "type": "object",
+  "required": ["schema_version", "type", "id", "ordinal", "block", "tags", "metadata"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "type": {"enum": ["node", "way", "relation"]},
+    "id": {"$ref": "#/$defs/positiveInteger"},
+    "ordinal": {"type": "integer", "minimum": 1},
+    "block": {"type": "integer", "minimum": 2},
+    "tags": {"type": "array", "items": {"type": "array", "prefixItems": [{"type": "string"}, {"type": "string"}], "minItems": 2, "maxItems": 2}},
+    "metadata": {"$ref": "#/$defs/metadata"},
+    "encoded_lat": {"$ref": "#/$defs/integer"},
+    "encoded_lon": {"$ref": "#/$defs/integer"},
+    "lat_nanodegrees": {"$ref": "#/$defs/integer"},
+    "lon_nanodegrees": {"$ref": "#/$defs/integer"},
+    "refs": {"type": "array", "items": {"$ref": "#/$defs/positiveInteger"}},
+    "locations": {"oneOf": [{"type": "null"}, {"type": "array", "items": {"type": "object", "required": ["lat_nanodegrees", "lon_nanodegrees"], "properties": {"lat_nanodegrees": {"$ref": "#/$defs/integer"}, "lon_nanodegrees": {"$ref": "#/$defs/integer"}}, "additionalProperties": false}}]},
+    "members": {"type": "array", "items": {"type": "object", "required": ["type", "id", "role"], "properties": {"type": {"enum": ["node", "way", "relation"]}, "id": {"$ref": "#/$defs/positiveInteger"}, "role": {"type": "string"}}, "additionalProperties": false}}
+  },
+  "allOf": [
+    {"if": {"properties": {"type": {"const": "node"}}}, "then": {"required": ["encoded_lat", "encoded_lon", "lat_nanodegrees", "lon_nanodegrees"]}},
+    {"if": {"properties": {"type": {"const": "way"}}}, "then": {"required": ["refs", "locations"]}},
+    {"if": {"properties": {"type": {"const": "relation"}}}, "then": {"required": ["members"]}}
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "integer": {"type": "string", "pattern": "^(0|-?[1-9][0-9]*)$"},
+    "positiveInteger": {"type": "string", "pattern": "^[1-9][0-9]*$"},
+    "metadata": {
+      "type": "object",
+      "required": ["present", "missing"],
+      "properties": {
+        "present": {"type": "boolean"},
+        "missing": {"type": "array", "uniqueItems": true, "items": {"enum": ["version", "timestamp", "changeset", "uid", "user_sid", "visible"]}},
+        "version": {"$ref": "#/$defs/positiveInteger"},
+        "timestamp_ticks": {"$ref": "#/$defs/integer"},
+        "timestamp_ms": {"$ref": "#/$defs/integer"},
+        "changeset": {"$ref": "#/$defs/integer"},
+        "uid": {"$ref": "#/$defs/integer"},
+        "user_sid": {"$ref": "#/$defs/integer"},
+        "user": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

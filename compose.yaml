@@ -16,6 +16,10 @@ x-app: &app
     POSTGRES_PASSWORD_FILE: /run/secrets/postgres_app_password
     DJANGO_SECRET_KEY_FILE: /run/secrets/django_secret_key
     ATLAS_INBOX: /inbox
+    ATLAS_VERIFICATION_ROOT: /verification
+    ATLAS_VERIFICATION_TIMEOUT: ${ATLAS_VERIFICATION_TIMEOUT:-3600}
+    ATLAS_VERIFICATION_ATTEMPT_BYTES: ${ATLAS_VERIFICATION_ATTEMPT_BYTES:-21474836480}
+    ATLAS_VERIFICATION_ROOT_BYTES: ${ATLAS_VERIFICATION_ROOT_BYTES:-64424509440}
     ATLAS_ZONE: ${ATLAS_ZONE:-Asia/Tehran}
     ATLAS_MAX_PBF_BYTES: ${ATLAS_MAX_PBF_BYTES:-1073741824}
     ATLAS_MAX_POLY_BYTES: ${ATLAS_MAX_POLY_BYTES:-2097152}
@@ -71,6 +75,12 @@ services:
       - '127.0.0.1:${ATLAS_WEB_PORT:-8000}:8000'
     volumes:
       - type: bind
+        source: ${ATLAS_VERIFICATION_DIR:-/srv/atlas/data/verification}
+        target: /verification
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
         source: ${ATLAS_INBOX_DIR:-/srv/atlas/data/inbox}
         target: /inbox
         read_only: true
@@ -97,6 +107,33 @@ services:
           create_host_path: false
     healthcheck:
       test: [CMD, python, manage.py, atlas_worker_health]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 30s
+
+  verifier:
+    <<: *app
+    user: '10002:10002'
+    group_add: ['10001', '999']
+    command: [python, manage.py, atlas_verify_worker]
+    stop_grace_period: 30s
+    cpus: 1.0
+    mem_limit: 2g
+    volumes:
+      - type: bind
+        source: ${ATLAS_INBOX_DIR:-/srv/atlas/data/inbox}
+        target: /inbox
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${ATLAS_VERIFICATION_DIR:-/srv/atlas/data/verification}
+        target: /verification
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: [CMD, python, manage.py, atlas_verify_health]
       interval: 15s
       timeout: 5s
       retries: 4

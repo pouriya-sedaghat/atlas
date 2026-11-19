@@ -1,5 +1,7 @@
 # Atlas Part 1A operator guide
 
+For input verification, its separate verifier identity and mounts, migration procedure, supported profile and recovery, continue with the [Part 1B operator guide](operator-verification.md). When deploying Part 1B, include `verifier` alongside `web` and `worker` in start, stop, health and matched-backup operations.
+
 ## Prepare the VM
 
 Run the commands from the Atlas checkout. The application image runs web and worker processes as UID/GID `10001:10001`. The pinned PostgreSQL image uses `999:999`. The database listens only on the internal Compose network. Gunicorn is mapped to VM loopback, and only the worker can write to the inbox.
@@ -9,7 +11,9 @@ Provision the VM directories and secrets once for a new deployment. If the data 
 ```sh
 sudo install -d -m 0755 /srv/atlas /srv/atlas/data
 sudo install -d -m 0700 -o 999 -g 999 /srv/atlas/data/postgres
-sudo install -d -m 0700 -o 10001 -g 10001 /srv/atlas/data/inbox
+sudo install -d -m 0750 -o 10001 -g 10001 /srv/atlas/data/inbox
+sudo install -d -m 2750 -o 10002 -g 10001 /srv/atlas/data/verification
+sudo install -d -m 0700 -o 10002 -g 10002 /srv/atlas/data/verification/.work
 sudo install -d -m 0700 -o "$(id -u)" -g "$(id -g)" /srv/atlas/secrets
 install -m 0600 deploy/compose.env.example /srv/atlas/secrets/compose.env
 (
@@ -22,8 +26,8 @@ install -m 0600 deploy/compose.env.example /srv/atlas/secrets/compose.env
 sudo chown 999:999 /srv/atlas/secrets/postgres_bootstrap_password
 sudo chown 10001:999 /srv/atlas/secrets/postgres_app_password
 sudo chown 10001:10001 /srv/atlas/secrets/django_secret_key
-sudo chmod 0400 /srv/atlas/secrets/postgres_bootstrap_password /srv/atlas/secrets/django_secret_key
-sudo chmod 0440 /srv/atlas/secrets/postgres_app_password
+sudo chmod 0400 /srv/atlas/secrets/postgres_bootstrap_password
+sudo chmod 0440 /srv/atlas/secrets/postgres_app_password /srv/atlas/secrets/django_secret_key
 ```
 
 Use mounted disks for PostgreSQL and the inbox. For a custom location, set `ATLAS_POSTGRES_DIR`, `ATLAS_INBOX_DIR` and `ATLAS_SECRET_DIR` in the VM environment file and apply the same ownership and modes at those paths. Check the backing filesystem, available capacity and permissions before starting the services.
