@@ -1,6 +1,6 @@
 # Atlas Phase 1 — architecture and first delivery brief
 
-**Status** — Part 1A, including recurring Automatic retrieval, passed VM pilot acceptance and was merged in [PR #1](https://github.com/pouriya-sedaghat/atlas/pull/1). The [Part 1B input verification brief](phase-1b-input-verification.md) is ready for Codex design review.
+**Status** — Part 1A, including recurring Automatic retrieval, passed VM pilot acceptance and was merged in [PR #1](https://github.com/pouriya-sedaghat/atlas/pull/1). The [Part 1B input verification brief](phase-1b-input-verification.md) has completed design review and is approved for implementation on the designated Atlas VM.
 
 ## Purpose and delivery order
 
@@ -112,7 +112,7 @@ The designated VM review confirmed that GitHub reads and bounded Geofabrik reque
 
 ## Codex prompt — implement recurring Automatic retrieval
 
-Part 1A implementation record. The current assignment is in the [Part 1B review brief](phase-1b-input-verification.md#codex-prompt--review-only).
+Part 1A implementation record. The current assignment is in the [Part 1B implementation brief](phase-1b-input-verification.md#codex-prompt--implement-part-1b).
 
 > Work in the designated Atlas VM checkout for https://github.com/pouriya-sedaghat/atlas. Fetch `origin/main` and the branch of draft PR #1, `feat/phase-1a-intake`. Read this approved brief at the supplied documentation revision. Use the reviewed baseline `9756b1442b2be4e018128d03d650a7bca9fdda53` and update the same PR branch. Preserve unrelated work in the checkout. The development authorization covers this recurrence change, its migration, operator UI and documentation, and its tests.
 >
