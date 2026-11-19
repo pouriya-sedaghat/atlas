@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import re
 import resource
 import shutil
 import subprocess
@@ -13,9 +14,14 @@ from time import monotonic
 from django.core.exceptions import ValidationError
 
 from .control import POLICY_VERSION, canonical
-from .storage import spool, write_json
+from .storage import hash_file, spool, write_json
 from .manifest import validate_manifest
 from atlas_intake.storage import inbox_usage, sync_directory
+
+
+OSMIUM_NO_BOUNDS = b"Geometry error: Invalid location. Usually this means a node was missing from the input data.\n"
+OSMIUM_COUNT_ADAPTER = "osmium-1.18-no-node-bounds-counts-v1"
+OSMIUM_KINDS = ("nodes", "ways", "relations")
 
 
 def tool_versions():
@@ -39,19 +45,23 @@ def tool_versions():
 def osmium_check(source, expected, directory):
     output_path = directory/"osmium.json"
     error_path = directory/"osmium.stderr"
+    command = ["osmium", "fileinfo", "--input-format=pbf", "--extended", "--json", "--no-progress", str(source)]
     with output_path.open("xb") as out, error_path.open("xb") as err:
         result = subprocess.run(
-            ["osmium", "fileinfo", "--input-format=pbf", "--extended", "--json", "--no-progress", str(source)],
-            stdout=out, stderr=err, timeout=1800,
+            command, stdout=out, stderr=err, timeout=1800,
         )
     if result.returncode:
-        message=error_path.read_bytes()[:4096].decode("utf-8","replace")
-        if not sum(int(value) for value in expected.values()) and "Invalid location" in message:
-            return {
-                "status":"unsupported_profile","counts":None,
-                "reason":"Pinned Osmium JSON inspection cannot represent empty input bounds.",
-                "exit_code":result.returncode,
-            }
+        # v1.18.0 constructs a box when rendering JSON even when no nodes
+        # exist. Select only that complete presentation diagnostic; processing
+        # errors, additional diagnostics, and partial JSON remain failures.
+        with error_path.open("rb") as error:
+            message = error.read(len(OSMIUM_NO_BOUNDS)+1)
+        output_path.rename(directory/"osmium-json.stdout")
+        if (int(expected["nodes"]) == 0 and result.returncode == 1
+                and output_path.with_name("osmium-json.stdout").stat().st_size == 0
+                and message == OSMIUM_NO_BOUNDS):
+            error_path.rename(directory/"osmium-json.stderr")
+            return osmium_no_bounds_counts(source, expected, directory, command)
         raise RuntimeError("Mandatory Osmium full-file reconciliation could not finish.")
     if output_path.stat().st_size > 1024**2:
         raise RuntimeError("Mandatory Osmium output exceeded its bounded size.")
@@ -63,6 +73,53 @@ def osmium_check(source, expected, directory):
     error_path.unlink()
     return {"counts": {kind: int(observed[kind]) for kind in ("nodes","ways","relations")},
             "sha256": hashlib.sha256(output_path.read_bytes()).hexdigest()}
+
+
+def osmium_no_bounds_counts(source, expected, directory, json_command):
+    outputs = []
+    invocations = []
+
+    def record(command, code, output_path, error_path):
+        raw = []
+        for path in (output_path, error_path):
+            with path.open("rb") as stream:
+                value = stream.read(4097)
+            if len(value) > 4096:
+                raise RuntimeError("Mandatory Osmium count output exceeded its bounded size.")
+            raw.append(value)
+            outputs.append({"path":path.name,"encoding":"text/plain","size":len(value),
+                            "sha256":hashlib.sha256(value).hexdigest()})
+        invocations.append({"command":command,"exit_code":code,
+                            "stdout":raw[0].decode("utf-8","replace"),
+                            "stderr":raw[1].decode("utf-8","replace"),
+                            "stdout_path":output_path.name,"stderr_path":error_path.name})
+        return raw[0]
+
+    record(json_command, 1, directory/"osmium-json.stdout", directory/"osmium-json.stderr")
+    counts = {}
+    for kind in OSMIUM_KINDS:
+        command = ["osmium", "fileinfo", "--input-format=pbf", "--extended",
+                   "--get=data.count."+kind, "--no-progress", str(source)]
+        output_path = directory/("osmium-count-"+kind+".stdout")
+        error_path = directory/("osmium-count-"+kind+".stderr")
+        with output_path.open("xb") as out, error_path.open("xb") as err:
+            result = subprocess.run(command, stdout=out, stderr=err, timeout=1800)
+        value = record(command, result.returncode, output_path, error_path)
+        if result.returncode:
+            raise RuntimeError("Mandatory Osmium full-file count reconciliation could not finish.")
+        # Osmium uses uint64 counters and emits one ASCII decimal plus LF.
+        # Bound the token before integer conversion and reject extra values,
+        # signs, whitespace, alternate bases and integer overflow.
+        if (not re.fullmatch(rb"(?:0|[1-9][0-9]{0,19})\n?", value)
+                or int(value) > 2**64-1):
+            raise RuntimeError("Mandatory Osmium returned an invalid bounded decimal count.")
+        counts[kind] = int(value)
+    inspection = {"adapter":OSMIUM_COUNT_ADAPTER,"counts":counts,"bounds":None,
+                  "bounds_status":"absent_no_nodes","invocations":invocations,"outputs":outputs}
+    if any(counts[kind] != int(expected[kind]) for kind in OSMIUM_KINDS):
+        raise ValidationError("Osmium and the authoritative decoder disagree on object counts.",
+                              params={"osmium":inspection})
+    return inspection
 
 
 
@@ -133,20 +190,31 @@ def run(snapshot, directory, progress):
                     progress({"phase":"osmium_reconciliation","region":region})
                     try:
                         check["osmium"] = osmium_check(local, check["counts"], folder)
-                        if check["osmium"].get("status")=="unsupported_profile":
-                            check["status"]="unsupported_profile"
-                            check["reasons"].append({
-                                "code":"empty_osmium_capability",
-                                "message":check["osmium"]["reason"],
-                            })
+                    except ValidationError as error:
+                        check = {**check,"status":"input_invalid","reasons":[
+                            *check.get("reasons",[]), {"code":"count_disagreement","message":str(error)}]}
+                        if error.params and "osmium" in error.params:
+                            check["osmium"] = error.params["osmium"]
+                    except Exception:
+                        # Operational failures keep mandatory reconciliation
+                        # incomplete, with every diagnostic's byte identity in
+                        # the retained checkpoint as well as on disk.
+                        diagnostics = []
+                        for out in sorted(folder.glob("osmium*")):
+                            size, digest = hash_file(folder, out.name)
+                            diagnostics.append({"path":out.name,"encoding":"application/octet-stream",
+                                                "size":size,"sha256":digest})
+                        check["osmium_failure_outputs"] = diagnostics
+                        checkpoint(directory,snapshot,regions,tools,completed)
+                        raise
+                    if check.get("osmium",{}).get("adapter"):
+                        report["outputs"].extend(check["osmium"]["outputs"])
+                    else:
                         out = folder/"osmium.json"
                         report["outputs"].append({
                             "path":out.name,"encoding":"json","size":out.stat().st_size,
                             "sha256":hashlib.sha256(out.read_bytes()).hexdigest(),
                         })
-                    except ValidationError as error:
-                        check = {**check,"status":"input_invalid","reasons":[
-                            *check.get("reasons",[]), {"code":"count_disagreement","message":str(error)}]}
         report["checks"][artifact["kind"]] = check
         for output in check.get("outputs",[]):
             report["outputs"].append(output)

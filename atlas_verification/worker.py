@@ -24,6 +24,7 @@ from .control import SUCCESS, assert_current
 from .models import VerificationAttempt, VerificationExecution, VerificationHealth
 from .storage import hash_file, inventory, write_json, safe_open
 from .manifest import validate_manifest
+from .resources import CgroupObservation
 
 
 LEASE = timedelta(seconds=30)
@@ -188,7 +189,10 @@ class VerificationWorker:
         start = monotonic()
         command = self.child_command or [sys.executable,"manage.py","atlas_verification_execute",str(path)]
         stderr = path/"child.stderr"
-        measurements = {"disk_high_water_bytes":inbox_usage(path),"aggregate_peak_memory_bytes":0}
+        observation=CgroupObservation()
+        write_json(path/"cgroup-before.json",observation.before)
+        measurements = {"disk_high_water_bytes":inbox_usage(path),"aggregate_peak_memory_bytes":0,
+                        "attempt_sampled_peak_memory_bytes":0}
         failure = None
         with stderr.open("xb") as errors:
             child = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=errors,start_new_session=True,bufsize=0)
@@ -228,11 +232,11 @@ class VerificationWorker:
                     last_renew=now
                     used,storage_failure = self.storage_limit(attempt)
                     measurements["disk_high_water_bytes"] = max(measurements["disk_high_water_bytes"],used)
-                    memory = Path("/sys/fs/cgroup/memory.current")
-                    if memory.exists():
-                        measurements["aggregate_peak_memory_bytes"] = max(
-                            measurements["aggregate_peak_memory_bytes"],int(memory.read_text()),
-                        )
+                    current=observation.sample()
+                    measurements["attempt_sampled_peak_memory_bytes"]=observation.sampled_peaks["memory_current_bytes"] or 0
+                    measurements["aggregate_peak_memory_bytes"]=max(
+                        measurements["aggregate_peak_memory_bytes"],current.get("memory_peak_bytes") or 0,
+                    )
                     heartbeat()
                     if not self.renew(attempt.pk,attempt.generation,{**progress,**measurements}):
                         failure = "Verification generation lost its active claim."
@@ -240,6 +244,8 @@ class VerificationWorker:
                         failure = "Verification execution exceeded the one-hour deadline."
                     elif storage_failure:
                         failure = storage_failure
+                    elif observation.failure():
+                        failure = observation.failure()
                     if failure:
                         os.killpg(child.pid,signal.SIGKILL)
                         break
@@ -255,6 +261,11 @@ class VerificationWorker:
         if not failure:
             failure=("Verification execution exceeded the one-hour deadline."
                      if monotonic()-start>=self.deadline else storage_failure)
+        cgroup_report=observation.finish()
+        cgroup_report["execution_stage"]="generation child execution: after snapshot creation through child exit and final storage/deadline checks; before result registration/publication"
+        write_json(path/"cgroup-after.json",cgroup_report["after"])
+        if observation.failure():
+            failure=observation.failure()
         report_path=path/"report.json"
         if child.returncode or failure or not report_path.is_file():
             previous=report_path if report_path.is_file() else path/"partial.json"
@@ -269,11 +280,13 @@ class VerificationWorker:
                 write_json(report_path,report)
         else:
             report=self.read_report(report_path)
-        peak=Path("/sys/fs/cgroup/memory.peak")
-        if peak.exists():
-            measurements["aggregate_peak_memory_bytes"]=max(
-                measurements["aggregate_peak_memory_bytes"],int(peak.read_text()),
-            )
+        measurements["aggregate_peak_memory_bytes"]=max(
+            measurements["aggregate_peak_memory_bytes"],cgroup_report["before"].get("memory_peak_bytes") or 0,
+            cgroup_report["after"].get("memory_peak_bytes") or 0,
+        )
+        measurements["aggregate_peak_memory_scope"]="cgroup lifetime"
+        measurements["attempt_sampled_peak_memory_bytes"]=observation.sampled_peaks["memory_current_bytes"] or 0
+        measurements["cgroup"]=cgroup_report
         measurements["disk_high_water_bytes"]=max(measurements["disk_high_water_bytes"],inbox_usage(path))
         report["resources"]={**report.get("execution",{}),**measurements,"wall_seconds":round(monotonic()-start,3)}
         self.complete(attempt.pk,attempt.generation,report,path)
@@ -421,6 +434,23 @@ class VerificationWorker:
         report.update(status="operational_failed", build_eligible=False,
                       reasons=[{"code":"operational_failed","message":message[:2000]}],
                       last_progress=attempt.progress)
+        try:
+            with safe_open(self.root,f".work/{attempt.pk}/{attempt.generation}/cgroup-before.json") as source:
+                encoded=source.read(16385)
+            if len(encoded)>16384:
+                raise ValueError("Cgroup checkpoint exceeds its bound.")
+            before=json.loads(encoded)
+            if not isinstance(before,dict):
+                raise ValueError("Cgroup checkpoint is not an object.")
+        except (OSError,ValueError,ValidationError):
+            pass
+        else:
+            observation=CgroupObservation(before=before)
+            cgroup=observation.finish()
+            cgroup["execution_stage"]="failure/recovery observation; after may be in a later cgroup lifetime and samples do not reconstruct unobserved execution"
+            report.setdefault("resources",{})["cgroup"]=cgroup
+            if observation.failure():
+                report["resource_failure"]=observation.failure()
         return report
 
     def recover(self):
