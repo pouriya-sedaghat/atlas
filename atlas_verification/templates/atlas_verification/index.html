@@ -1,0 +1,23 @@
+{% extends "atlas_intake/base.html" %}
+{% block title %}Input verification · Atlas{% endblock %}
+{% block main %}
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="{% url 'atlas_intake:dashboard' %}">Retrievals</a> / Verification</nav>
+<div class="page-heading"><div><h1>Input verification</h1><p>Select one exact retrieval run to review its frozen inputs and verification history.</p></div></div>
+{% regroup run_page by local_date as run_dates %}
+{% for group in run_dates %}
+<section class="card"><h2>{{ group.grouper|date:"Y-m-d" }}</h2>
+    <ul class="activity">
+    {% for run in group.list %}
+        <li><a href="{% url 'verification:run' run.pk %}"><code>{{ run.pk }}</code></a> <span class="badge status-{{ run.status }}">{{ run.get_status_display }}</span>
+            <p class="muted">{{ run.get_origin_display }} · {{ run.created_at|date:"Y-m-d H:i:s e" }} · {{ run.zone }} · {{ run.selection|length }} selected PBFs</p>
+        </li>
+    {% endfor %}
+    </ul>
+</section>
+{% empty %}<p class="notice">No retrieval runs are available.</p>{% endfor %}
+{% if run_page.has_other_pages %}<nav class="pagination" aria-label="Retrieval pages">
+    {% if run_page.has_previous %}<a href="?page={{ run_page.previous_page_number }}">Newer runs</a>{% endif %}
+    <span>Page {{ run_page.number }} of {{ run_page.paginator.num_pages }}</span>
+    {% if run_page.has_next %}<a href="?page={{ run_page.next_page_number }}">Older runs</a>{% endif %}
+</nav>{% endif %}
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "atlas_intake/base.html" %}
+{% block title %}Verify {{ run.pk }} · Atlas{% endblock %}
+{% block main %}
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="{% url 'verification:index' %}">Verification</a> / <a href="{% url 'atlas_intake:run_detail' run.pk %}">Retrieval run</a></nav>
+<div class="page-heading"><div><h1>Verify retrieval inputs</h1><p><code>{{ run.pk }}</code></p></div><span class="badge status-{{ run.status }}">{{ run.get_status_display }}</span></div>
+<section class="card"><h2>Frozen retrieval inputs</h2>
+    <dl class="metadata metadata-grid">
+        <div><dt>Retrieval date</dt><dd>{{ run.local_date|date:"Y-m-d" }} · {{ run.zone }}</dd></div>
+        <div><dt>Catalog revision</dt><dd><code>{{ run.catalog_id }}</code></dd></div>
+        <div><dt>Integrity state</dt><dd>{{ run.get_status_display }}{% if run.issue %} · {{ run.issue }}{% endif %}</dd></div>
+        <div><dt>Sealed at</dt><dd>{{ run.sealed_at|date:"Y-m-d H:i:s e"|default:"Not sealed" }}</dd></div>
+        <div><dt>Selected PBFs</dt><dd><ul class="compact-list">{% for region in run.selection %}<li><code>{{ region }}</code></li>{% empty %}<li>No PBFs selected</li>{% endfor %}</ul></dd></div>
+        <div><dt>Boundary-only regions</dt><dd><details><summary>{{ boundary_only|length }} regions</summary><ul class="compact-list">{% for region in boundary_only %}<li><code>{{ region }}</code></li>{% endfor %}</ul></details></dd></div>
+    </dl>
+    <h3>Recorded provider exceptions</h3>
+    <ul>{% for artifact in exceptions %}<li><code>{{ artifact.region_id }}</code> · {{ artifact.exception }}</li>{% empty %}<li>None</li>{% endfor %}</ul>
+    {% if eligible %}
+        <form method="post" action="{% url 'verification:request' run.pk %}">{% csrf_token %}<input type="hidden" name="request_key" value="{{ request_key }}"><button>Request verification</button></form>
+        <p class="muted">Each intentional request creates a new attempt. Replaying an accepted request returns its original attempt.</p>
+    {% else %}<p class="notice error" role="alert">{{ eligibility_error }}</p>{% endif %}
+</section>
+<section class="card"><h2>Verification history</h2>
+    <ul class="activity">{% for attempt in attempts %}<li><a href="{% url 'verification:attempt_detail' attempt.pk %}"><code>{{ attempt.pk }}</code></a> <strong>{{ attempt.get_status_display }}</strong><p>{{ attempt.created_at|date:"Y-m-d H:i:s e" }} · {{ attempt.requested_by }} · generation {{ attempt.generation }}</p>{% if attempt.error %}<p class="file-error">{{ attempt.error }}</p>{% endif %}</li>{% empty %}<li>No verification has been requested for this run.</li>{% endfor %}</ul>
+</section>
+{% endblock %}

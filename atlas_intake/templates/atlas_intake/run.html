@@ -6,6 +6,7 @@
     <div class="page-heading">
         <div>
             <h1>Retrieval run</h1>
+        <a href="{% url 'verification:run' run.pk %}">Verify inputs</a>
             <p class="run-id"><code>{{ run.pk }}</code></p>
         </div>
         <span class="badge status-{{ run.status }}">{{ run.get_status_display }}</span>
