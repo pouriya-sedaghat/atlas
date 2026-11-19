@@ -70,9 +70,11 @@ class VerificationPipelineTests(TestCase):
     def test_spool_disk_failure_is_operational_not_invalid_input(self):
         import errno
         from unittest.mock import patch
-        with patch("atlas_verification.execute.spool", side_effect=OSError(errno.ENOSPC, "disk full")):
-            with self.assertRaises(OSError):
-                self.verify()
+        for code in (errno.ENOSPC, errno.EACCES):
+            with self.subTest(errno=code):
+                with patch("atlas_verification.execute.spool", side_effect=OSError(code, "private spool write failed")):
+                    with self.assertRaises(OSError):
+                        self.verify()
 
     def test_mandatory_inspector_failure_preserves_completed_and_incomplete_checks(self):
         from unittest.mock import patch

@@ -1,8 +1,9 @@
 import hashlib
+import errno
 import json
 import os
 import stat
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from pathlib import Path, PurePosixPath
 
 from django.core.exceptions import ValidationError
@@ -63,7 +64,14 @@ def read_checked(root, relative, expected, cap):
 def spool(root, artifact, destination, progress):
     digest = hashlib.sha256()
     copied = 0
-    with safe_open(root, artifact["path"]) as source, destination.open("xb") as target:
+    with ExitStack() as stack:
+        try:
+            source = stack.enter_context(safe_open(root, artifact["path"]))
+        except OSError as error:
+            if error.errno in {errno.ENOENT, errno.ENOTDIR, errno.ELOOP, errno.EACCES, errno.EPERM}:
+                raise ValidationError("The frozen source path is unavailable or unsafe.") from error
+            raise
+        target = stack.enter_context(destination.open("xb"))
         if os.fstat(source.fileno()).st_size != artifact["length"]:
             raise ValidationError("The source size differs from the frozen input.")
         while copied < artifact["length"]:

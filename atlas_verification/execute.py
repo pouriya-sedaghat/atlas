@@ -1,6 +1,5 @@
 """Private child execution. The parent owns claims, resource enforcement and publication."""
 import hashlib
-import errno
 import json
 import os
 import resource
@@ -121,9 +120,7 @@ def run(snapshot, directory, progress):
         local = spool_root/str(artifact["artifact_id"])
         try:
             spool(Path(os.environ.get("ATLAS_INBOX","/inbox")), artifact, local, progress)
-        except (ValidationError, OSError) as error:
-            if isinstance(error, OSError) and error.errno not in {errno.ENOENT, errno.ENOTDIR, errno.ELOOP, errno.EACCES, errno.EPERM}:
-                raise
+        except ValidationError as error:
             check = {"status":"input_invalid","reasons":[{"code":"input_integrity","message":str(error)[:500]}]}
         else:
             if artifact["kind"] == "poly":

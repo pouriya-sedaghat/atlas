@@ -44,3 +44,17 @@ class SafeSpoolTests(TestCase):
         self.artifact["sha256"]="f"*64
         with self.assertRaises(ValidationError):
             spool(self.root,self.artifact,self.root/"spool",lambda update:None)
+
+    def test_missing_source_is_integrity_failure_and_private_write_failure_is_operational(self):
+        import errno
+        from unittest.mock import patch
+        with TemporaryDirectory() as temporary:
+            root=Path(temporary)
+            data=b"accepted"
+            artifact={"path":"source", "length":len(data), "sha256":hashlib.sha256(data).hexdigest(), "region_id":"region"}
+            with self.assertRaises(ValidationError):
+                spool(root,artifact,root/"spool",lambda update:None)
+            (root/"source").write_bytes(data)
+            with patch.object(Path,"open",side_effect=PermissionError(errno.EACCES,"private spool denied")):
+                with self.assertRaises(PermissionError):
+                    spool(root,artifact,root/"spool",lambda update:None)

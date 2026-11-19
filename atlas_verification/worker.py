@@ -4,6 +4,7 @@ import os
 import selectors
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 from datetime import timedelta
@@ -126,6 +127,55 @@ class VerificationWorker:
         parent = directory(self.root,f".work/{attempt.pk}",0o700)
         return directory(self.root,f".work/{attempt.pk}/{attempt.generation}",0o700)
 
+    def storage_limit(self,attempt):
+        roots=[self.root/f".work/{attempt.pk}",
+               self.root/attempt.snapshot["retrieval_local_date"]/str(attempt.run_id)/str(attempt.pk)]
+        seen=set()
+        used=0
+        def walk_error(error):
+            raise error
+        for root in roots:
+            if not root.exists():
+                continue
+            for parent, _, files in os.walk(root,onerror=walk_error):
+                for name in files:
+                    try:
+                        info=os.lstat(Path(parent)/name)
+                    except FileNotFoundError:
+                        continue
+                    identity=(info.st_dev,info.st_ino)
+                    if stat.S_ISREG(info.st_mode) and identity not in seen:
+                        seen.add(identity)
+                        used+=max(info.st_size,info.st_blocks*512)
+        if used>settings.ATLAS_VERIFICATION_ATTEMPT_BYTES:
+            return used,f"Verification exceeded its per-attempt storage cap: {used} > {settings.ATLAS_VERIFICATION_ATTEMPT_BYTES} bytes."
+        root_used=inbox_usage(self.root)
+        if root_used>settings.ATLAS_VERIFICATION_ROOT_BYTES:
+            return used,f"Verification exceeded its root storage cap: {root_used} > {settings.ATLAS_VERIFICATION_ROOT_BYTES} bytes."
+        free=shutil.disk_usage(self.root).free
+        if free<settings.ATLAS_LIMITS["free"]:
+            return used,f"Filesystem free-space reserve was reached: {free} < {settings.ATLAS_LIMITS['free']} bytes."
+        return used,None
+
+    @staticmethod
+    def resource_failure(report,message,used):
+        report.update(status="operational_failed",build_eligible=False,resource_failure=message)
+        report["reasons"]=[*report.get("reasons",[])[:31],{"code":"resource_limit","message":message}]
+        resources=report.setdefault("resources",{})
+        resources["disk_high_water_bytes"]=max(resources.get("disk_high_water_bytes",0),used)
+        return report
+
+    @staticmethod
+    def read_report(path):
+        with path.open("rb") as source:
+            encoded=source.read(4*1024**2+1)
+        if len(encoded)>4*1024**2:
+            raise ValueError("Verification report exceeded its size cap.")
+        report=json.loads(encoded)
+        if not isinstance(report,dict):
+            raise ValueError("Verification report is not an object.")
+        return report
+
     def execute(self,attempt):
         from .execute import tool_versions
         if attempt.tools != tool_versions() or attempt.policy_version != "atlas-input-v1":
@@ -142,27 +192,41 @@ class VerificationWorker:
         failure = None
         with stderr.open("xb") as errors:
             child = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=errors,start_new_session=True,bufsize=0)
+            os.set_blocking(child.stdout.fileno(),False)
             selector = selectors.DefaultSelector()
             selector.register(child.stdout,selectors.EVENT_READ)
             last_renew = 0.0
             progress = {"phase":"starting"}
+            progress_buffer = bytearray()
             try:
                 while child.poll() is None:
-                    now = monotonic()
                     for key, _ in selector.select(timeout=0.5):
-                        line = key.fileobj.readline(8193)
-                        if len(line)>8192:
-                            failure = "Verifier progress exceeded its output limit."
-                            break
-                        if line:
+                        try:
+                            chunk = os.read(key.fd,8192)
+                        except BlockingIOError:
+                            continue
+                        if not chunk:
+                            selector.unregister(key.fileobj)
+                            continue
+                        progress_buffer.extend(chunk)
+                        while b"\n" in progress_buffer:
+                            line, _, progress_buffer = progress_buffer.partition(b"\n")
+                            if len(line)>=8192:
+                                failure = "Verifier progress exceeded its output limit."
+                                break
                             progress = json.loads(line)
+                        if len(progress_buffer)>=8192:
+                            failure = "Verifier progress exceeded its output limit."
+                        if failure:
+                            break
+                    if failure:
+                        os.killpg(child.pid,signal.SIGKILL)
+                        break
+                    now = monotonic()
                     if now-last_renew < 2:
                         continue
                     last_renew=now
-                    used = inbox_usage(self.root/f".work/{attempt.pk}")
-                    public = self.root/attempt.snapshot["retrieval_local_date"]/str(attempt.run_id)/str(attempt.pk)
-                    if public.exists():
-                        used += inbox_usage(public)
+                    used,storage_failure = self.storage_limit(attempt)
                     measurements["disk_high_water_bytes"] = max(measurements["disk_high_water_bytes"],used)
                     memory = Path("/sys/fs/cgroup/memory.current")
                     if memory.exists():
@@ -174,10 +238,8 @@ class VerificationWorker:
                         failure = "Verification generation lost its active claim."
                     elif now-start >= self.deadline:
                         failure = "Verification execution exceeded the one-hour deadline."
-                    elif used > settings.ATLAS_VERIFICATION_ATTEMPT_BYTES or inbox_usage(self.root)>settings.ATLAS_VERIFICATION_ROOT_BYTES:
-                        failure = "Verification exceeded its storage cap."
-                    elif shutil.disk_usage(self.root).free < settings.ATLAS_LIMITS["free"]:
-                        failure = "Filesystem free-space reserve was reached."
+                    elif storage_failure:
+                        failure = storage_failure
                     if failure:
                         os.killpg(child.pid,signal.SIGKILL)
                         break
@@ -188,20 +250,25 @@ class VerificationWorker:
                 if child.poll() is None:
                     os.killpg(child.pid,signal.SIGKILL)
                     child.wait()
-        if child.returncode or failure or not (path/"report.json").is_file():
-            partial=path/"partial.json"
-            report=json.loads(partial.read_bytes()) if partial.exists() else {}
+        used,storage_failure=self.storage_limit(attempt)
+        measurements["disk_high_water_bytes"]=max(measurements["disk_high_water_bytes"],used)
+        if not failure:
+            failure=("Verification execution exceeded the one-hour deadline."
+                     if monotonic()-start>=self.deadline else storage_failure)
+        report_path=path/"report.json"
+        if child.returncode or failure or not report_path.is_file():
+            previous=report_path if report_path.is_file() else path/"partial.json"
+            report=self.read_report(previous) if previous.exists() else {}
             report.update(
                 status="operational_failed",build_eligible=False,
                 reasons=[{"code":"child_failed","message":failure or f"Verifier child exited with code {child.returncode}."}],
             )
-            if not (path/"report.json").exists():
-                write_json(path/"report.json",report)
+            if failure:
+                report["resource_failure"]=failure
+            if not report_path.exists():
+                write_json(report_path,report)
         else:
-            raw = (path/"report.json").read_bytes()
-            if len(raw)>4*1024**2:
-                raise ValueError("Verification report exceeded its size cap.")
-            report=json.loads(raw)
+            report=self.read_report(report_path)
         peak=Path("/sys/fs/cgroup/memory.peak")
         if peak.exists():
             measurements["aggregate_peak_memory_bytes"]=max(
@@ -229,14 +296,22 @@ class VerificationWorker:
             requested_by=attempt.requested_by,verified_at=timezone.now().isoformat(),
             frozen_inputs=attempt.snapshot,
         )
+        used,storage_failure=self.storage_limit(attempt)
+        if storage_failure:
+            self.finish_failure(attempt,"operational_failed",storage_failure,
+                                self.resource_failure(report,storage_failure,used))
+            return False
         result_root=path/"result"
         if report.get("status") not in SUCCESS:
-            if result_root.is_dir() and "regions" in report:
+            if result_root.is_dir() and "regions" in report and not report.get("resource_failure"):
                 validate_manifest("batch",report)
                 failure_meta=write_json(result_root/"manifest.json",report)
                 report["failure_manifest"]={**failure_meta,"path":str((result_root/"manifest.json").relative_to(self.root))}
+                used,storage_failure=self.storage_limit(attempt)
+                if storage_failure:
+                    self.resource_failure(report,storage_failure,used)
             self.finish_failure(attempt,report.get("status","operational_failed"),
-                                "Verification did not pass all required checks.",report)
+                                report.get("resource_failure","Verification did not pass all required checks."),report)
             return False
         validate_manifest("batch",report)
         meta=write_json(result_root/"manifest.json",report)
@@ -247,6 +322,11 @@ class VerificationWorker:
                 os.fsync(output.fileno())
         for parent, directories, filenames in os.walk(result_root,topdown=False):
             sync_directory(parent)
+        used,storage_failure=self.storage_limit(attempt)
+        if storage_failure:
+            self.finish_failure(attempt,"operational_failed",storage_failure,
+                                self.resource_failure(report,storage_failure,used))
+            return False
         attempt.intended={
             "generation":generation,"stage":str(result_root.relative_to(self.root)),
             "target":final,"files":[{**file,"path":f"{final}/{file['path']}","source":file["path"]} for file in files],
@@ -272,6 +352,9 @@ class VerificationWorker:
             self.finish_failure(attempt,"input_invalid",str(error))
             return False
         try:
+            _,storage_failure=self.storage_limit(attempt)
+            if storage_failure:
+                raise ValidationError(storage_failure)
             stage=self.root/attempt.intended["stage"]
             # Publish the batch manifest last. Registration remains the visibility boundary.
             files=sorted(attempt.intended["files"],key=lambda file:file["path"]==attempt.intended["manifest_path"])
@@ -299,6 +382,9 @@ class VerificationWorker:
                     raise ValidationError("A published verification output conflicts with its registered intent.")
                 sync_directory(target.parent)
             assert_current(attempt)
+            _,storage_failure=self.storage_limit(attempt)
+            if storage_failure:
+                raise ValidationError(storage_failure)
         except (OSError,ValidationError) as error:
             self.finish_failure(attempt,"operational_failed",str(error))
             return False
