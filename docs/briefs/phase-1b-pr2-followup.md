@@ -1,6 +1,6 @@
 # Atlas Part 1B — PR #2 review and follow-up
 
-**Status** — Changes and acceptance evidence are required before Part 1B approval. Reviewed [PR #2](https://github.com/pouriya-sedaghat/atlas/pull/2) at `2f63eba7b280fe8947d88f0b1843a7a66ba7708c`. Continue in `feat/phase-1b-verification` on the designated Atlas VM. The [Part 1B implementation brief](phase-1b-input-verification.md) now includes the memory-accounting and empty-input reconciliation decisions.
+**Status** — Follow-up accepted at `3616c0b95c37786f12989f190382e34cfb02cf07` and merged through [PR #2](https://github.com/pouriya-sedaghat/atlas/pull/2). The findings below are retained as review history. The [focused intake compatibility brief](intake-geofabrik-updates-compatibility.md) contains the current implementation assignment.
 
 ## Review findings and disposition
 
@@ -43,6 +43,8 @@ The authenticated attempt summary already exposes regional findings for a failed
 Run the complete PostgreSQL suite and both migration checks after the corrections, plus the integrated positive and valid-empty cases. On the exact final candidate, re-verify the recorded live corpus, compare the retained semantic identities and all input hashes, and repeat the resource/intake observations that the change affects. Reuse the existing exact-candidate two-attempt evidence for unaffected fidelity claims, explicitly identifying old and new evidence. If extracted bytes or policy outcomes change, rerun two complete attempts and explain the difference. Retain the original negative findings and restart receipt.
 
 ## Codex prompt — implement the PR #2 follow-up
+
+Completed assignment retained for audit. The [intake compatibility brief](intake-geofabrik-updates-compatibility.md#codex-prompt--implement-the-compatibility-fix) contains the current assignment.
 
 > On the designated Atlas VM, fetch `origin/main` and `feat/phase-1b-verification` for https://github.com/pouriya-sedaghat/atlas. Read this follow-up brief and the updated Part 1B implementation brief at the supplied revision. Verify the PR #2 baseline `2f63eba7b280fe8947d88f0b1843a7a66ba7708c` and preserve unrelated work.
 >
