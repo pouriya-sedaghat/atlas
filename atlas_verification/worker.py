@@ -21,7 +21,7 @@ from atlas_intake.models import Artifact, Run
 from atlas_intake.storage import inbox_usage, make_directories, sync_directory
 from .control import SUCCESS, assert_current
 from .models import VerificationAttempt, VerificationExecution, VerificationHealth
-from .storage import hash_file, inventory, write_json
+from .storage import hash_file, inventory, write_json, safe_open
 from .manifest import validate_manifest
 
 
@@ -319,6 +319,24 @@ class VerificationWorker:
               manifest_sha256=attempt.manifest_sha256,build_eligible=attempt.build_eligible)
         return True
 
+    def failure_checkpoint(self, attempt, message):
+        relative=f".work/{attempt.pk}/{attempt.generation}/partial.json"
+        try:
+            with safe_open(self.root, relative) as source:
+                encoded=source.read(4*1024**2+1)
+            if len(encoded)>4*1024**2:
+                raise ValueError("Checkpoint exceeds its size cap.")
+            report=json.loads(encoded)
+            if not isinstance(report, dict):
+                raise ValueError("Checkpoint is not an object.")
+        except (OSError, ValueError, ValidationError):
+            report={"checks_completed":[],
+                    "checks_incomplete":[item["artifact_id"] for item in attempt.snapshot["artifacts"]]}
+        report.update(status="operational_failed", build_eligible=False,
+                      reasons=[{"code":"operational_failed","message":message[:2000]}],
+                      last_progress=attempt.progress)
+        return report
+
     def recover(self):
         for attempt in VerificationAttempt.objects.filter(status="prepared").order_by("created_at")[:8]:
             self.publish(attempt.pk,attempt.generation)
@@ -327,7 +345,9 @@ class VerificationWorker:
                 Run.objects.select_for_update().get(pk=candidate.run_id)
                 attempt=VerificationAttempt.objects.select_for_update().get(pk=candidate.pk)
                 if attempt.status=="running" and attempt.lease_until<=timezone.now():
-                    self.finish_failure(attempt,"operational_failed","Verifier claim expired. Retry uses the same frozen input snapshot.")
+                    message="Verifier claim expired. Retry uses the same frozen input snapshot."
+                    self.finish_failure(attempt,"operational_failed",message,
+                                        self.failure_checkpoint(attempt,message))
 
     def tick(self):
         heartbeat()
@@ -341,8 +361,9 @@ class VerificationWorker:
                     Run.objects.select_for_update().get(pk=attempt.run_id)
                     current=VerificationAttempt.objects.select_for_update().get(pk=attempt.pk)
                     if current.generation==attempt.generation and current.status=="running":
-                        self.finish_failure(current,"operational_failed",
-                                            f"Verifier execution failed ({type(error).__name__}).")
+                        message=f"Verifier execution failed ({type(error).__name__})."
+                        self.finish_failure(current,"operational_failed",message,
+                                            self.failure_checkpoint(current,message))
             attempt.refresh_from_db()
             if attempt.status=="prepared":
                 self.publish(attempt.pk,attempt.generation)

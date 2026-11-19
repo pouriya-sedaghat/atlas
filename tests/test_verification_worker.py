@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -88,10 +89,18 @@ class VerificationRecoveryTests(TestCase):
         attempt=request_verification(self.run.pk,"first","operator")
         claim=self.worker.claim()
         snapshot=claim.snapshot
+        generation=self.worker.generation_path(claim)
+        checkpoint={"status":"operational_failed","build_eligible":False,
+                    "checks_completed":["first-artifact"],"checks_incomplete":["next-artifact"],
+                    "counts":{"nodes":123},"regions":[],"tools":{}}
+        (generation/"partial.json").write_text(json.dumps(checkpoint))
         VerificationAttempt.objects.filter(pk=claim.pk).update(lease_until=timezone.now()-timedelta(seconds=1))
         self.worker.recover()
         claim.refresh_from_db()
         self.assertEqual(claim.status,"operational_failed")
+        self.assertEqual(claim.summary["checks_completed"],["first-artifact"])
+        self.assertEqual(claim.summary["checks_incomplete"],["next-artifact"])
+        self.assertEqual(claim.executions.get(generation=1).report["result"]["counts"],{"nodes":123})
         retry_verification(claim.pk,"operator")
         fresh=self.worker.claim()
         self.assertEqual(fresh.generation,2)
