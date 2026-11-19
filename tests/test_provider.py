@@ -5,7 +5,7 @@ import unittest
 from email.message import Message
 from unittest.mock import patch
 
-from atlas_intake.provider import Client, ProviderError
+from atlas_intake.provider import Client, ProviderError, _url
 
 
 BASE = "https://download.geofabrik.de"
@@ -62,7 +62,83 @@ def source_revision(payload):
     return Client(opener=opener, overrides={}).catalog()[0]
 
 
+class UpdatesURLTests(unittest.TestCase):
+    def test_accepts_legacy_and_region_directory_updates_with_optional_slash(self):
+        for path, expected in (
+            ("/iran-updates", "/iran-updates"),
+            ("/asia/iran-updates/", "/asia/iran-updates"),
+            ("/iran/updates", "/iran/updates"),
+            ("/iran/updates/", "/iran/updates"),
+            ("/asia/iran/updates", "/asia/iran/updates"),
+            ("/asia/iran/updates/", "/asia/iran/updates"),
+            ("/australia-oceania/australia/act/updates",
+             "/australia-oceania/australia/act/updates"),
+            ("/australia-oceania/australia/act/updates/",
+             "/australia-oceania/australia/act/updates"),
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(_url(BASE + path, "updates"), BASE + expected)
+        self.assertEqual(
+            _url("https://download.geofabrik.de:443/asia/iran/updates/", "updates"),
+            BASE + "/asia/iran/updates",
+        )
+
+    def test_rejects_root_sibling_and_unsafe_updates_urls(self):
+        for url in (
+            BASE + "/updates", BASE + "/updates/", BASE + "/updates//",
+            BASE + "/asia/iran/updates-old", BASE + "/asia/iran/updates.osm.pbf",
+            BASE + "/asia/iran-updates-old", BASE + "/asia/iran/otherupdates",
+            BASE + "/asia/iran/updates/child", BASE + "/asia/iran/updates//",
+            "http://download.geofabrik.de/asia/iran/updates",
+            "https://download.geofabrik.de:444/asia/iran/updates",
+            "https://download.geofabrik.de.invalid/asia/iran/updates",
+            "https://osm-internal.download.geofabrik.de/asia/iran/updates",
+            "https://user:secret@download.geofabrik.de/asia/iran/updates",
+            BASE + "/asia/../iran/updates", BASE + "/asia/./iran/updates",
+            BASE + "/asia//iran/updates", BASE + "/asia/%2e%2e/iran/updates",
+            BASE + "/asia/iran%2fupdates", BASE + "/asia/iran/updates%2f",
+            BASE + "/asia/iran/updates?download=1", BASE + "/asia/iran/updates#data",
+            BASE + "/asia/iran/updates?", BASE + "/asia/iran/updates#",
+            BASE + "/asia/iran\\updates", BASE + "/asia/irán/updates",
+            BASE + "/asia/iran/updates ", BASE + "/asia/iran/updates\n",
+        ):
+            with self.subTest(url=url):
+                with self.assertRaises(ProviderError) as error:
+                    _url(url, "updates")
+                self.assertEqual(error.exception.code, "disallowed_url")
+                self.assertNotIn("secret", str(error.exception))
+
+    def test_updates_directory_is_not_accepted_as_another_url_kind(self):
+        for kind in ("catalog", "page", "latest", "pbf", "dated", "poly", "sidecar"):
+            for path in ("/asia/iran/updates", "/asia/iran/updates/", "/asia/iran-updates"):
+                with self.subTest(kind=kind, path=path):
+                    with self.assertRaises(ProviderError) as error:
+                        _url(BASE + path, kind)
+                    self.assertEqual(error.exception.code, "disallowed_url")
+
+
 class CatalogTests(unittest.TestCase):
+    def test_current_layout_catalog_row_preserves_pbf_and_normalizes_updates(self):
+        payload = catalog([{
+            "type": "Feature",
+            "properties": {
+                "id": "act", "name": "Australian Capital Territory",
+                "urls": {
+                    "pbf": BASE + "/australia-oceania/australia/act/act-latest.osm.pbf",
+                    "updates": BASE + "/australia-oceania/australia/act/updates/",
+                },
+            },
+        }])
+        client = Client(opener=FixtureHTTP({("GET", INDEX): Reply(body=payload)}), overrides={})
+        revision, regions = client.catalog()
+        self.assertEqual(len(revision), 64)
+        self.assertEqual(regions, [{
+            "id": "act", "name": "Australian Capital Territory", "parent": None,
+            "path": "act",
+            "pbf_url": BASE + "/australia-oceania/australia/act/act-latest.osm.pbf",
+            "updates_url": BASE + "/australia-oceania/australia/act/updates",
+        }])
+
     def test_identity_and_hierarchy_allow_slash_ids_and_duplicate_names(self):
         payload = catalog([
             feature("us/alabama", parent="north-america",

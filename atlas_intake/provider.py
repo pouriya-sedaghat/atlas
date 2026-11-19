@@ -78,7 +78,9 @@ def _url(value, kind):
         "latest": lambda: path.endswith(LATEST_SUFFIX),
         "pbf": lambda: path.endswith(LATEST_SUFFIX) or _dated_stem(path) is not None,
         "dated": lambda: _dated_stem(path) is not None,
-        "updates": lambda: path.endswith("-updates"),
+        "updates": lambda: path.endswith("-updates") or (
+            path.endswith("/updates") and path.count("/") >= 2
+        ),
         "poly": lambda: path.endswith(".poly"),
         "sidecar": lambda: path.endswith(".poly.md5") or (
             path.endswith(".md5") and _dated_stem(path[:-4]) is not None
