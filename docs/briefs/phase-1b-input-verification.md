@@ -1,6 +1,6 @@
 # Atlas Part 1B — input verification and manifests
 
-**Status** — Part 1B is under implementation review in [draft PR #2](https://github.com/pouriya-sedaghat/atlas/pull/2). The [PR #2 follow-up brief](phase-1b-pr2-followup.md) records review of `2f63eba7` and the required corrections. The intake application baseline was merged through [PR #1](https://github.com/pouriya-sedaghat/atlas/pull/1). Read this brief together with the [Phase 1 architecture](phase-1-data-foundation.md).
+**Status** — Part 1B passed implementation review and designated-VM acceptance at `3616c0b95c37786f12989f190382e34cfb02cf07` and was merged through [PR #2](https://github.com/pouriya-sedaghat/atlas/pull/2). The live Jiangsu source boundary remains a blocking input finding. The [focused intake URL compatibility brief](intake-geofabrik-updates-compatibility.md) is the current implementation assignment.
 
 ## Review evidence and decisions
 
@@ -100,6 +100,8 @@ Expose a durable handoff containing run ID, verification ID, manifest schema/pol
 - Report total duration, aggregate peak memory of verifier and child tools, disk high-water mark including spools/indexes/outputs, compressed and uncompressed stream size, and retained verification-root usage. Capture idle and concurrent intake health latency, heartbeat age, scheduled admission delay and transfer throughput. During a complete verification require at least 20 health probes with zero errors, maximum health latency at most one second and intake worker heartbeat age below 60 seconds. Exercise an eligible scheduled admission while the retrieval slot is free and require admission within 60 seconds of its test due time. Compare a representative bounded transfer with an idle baseline, investigate regressions and include the measurements in the PR.
 
 ## Codex prompt — implement Part 1B
+
+Part 1B implementation record. The [intake compatibility brief](intake-geofabrik-updates-compatibility.md#codex-prompt--implement-the-compatibility-fix) contains the current assignment.
 
 > Work on the designated Atlas VM in the checkout for https://github.com/pouriya-sedaghat/atlas. Fetch `origin/main` and read this approved brief at the supplied revision. Preserve unrelated checkout changes and create `feat/phase-1b-verification` from current main. Implement Part 1B using the existing sealed intake data and control plane.
 >
