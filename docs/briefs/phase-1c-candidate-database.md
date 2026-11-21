@@ -1,6 +1,6 @@
 # Atlas Part 1C — candidate PostGIS build design review
 
-**Status** — Review only. Prepare a VM-grounded implementation proposal before development. Parts 1A/1B and [PR #3](https://github.com/pouriya-sedaghat/atlas/pull/3) are accepted. The user explicitly authorized PR #3's merge after the deeper review. Tested head `1d40f0479faae127eff0f3c40f129b37cc2fedd4` was merged into main at `32f8bcd4759d6d005f28ca38fe095efa84059e56`. Review the merged main baseline; do not implement Part 1C under this brief.
+**Status** — Design review complete. The bounded fixture implementation is approved in [the implementation brief](phase-1c-fixture-implementation.md), including the additional end-to-end control-report string-fidelity prerequisite, durable trigger lock-order rules and cross-stack capacity safeguards. Live admission stays disabled. The review instructions below are retained as history; the current assignment is the fixture implementation.
 
 ## Goal and phase boundary
 
