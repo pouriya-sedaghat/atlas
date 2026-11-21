@@ -1,6 +1,6 @@
 # Atlas Part 1C — candidate PostGIS build design review
 
-**Status** — Review only. Prepare a VM-grounded implementation proposal before development. Parts 1A/1B are accepted. PR #3 is technically accepted at `1d40f0479faae127eff0f3c40f129b37cc2fedd4`; its merge is pending explicit user approval. Read that pinned candidate while the merge is pending. Do not merge it or implement Part 1C under this brief.
+**Status** — Review only. Prepare a VM-grounded implementation proposal before development. Parts 1A/1B and [PR #3](https://github.com/pouriya-sedaghat/atlas/pull/3) are accepted. The user explicitly authorized PR #3's merge after the deeper review. Tested head `1d40f0479faae127eff0f3c40f129b37cc2fedd4` was merged into main at `32f8bcd4759d6d005f28ca38fe095efa84059e56`. Review the merged main baseline; do not implement Part 1C under this brief.
 
 ## Goal and phase boundary
 
@@ -121,15 +121,15 @@ Recommend numerical probe thresholds and resource limits with rationale before i
 
 Return prioritized findings, exact code/data seams, proposed DDL/state transitions, dependency/privilege/storage choices, coverage/overlap policy decisions, measured capacity and unknowns, failure/recovery design and staged acceptance commands. Identify the smallest coherent implementation slice and decisions needed.
 
-This task is review only. Keep PR #3's merge decision separate. Wait for the approved implementation brief before coding Part 1C.
+This task is review only. PR #3 is merged. Wait for the approved implementation brief before coding Part 1C.
 
 ## Codex prompt — review only
 
-> On the designated Atlas VM for https://github.com/pouriya-sedaghat/atlas, fetch origin/main and read this brief at the supplied commit. Inspect accepted PR #3 candidate 1d40f0479faae127eff0f3c40f129b37cc2fedd4 if it is not yet merged.
+> On the designated Atlas VM for https://github.com/pouriya-sedaghat/atlas, fetch origin/main, record its exact SHA and read this brief at the supplied commit. Verify that tested PR #3 head 1d40f0479faae127eff0f3c40f129b37cc2fedd4 and merge 32f8bcd4759d6d005f28ca38fe095efa84059e56 are ancestors of origin/main.
 >
 > Perform the read-only Part 1C design and capacity review. Evaluate eligible verification handoffs, the lossless PostgreSQL/PostGIS schema, durable automatic build/verification lifecycle, coverage/overlap rules, external DDL recovery, resources and immutable readiness bundle.
 >
-> Do not modify source, deployments, data, schedules or databases, and do not launch verification/imports or merge PR #3. Return the concrete findings, schema/state/storage/resource proposal and acceptance plan. Await the separate implementation instruction.
+> Do not modify source, deployments, data, schedules or databases, and do not launch verification/imports. Return the concrete findings, schema/state/storage/resource proposal and acceptance plan. Await the separate implementation instruction.
 
 ## Primary references
 
