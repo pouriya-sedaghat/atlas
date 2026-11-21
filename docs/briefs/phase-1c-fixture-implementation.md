@@ -10,7 +10,7 @@ Deliver one genuine controlled fixture through normal Part 1B verification/publi
 
 READY means ready for later publication. It does not publish a release, change sessions, expose engines or alter the active pointer. Part 1D and external consumer contracts remain separate.
 
-Live build admission stays disabled. Do not launch verification/build of the recovered Monaco runs or the historical Iran batch. The identical historical Jiangsu bytes remain blocking under the unchanged whole-batch policy. Existing eligible fixture verifications may be inspected as references; do not automatically import history or copy their status to new jobs.
+Live build admission stays disabled. Do not launch verification/build of the recovered Monaco runs or the historical Iran batch. The historical Jiangsu finding remains blocking under the unchanged whole-batch policy. Matching bytes make a new blocker expected, but no formal verification outcome exists for the recovered batches. Existing eligible fixture verifications may be inspected as references; do not automatically import history or copy their status to new jobs.
 
 The VM report identified eligible fixtures `087c8896-59c5-40fb-87b3-58457f896819` (2/1/1 objects) and `5946ef90-f53b-41da-97f4-403ab875f1e3` (0/0/1). Valid-empty `9a5df6a2-6a21-43ef-925a-f4a9b84244f6` remains ineligible. Preserve all records and outputs.
 
@@ -34,9 +34,11 @@ Do not change accepted source policy, geometry rules, manifest/IR schema version
 
 Use one complete successful, supported, build-eligible batch handoff, verified through `get_handoff(..., verify_outputs=True)`. Multiple PBF regions within that batch are supported. Do not admit an individually passing region from a failed batch, an empty/boundary-only result, a hash-inconsistent graph or an invalidated source.
 
-Validate the batch, regional manifests and complete registered output graph, including counts, descriptors, versions and provenance. Rehash registered source inputs and outputs through descriptor-safe paths. Copy the exact IR/sidecars into a private builder spool and import only that stable copy; recheck control eligibility after long reads and before READY.
+Validate the batch, regional manifests and complete registered output graph, including counts, descriptors, versions and provenance. Rehash registered source inputs and outputs through descriptor-safe paths. Copy the exact IR/sidecars into a private builder spool and import only that stable copy; recheck control eligibility after long reads. Before READY repeat the required source/output digest and current-eligibility checks, followed by the short fenced registration check. A still-sealed metadata record alone must not hide changed source bytes.
 
-Create the automatic intent in the same control transaction that registers eligible verification success. An on_commit enqueue alone is insufficient. Add idempotent reconciliation for already journaled admissions.
+Write a unique durable automatic build-registration/queue row in the same control transaction that registers eligible verification success. This may be an intent or a durable outbox receipt admitted by a reconciled dispatcher; an on_commit callback alone is insufficient. A rollback must remove both registration and trigger.
+
+The existing verification publisher locks Run then VerificationAttempt and performs file publication. Do not acquire the global Control lock late inside that lock order or hold it across publication/hashing. Use an independent uniquely constrained outbox insert in that transaction if needed, then admit under the established Control-first order outside the publisher. Assign immutable request order when the automatic build request is accepted, never from build completion time. Preserve order and idempotency through delayed/out-of-order receipt commits and replay; test the actual lock graph.
 
 Default the pipeline to disabled. Activation must be explicit and durable, with an epoch/watermark and trusted scope/profile binding, not a wall-clock-only or request-key-name convention. Only new opted-in fixture verification publications after activation may auto-admit. No historical backlog. Fixture status must be explicit in every manifest/handoff and cannot be promoted into live scope. The fixture helper is limited to the isolated QA control database.
 
@@ -90,7 +92,7 @@ Different complete semantic values block the candidate and retain both source id
 
 ## 4. Import and independent verification
 
-Use bounded client-side Psycopg COPY FROM STDIN, never server filesystem/PROGRAM privileges. Validate compressed identity, single complete Zstd framing, declared expansion, record/schema limits and total object cap. Bound batches by bytes and rows, handling a permitted large record without unbounded child-row accumulation.
+Use bounded client-side Psycopg COPY FROM STDIN, never server filesystem/PROGRAM privileges. Validate compressed identity, single complete Zstd framing, declared expansion, record/schema limits and total object cap. Include blocks, sidecars and all copied output descriptors in input/spool/expansion accounting, not just the object stream. Reject an over-budget declared input before copying or decompressing it and enforce the same bounds against actual reads. Bound batches by bytes and rows, handling a permitted large record without unbounded child-row accumulation.
 
 Commit bounded chunks into an inaccessible LOADING candidate. On interrupted/failed import, terminate that execution. Retry uses a fresh generation, candidate UUID, database and credentials; no arbitrary mid-stream resume. Publication-only resume may retain an already FROZEN validated database and exact bundle intent.
 
@@ -143,7 +145,7 @@ Initial limits:
 | Candidate cluster | 1 CPU / 1.5 GiB RAM |
 | Provisioner | 0.25 CPU / 256 MiB RAM |
 | Execution wall time | 5 minutes for fixtures; no live/Monaco execution in this approval |
-| Input | At most 512 MiB declared uncompressed object IR and 2 million objects |
+| Input | At most 512 MiB declared uncompressed object IR, 2 million objects, and 1 GiB aggregate decoded input streams |
 | Heap/TOAST / indexes | 4 GiB / 2 GiB |
 | Retained WAL / aggregate temp | 2 GiB / 1 GiB |
 | Client spool/scratch | 1 GiB |
