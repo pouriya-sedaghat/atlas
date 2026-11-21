@@ -1,6 +1,8 @@
 # Atlas intake — PBF metadata transport review
 
-**Status** — Review only. Review the bounded metadata fallback and deterministic test correction below on the Atlas VM, then report before implementation. Continue with draft [PR #3](https://github.com/pouriya-sedaghat/atlas/pull/3). Keep its current acquisition evidence and draft status.
+**Status** — Read-only review complete. The report has been accepted with its typed-error, exact-target, bounded-observer and fenced-renewal safeguards. Implementation and the narrowly scoped existing-run recovery are now approved under [the implementation brief](intake-pbf-metadata-implementation.md). Continue the same draft PR #3. The review-only instructions below are retained as history.
+
+**Review outcome — 21 November 2026** — The VM report records one matched pair on diagnostic Monaco target `monaco-261120.osm.pbf`: HEAD timed out in 12.693 seconds and GET timed out in 12.381 seconds, with no metadata or application body reads. This establishes no recovery guarantee or more specific transport cause. Both PBFs remain failed/retryable at generation 6, with empty resolution/pin and six retained failures each. All 1,108 completed POLYs, totaling 9,154,700 bytes, matched their recorded hashes. The real-process deadline test correction and recovery of only those unfinished PBFs are included in the approved implementation scope. No implementation or recovery was performed during the read-only review.
 
 ## Review result and frozen baseline
 
