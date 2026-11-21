@@ -15,6 +15,7 @@ from django.utils import timezone
 
 from .catalog import heartbeat
 from .control import audit, lock_control
+from .metadata import MAX_EVENTS, bounded_event
 from .models import Artifact, Attempt, Run
 from .provider import Client, ProviderError
 from .storage import below, inbox_usage, make_directories, matches, sync_directory
@@ -121,15 +122,57 @@ class Worker:
         ])
         return row
 
+    @transaction.atomic
+    def _metadata_event(self, artifact, event, event_number, *, write=True):
+        # Match admission/reservation lock order; commit before any network call.
+        control = lock_control()
+        run = Run.objects.select_for_update().get(pk=artifact.run_id)
+        row = self._owned(artifact.pk, artifact.generation)
+        if run.status != Run.Status.RUNNING:
+            raise StaleClaim
+        now = timezone.now()
+        row.lease_until = now + LEASE
+        row.save(update_fields=["lease_until"])
+        control.worker_heartbeat = now
+        control.save(update_fields=["worker_heartbeat"])
+        if not write:
+            return
+        detail = bounded_event({
+            **event, "artifact": row.pk, "generation": row.generation,
+            "event_number": event_number,
+        })
+        audit("artifact.metadata", "worker", run=run, **detail)
+
+    def _metadata_observer(self, artifact):
+        count = 0
+
+        def observe(event):
+            nonlocal count
+            if event.get("event") == "checkpoint":
+                self._metadata_event(artifact, event, count, write=False)
+                return
+            if count >= MAX_EVENTS:
+                raise ProviderError("metadata_trace_limit", "Metadata trace exceeded its event limit.")
+            count += 1
+            capped = count == MAX_EVENTS
+            if capped:
+                event = {**event, "trace_truncated": True, "outcome": "error", "reason": "trace_limit"}
+            self._metadata_event(artifact, event, count)
+            if capped:
+                # Reserve the final event for a visible, fail-closed limit outcome.
+                raise ProviderError("metadata_trace_limit", "Metadata trace exceeded its event limit.")
+        return observe
+
     def _pin_pbf(self, artifact):
         if artifact.pinned_at:
             return artifact
+        observer = self._metadata_observer(artifact)
         if not artifact.resolved_url:
-            initial = self.client.resolve_pbf(artifact.requested_url)
+            initial = self.client.resolve_pbf(artifact.requested_url, observer=observer)
             artifact = self._save_pin(artifact, initial, complete=False)
         if artifact.expected_length is not None and artifact.expected_length > artifact.run.limits["pbf"]:
             raise ProviderError("artifact_limit", "The selected PBF exceeds the per-file pilot limit.")
-        pin = self.client.pbf_pin(artifact.resolved_url)
+        pin = self.client.pbf_pin(artifact.resolved_url, observer=observer)
         for key in ("url", "length", "etag", "last_modified"):
             if artifact.pin.get(key) and artifact.pin[key] != pin.get(key):
                 raise ProviderError("validator_changed", "The dated PBF changed after resolution.")
@@ -237,10 +280,15 @@ class Worker:
         return budget
 
     def _transfer(self, artifact):
+        direct_poly = artifact.kind == Artifact.Kind.POLY and any(
+            region["id"] == artifact.region_id
+            and region.get("advertised_poly_url") == artifact.requested_url
+            for region in artifact.run.catalog.regions
+        )
         try:
             if artifact.kind == Artifact.Kind.PBF:
                 artifact = self._pin_pbf(artifact)
-            else:
+            elif not (direct_poly and artifact.pinned_at):
                 data = self.client.poly_pin(artifact.requested_url, artifact.sidecar_url)
                 artifact = self._save_pin(artifact, data, complete=True)
             limit = self._reserve(artifact)
@@ -270,7 +318,7 @@ class Worker:
         except StaleClaim:
             return
         except ProviderError as exc:
-            if artifact.kind == Artifact.Kind.POLY and exc.code == "validator_changed":
+            if artifact.kind == Artifact.Kind.POLY and not direct_poly and exc.code == "validator_changed":
                 exc = ProviderError(exc.code, str(exc), retryable=True)
             self.fail(artifact, exc)
             return

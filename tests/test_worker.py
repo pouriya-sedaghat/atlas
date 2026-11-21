@@ -22,11 +22,11 @@ class FixtureProvider:
     pinned_length = len(PBF)
     body_reads = 0
 
-    def resolve_pbf(self, url):
+    def resolve_pbf(self, url, *, observer=None):
         return dict(url=url.replace("-latest", "-261117"), length=self.pinned_length,
                     etag='"pbf"', last_modified="")
 
-    def pbf_pin(self, url):
+    def pbf_pin(self, url, *, observer=None):
         return dict(url=url, length=self.pinned_length, etag='"pbf"', last_modified="",
                     md5=hashlib.md5(PBF).hexdigest())
 

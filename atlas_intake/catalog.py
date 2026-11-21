@@ -30,7 +30,7 @@ def due_refresh():
 
 def _mapping_key(region):
     return json.dumps([region["id"], region.get("pbf_url"), region.get("poly_mapping"),
-                       region.get("poly_exception")], sort_keys=True)
+                       region.get("poly_exception"), region.get("advertised_poly_url")], sort_keys=True)
 
 
 @transaction.atomic
@@ -72,6 +72,11 @@ def refresh_catalog(client):
         row = dict(region)
         key = _mapping_key(row)
         exception = row.get("poly_exception")
+        row["poly_source"] = (
+            "reviewed_exception" if exception else
+            "catalog" if row.get("advertised_poly_url") else
+            "reviewed_mapping" if row.get("poly_mapping") else "page"
+        )
         if exception:
             row.update(poly_url="", sidecar_url="", exception=exception)
         elif key in cache:
