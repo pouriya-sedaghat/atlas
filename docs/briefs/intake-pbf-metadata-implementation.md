@@ -1,6 +1,6 @@
 # Atlas intake — approved PBF metadata implementation
 
-**Status** — Technical acceptance complete at `1d40f0479faae127eff0f3c40f129b37cc2fedd4`, recorded in [the PR #3 acceptance](../reviews/pr-3-intake-acceptance.md). Both existing runs sealed, and the approved recovery allowance is consumed. PR #3 remains draft with merge pending explicit user approval. The original implementation instructions below are retained as history; do not repeat the recovery helper. The next assignment is [Part 1C review only](phase-1c-candidate-database.md).
+**Status** — Accepted at tested head `1d40f0479faae127eff0f3c40f129b37cc2fedd4`, recorded in [the PR #3 acceptance](../reviews/pr-3-intake-acceptance.md) and [deeper review](../reviews/pr-3-deep-review.md). PR #3 was merged into main at `32f8bcd4759d6d005f28ca38fe095efa84059e56` after explicit user authorization. Both existing runs sealed, and the approved recovery allowance is consumed. Original implementation instructions below are retained as history; do not repeat the recovery helper. The next assignment is [Part 1C review only](phase-1c-candidate-database.md).
 
 ## Baseline and approval decision
 
