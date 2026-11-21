@@ -17,6 +17,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
+from .metadata import MetadataOperation, transport_reason
+
 
 HOST = "download.geofabrik.de"
 BASE_URL = f"https://{HOST}"
@@ -34,10 +36,11 @@ LOOKUP_LIMITS = {"catalog": 4 * CHUNK_SIZE, "page": 2 * CHUNK_SIZE, "sidecar": 4
 
 
 class ProviderError(Exception):
-    def __init__(self, code, message, retryable=False):
+    def __init__(self, code, message, retryable=False, *, context=None):
         super().__init__(message)
         self.code = code
         self.retryable = retryable
+        self.context = context or {}
 
 
 def _dated_stem(path):
@@ -166,15 +169,20 @@ def _metadata(response, url):
     return {"url": url, "length": _length(response), "etag": etag, "last_modified": modified}
 
 
-def _read(response, amount, deadline):
+def _read(response, amount, deadline, *, _operation=None):
     if monotonic() >= deadline:
         raise ProviderError("timeout", "Geofabrik response exceeded the time limit.", retryable=True)
     try:
         data = response.read1(amount)
     except IncompleteRead:
         raise ProviderError("length_mismatch", "Geofabrik response ended early.", retryable=True) from None
-    except (URLError, OSError, HTTPException):
-        raise ProviderError("network_failure", "Geofabrik response was interrupted.", retryable=True) from None
+    except (URLError, OSError, HTTPException) as error:
+        context = None
+        if _operation:
+            _operation.reason = transport_reason(error)
+            context = _operation.context(exception_class=type(error).__name__)
+        raise ProviderError("network_failure", "Geofabrik response was interrupted.",
+                            retryable=True, context=context) from None
     if monotonic() >= deadline:
         raise ProviderError("timeout", "Geofabrik response exceeded the time limit.", retryable=True)
     return data
@@ -348,7 +356,8 @@ class Client:
         self._page_lock = Lock()
 
     @contextmanager
-    def _request(self, url, kind, *, method="GET", headers=None, redirect_allowed=None, missing="target_missing"):
+    def _request(self, url, kind, *, method="GET", headers=None, redirect_allowed=None,
+                 missing="target_missing", _operation=None):
         url = _url(url, kind)
         request_headers = {"User-Agent": "Atlas-Geofabrik-Intake/1.0", "Accept-Encoding": "identity"}
         if method == "HEAD" or kind in {"catalog", "sidecar"}:
@@ -356,53 +365,91 @@ class Client:
         request_headers.update(headers or {})
         for hop in range(MAX_REDIRECTS + 1):
             request = Request(url, headers=request_headers, method=method)
+            if _operation:
+                if kind in {"pbf", "dated"} and _dated_stem(url.removeprefix(BASE_URL)) is not None:
+                    _operation.dated_target = url
+                _operation.request(url, method, kind)
             try:
                 response = self.opener.open(request, timeout=SOCKET_TIMEOUT)
             except HTTPError as error:
                 response = error
-            except (URLError, OSError, HTTPException):
-                raise ProviderError("network_failure", "Geofabrik could not be reached.", retryable=True) from None
+            except (URLError, OSError, HTTPException) as error:
+                context = None
+                if _operation:
+                    _operation.reason = transport_reason(error)
+                    context = _operation.context(exception_class=type(error).__name__)
+                    _operation.outcome("transport_error", exception_class=type(error).__name__)
+                raise ProviderError("network_failure", "Geofabrik could not be reached.",
+                                    retryable=True, context=context) from None
             with response:
                 status = response.status
-                if status in {301, 302, 303, 307, 308}:
-                    if hop == MAX_REDIRECTS:
-                        raise ProviderError("redirect_limit", "Geofabrik redirect limit exceeded.")
-                    target = _relative_url(url, _header(response, "Location"), kind)
-                    allowed = redirect_allowed(target) if redirect_allowed else target == url
-                    if not allowed:
-                        raise ProviderError("unexpected_redirect", "Geofabrik redirected to a different source artifact.")
+                if _operation:
+                    _operation.status = status
+                target = None
+                try:
+                    if status in {301, 302, 303, 307, 308}:
+                        if hop == MAX_REDIRECTS or (_operation and _operation.redirects >= MAX_REDIRECTS):
+                            raise ProviderError("redirect_limit", "Geofabrik redirect limit exceeded.")
+                        target = _relative_url(url, _header(response, "Location"), kind)
+                        allowed = redirect_allowed(target) if redirect_allowed else target == url
+                        if _operation and kind in {"pbf", "dated"} and _operation.dated_target:
+                            allowed = allowed and target == _operation.dated_target
+                        if not allowed:
+                            raise ProviderError("unexpected_redirect", "Geofabrik redirected to a different source artifact.")
+                        if _operation:
+                            _operation.redirects += 1
+                            if kind in {"pbf", "dated"} and _dated_stem(target.removeprefix(BASE_URL)) is not None:
+                                _operation.dated_target = target
+                    else:
+                        if status in {404, 410}:
+                            message = {
+                                "sidecar_missing": "Geofabrik did not provide the exact checksum sidecar.",
+                                "target_missing": "The frozen Geofabrik target is no longer available.",
+                                "page_missing": "The Geofabrik region page is unavailable.",
+                                "catalog_missing": "The Geofabrik catalog is unavailable.",
+                            }[missing]
+                            retired_page = missing == "page_missing" and status == 410
+                            raise ProviderError(missing, message, retryable=missing != "target_missing" and not retired_page)
+                        if status == 412:
+                            raise ProviderError("validator_changed", "Geofabrik rejected the pinned HTTP validator.")
+                        if status != 200:
+                            retryable = status in {408, 425, 429} or 500 <= status <= 599
+                            raise ProviderError("unexpected_status", f"Geofabrik returned HTTP {status}.",
+                                                retryable=retryable)
+                        if _header(response, "Content-Encoding").lower() not in {"", "identity"}:
+                            raise ProviderError("invalid_metadata", "Geofabrik returned an unexpected content encoding.")
+                        yield response, url
+                except ProviderError as error:
+                    if _operation:
+                        error.context = _operation.context(code=error.code)
+                        _operation.outcome("error", code=error.code)
+                    raise
+                else:
+                    if _operation:
+                        _operation.outcome("redirect" if target is not None else "success",
+                                           **({"redirect_target": target} if target is not None else {}))
+                if target is not None:
                     url = target
                     continue
-                if status in {404, 410}:
-                    message = {
-                        "sidecar_missing": "Geofabrik did not provide the exact checksum sidecar.",
-                        "target_missing": "The frozen Geofabrik target is no longer available.",
-                        "page_missing": "The Geofabrik region page is unavailable.",
-                        "catalog_missing": "The Geofabrik catalog is unavailable.",
-                    }[missing]
-                    retired_page = missing == "page_missing" and status == 410
-                    raise ProviderError(missing, message, retryable=missing != "target_missing" and not retired_page)
-                if status == 412:
-                    raise ProviderError("validator_changed", "Geofabrik rejected the pinned HTTP validator.")
-                if status != 200:
-                    retryable = status in {408, 425, 429} or 500 <= status <= 599
-                    raise ProviderError(
-                        "unexpected_status", f"Geofabrik returned HTTP {status}.", retryable=retryable,
-                    )
-                if _header(response, "Content-Encoding").lower() not in {"", "identity"}:
-                    raise ProviderError("invalid_metadata", "Geofabrik returned an unexpected content encoding.")
-                yield response, url
                 return
 
-    def _payload(self, url, kind, missing):
+    def _payload(self, url, kind, missing, *, _operation=None):
         limit = LOOKUP_LIMITS[kind]
-        with self._request(url, kind, missing=missing) as (response, resolved):
+        with self._request(url, kind, missing=missing, _operation=_operation) as (response, resolved):
             length = _length(response)
             if length is not None and length > limit:
                 raise ProviderError("size_limit", "Geofabrik lookup exceeds the byte limit.")
             data = bytearray()
             deadline = monotonic() + 25
-            while block := _read(response, min(CHUNK_SIZE, limit + 1 - len(data)), deadline):
+            while True:
+                if _operation:
+                    _operation.emit("checkpoint")
+                block = _read(response, min(CHUNK_SIZE, limit + 1 - len(data)), deadline,
+                              _operation=_operation)
+                if _operation:
+                    _operation.emit("checkpoint")
+                if not block:
+                    break
                 data.extend(block)
                 if len(data) > limit:
                     raise ProviderError("size_limit", "Geofabrik lookup exceeds the byte limit.")
@@ -511,19 +558,50 @@ class Client:
             sidecar = self._poly_sidecar(poly, sidecar)
         return poly, sidecar
 
-    def resolve_pbf(self, url):
+    def _pbf_metadata(self, url, kind, operation, *, redirect_allowed=None):
+        current = url
+        for method in ("HEAD", "GET"):
+            guard = redirect_allowed
+            if method == "GET" and _dated_stem(current.removeprefix(BASE_URL)) is not None:
+                guard = lambda target: target == current
+            try:
+                with self._request(current, kind, method=method, headers={"Cache-Control": "no-cache"},
+                                   redirect_allowed=guard, _operation=operation) as (response, resolved):
+                    _url(resolved, "dated")
+                    metadata = _metadata(response, resolved)
+                    if method == "GET" and response.headers.get_all("Content-Range", []):
+                        raise ProviderError("invalid_metadata", "PBF metadata GET is not a full representation.")
+                    if (method == "GET" or operation.phase == "pin") and not metadata["length"]:
+                        raise ProviderError("invalid_metadata", "The dated Geofabrik PBF lacks a positive byte length.")
+                    return metadata
+            except ProviderError as error:
+                context = error.context
+                eligible = context.get("reason") == "timeout" or context.get("status") in {405, 501}
+                if method != "HEAD" or context.get("method") != "HEAD" or not eligible:
+                    raise
+                operation.trigger = context.get("reason") or "head_unsupported"
+                current = operation.dated_target or operation.target
+
+    def resolve_pbf(self, url, *, observer=None):
         url = _url(url, "latest")
         stem = url.removeprefix(BASE_URL).removesuffix(LATEST_SUFFIX)
 
         def matches_region(target):
             return target == url or _dated_stem(target.removeprefix(BASE_URL)) == stem
 
-        with self._request(url, "pbf", method="HEAD", redirect_allowed=matches_region) as (response, resolved):
-            _url(resolved, "dated")
-            return _metadata(response, resolved)
+        operation = MetadataOperation("resolve", observer)
+        operation.target = url
+        operation.start()
+        try:
+            result = self._pbf_metadata(url, "pbf", operation, redirect_allowed=matches_region)
+        except ProviderError as error:
+            operation.finish("error", code=error.code)
+            raise
+        operation.finish("success")
+        return result
 
-    def _checksum(self, sidecar, artifact_url):
-        content, _ = self._payload(sidecar, "sidecar", "sidecar_missing")
+    def _checksum(self, sidecar, artifact_url, *, _operation=None):
+        content, _ = self._payload(sidecar, "sidecar", "sidecar_missing", _operation=_operation)
         filename = artifact_url.rsplit("/", 1)[1]
         pattern = rb"([0-9a-fA-F]{32}) [ *]" + re.escape(filename.encode("ascii")) + rb"\r?\n?"
         match = re.fullmatch(pattern, content)
@@ -531,12 +609,21 @@ class Client:
             raise ProviderError("invalid_sidecar", "Geofabrik checksum sidecar does not name exactly the pinned file.")
         return match[1].decode("ascii").lower()
 
-    def pbf_pin(self, resolved_url):
-        with self._request(resolved_url, "dated", method="HEAD") as (response, url):
-            pin = _metadata(response, url)
-        if not pin["length"]:
-            raise ProviderError("invalid_metadata", "The dated Geofabrik PBF lacks a positive byte length.")
-        pin["md5"] = self._checksum(url + ".md5", url)
+    def pbf_pin(self, resolved_url, *, observer=None):
+        resolved_url = _url(resolved_url, "dated")
+        operation = MetadataOperation("pin", observer)
+        operation.target = resolved_url
+        operation.start()
+        try:
+            pin = self._pbf_metadata(resolved_url, "dated", operation)
+            # The checksum has its original independent redirect allowance and no method fallback.
+            operation.redirects = 0
+            operation.trigger = ""
+            pin["md5"] = self._checksum(pin["url"] + ".md5", pin["url"], _operation=operation)
+        except ProviderError as error:
+            operation.finish("error", code=error.code)
+            raise
+        operation.finish("success")
         return pin
 
     @staticmethod

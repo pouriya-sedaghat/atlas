@@ -272,7 +272,19 @@ class VerificationRecoveryTests(TestCase):
         attempt.refresh_from_db()
         self.assertTrue(attempt.successful)
 
+    def cleanup_deadline_child(self,child):
+        import os
+        import signal
+        if child.poll() is None:
+            try:
+                os.killpg(child.pid,signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        child.wait(timeout=5)
+        child.stdout.close()
+
     def test_exit_between_polling_passes_still_enforces_the_deadline(self):
+        import subprocess
         import sys
         report={"schema_version":1,"policy_version":"atlas-input-v1","run_id":str(self.run.pk),
                 "catalog_digest":self.run.catalog_id,"regions":[],"status":"verified",
@@ -280,19 +292,86 @@ class VerificationRecoveryTests(TestCase):
         request_verification(self.run.pk,"late-success","operator")
         attempt=self.worker.claim()
         path=self.root/".work"/str(attempt.pk)/str(attempt.generation)
-        self.worker.deadline=0.1
         self.worker.child_command=[
             sys.executable,"-c",
-            "import time; from pathlib import Path; print('{}',flush=True); time.sleep(0.75); "
+            "from pathlib import Path; "
             f"root=Path({str(path)!r}); (root/'result').mkdir(); "
             f"(root/'report.json').write_text({json.dumps(report)!r})",
         ]
-        self.worker.execute(attempt)
+        real_popen=subprocess.Popen
+        clock=[1000.0]
+        def completed_child(*args,**kwargs):
+            if args[0]!=self.worker.child_command:
+                return real_popen(*args,**kwargs)
+            child=real_popen(*args,**kwargs)
+            self.addCleanup(self.cleanup_deadline_child,child)
+            self.assertEqual(child.wait(timeout=5),0)
+            # The report and successful exit precede the final deadline check.
+            clock[0]+=self.worker.deadline+1
+            return child
+        with patch("atlas_verification.worker.subprocess.Popen",side_effect=completed_child), patch(
+            "atlas_verification.worker.monotonic",side_effect=lambda:clock[0],
+        ):
+            self.worker.execute(attempt)
         attempt.refresh_from_db()
         self.assertEqual(attempt.status,"operational_failed")
         self.assertIn("deadline",attempt.summary["reasons"][0]["message"])
         self.assertEqual(attempt.summary["counts"],{"nodes":123})
         self.assertFalse(attempt.intended)
+        self.assertFalse(attempt.successful)
+        self.assertFalse(attempt.build_eligible)
+        self.assertFalse(attempt.manifest_path)
+        self.assertFalse(self.worker.publish(attempt.pk,attempt.generation))
+        self.assertEqual(attempt.reserved_bytes,0)
+        with self.assertRaises(ValidationError):
+            get_handoff(attempt.pk)
+
+    def test_ready_child_without_report_is_killed_at_the_deadline(self):
+        import os
+        import select
+        import signal
+        import subprocess
+        import sys
+        request_verification(self.run.pk,"blocked-deadline","operator")
+        attempt=self.worker.claim()
+        path=self.root/".work"/str(attempt.pk)/str(attempt.generation)
+        self.worker.child_command=[
+            sys.executable,"-c",
+            # The alarm only bounds a broken worker's cleanup; readiness advances its clock.
+            "import os,signal; signal.alarm(10); os.write(1,b'R'); signal.pause()",
+        ]
+        real_popen=subprocess.Popen
+        clock=[1000.0]
+        children=[]
+        def ready_child(*args,**kwargs):
+            if args[0]!=self.worker.child_command:
+                return real_popen(*args,**kwargs)
+            child=real_popen(*args,**kwargs)
+            children.append(child)
+            self.addCleanup(self.cleanup_deadline_child,child)
+            ready,_,_=select.select([child.stdout],[],[],5)
+            self.assertTrue(ready,"The real verifier child did not signal readiness.")
+            self.assertEqual(os.read(child.stdout.fileno(),1),b"R")
+            self.assertIsNone(child.poll())
+            self.assertFalse((path/"report.json").exists())
+            clock[0]+=self.worker.deadline+1
+            return child
+        with patch("atlas_verification.worker.subprocess.Popen",side_effect=ready_child), patch(
+            "atlas_verification.worker.monotonic",side_effect=lambda:clock[0],
+        ):
+            self.worker.execute(attempt)
+        self.assertEqual(children[0].returncode,-signal.SIGKILL)
+        attempt.refresh_from_db()
+        self.assertEqual(attempt.status,"operational_failed")
+        self.assertIn("deadline",attempt.summary["reasons"][0]["message"])
+        self.assertFalse(attempt.intended)
+        self.assertFalse(attempt.successful)
+        self.assertFalse(attempt.build_eligible)
+        self.assertFalse(attempt.manifest_path)
+        self.assertFalse(self.worker.publish(attempt.pk,attempt.generation))
+        self.assertEqual(attempt.reserved_bytes,0)
+        with self.assertRaises(ValidationError):
+            get_handoff(attempt.pk)
 
     def test_completion_counts_the_new_manifest_before_preparing_output(self):
         from atlas_intake.storage import inbox_usage
