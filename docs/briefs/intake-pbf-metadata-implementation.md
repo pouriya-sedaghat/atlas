@@ -1,6 +1,6 @@
 # Atlas intake — approved PBF metadata implementation
 
-**Status** — Design review complete. Implementation is approved in the existing draft [PR #3](https://github.com/pouriya-sedaghat/atlas/pull/3), with the safeguards below. This is the separate implementation instruction following the read-only [metadata transport review](intake-pbf-metadata-transport-review.md). Keep the PR in draft for final review.
+**Status** — Technical acceptance complete at `1d40f0479faae127eff0f3c40f129b37cc2fedd4`, recorded in [the PR #3 acceptance](../reviews/pr-3-intake-acceptance.md). Both existing runs sealed, and the approved recovery allowance is consumed. PR #3 remains draft with merge pending explicit user approval. The original implementation instructions below are retained as history; do not repeat the recovery helper. The next assignment is [Part 1C review only](phase-1c-candidate-database.md).
 
 ## Baseline and approval decision
 
