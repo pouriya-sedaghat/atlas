@@ -1,6 +1,6 @@
 # Atlas Phase 1 — architecture and first delivery brief
 
-**Status** — Parts 1A and 1B passed designated-VM pilot acceptance and were merged through [PR #1](https://github.com/pouriya-sedaghat/atlas/pull/1) and [PR #2](https://github.com/pouriya-sedaghat/atlas/pull/2). Complete the [focused Geofabrik intake URL compatibility fix](intake-geofabrik-updates-compatibility.md) before the next data-build pilot. Jiangsu's known invalid boundary remains a blocking source finding under the approved 1B policy.
+**Status** — Parts 1A and 1B passed designated-VM pilot acceptance and were merged through [PR #1](https://github.com/pouriya-sedaghat/atlas/pull/1) and [PR #2](https://github.com/pouriya-sedaghat/atlas/pull/2). The compatibility and recovery changes in PR #3 passed [technical acceptance](../reviews/pr-3-intake-acceptance.md) at `1d40f0479faae127eff0f3c40f129b37cc2fedd4`; merge is pending explicit user approval and the PR remains draft. Both recovered runs are acquisition-sealed, without a new geometry-verification/build claim. The current assignment is [Part 1C design review only](phase-1c-candidate-database.md). Preserve the historical Jiangsu blocker and inspect current eligible verification handoffs before proposing a build pilot.
 
 ## Purpose and delivery order
 
