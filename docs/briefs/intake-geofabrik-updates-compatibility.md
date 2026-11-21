@@ -1,6 +1,8 @@
 # Atlas intake — Geofabrik updates URL compatibility
 
-**Status** — Focused proposal reviewed and approved for VM implementation in a separate PR. Part 1B was accepted at tested commit `3616c0b95c37786f12989f190382e34cfb02cf07` and merged through [PR #2](https://github.com/pouriya-sedaghat/atlas/pull/2) at `43bc7a4af4fb34a3f11dda5e8c2397ccae195f5d`. Restore compatibility of current catalog parsing before the next data-build pilot.
+**Status** — The updates predicate in draft [PR #3](https://github.com/pouriya-sedaghat/atlas/pull/3), tested at `1963315c0429e165fd8691bd5e891949c8658d88`, matches the approved change. End-to-end acceptance remains open because current catalog POLY URLs are omitted by discovery. The proposed correction is reviewed and approved in [the explicit POLY follow-up](intake-geofabrik-poly-compatibility.md). Continue the same draft PR under that brief. The original assignment and prompt below are retained as history.
+
+Part 1B was accepted at tested commit `3616c0b95c37786f12989f190382e34cfb02cf07` and merged through [PR #2](https://github.com/pouriya-sedaghat/atlas/pull/2) at `43bc7a4af4fb34a3f11dda5e8c2397ccae195f5d`.
 
 ## Observed problem and approved change
 
