@@ -1,10 +1,10 @@
 # PR #3 — deeper pre-merge review
 
-**Decision** — The reviewed commit `1d40f0479faae127eff0f3c40f129b37cc2fedd4` is approved for merge within the accepted pilot scope. This second review identified no merge-blocking defect. The user has not yet granted explicit merge authorization. PR #3 remains draft and unmerged.
+**Decision** — The reviewed commit `1d40f0479faae127eff0f3c40f129b37cc2fedd4` is approved for merge within the accepted pilot scope. This second review identified no merge-blocking defect. The user subsequently granted explicit authorization for this exact merge. PR #3 was merged through the normal API at `32f8bcd4759d6d005f28ca38fe095efa84059e56`, retaining tested head `1d40f0479faae127eff0f3c40f129b37cc2fedd4` as a parent.
 
 ## Independent review performed
 
-The head and full tree `4fa1204cd9cf8ed6a3abf5b610f790aa362a8b8c` were fetched again. All 108 non-documentation blobs in the local review snapshot matched that tree. The nine documentation blobs were not materialized in that snapshot; relevant requirements and review records were read through GitHub.
+The head and full tree `4fa1204cd9cf8ed6a3abf5b610f790aa362a8b8c` were fetched again. All 108 locally materialized blobs matched that tree: 105 non-documentation files and three documentation files. Nine additional documentation blobs were not materialized in that snapshot; relevant requirements and review records were read through GitHub.
 
 The second pass examined failure paths and cross-function invariants rather than relying only on green test counts.
 
@@ -38,7 +38,7 @@ The reproducible [review harness](harnesses/pr3-deep-review.py) checks nine crit
 python3 /path/to/pr3-deep-review.py --source-root /path/to/reviewed-atlas
 ```
 
-A snapshot of unmerged main will fail its source guards, as intended. The harness does not modify the application or register artifacts.
+The harness requires the reviewed source blobs and rejects a differing snapshot. It can run against merged main while those source blobs remain identical, or against an exact candidate snapshot. It does not modify the application or register artifacts.
 
 ## Integration evidence and limits
 
@@ -52,6 +52,6 @@ Acquisition seals do not establish new geometry verification, build eligibility 
 
 ## Final recommendation
 
-Approve the exact reviewed head for merge after explicit user authorization. Recheck that head before merging and do not substitute a later unreviewed commit. The Part 1C prompt can proceed after that agreed merge sequence, initially as design review only.
+The recommendation to merge this exact head was accepted by the user. Head identity was checked immediately before merging with an expected-SHA guard. Post-merge verification confirmed all 105 non-documentation blobs identical to the tested candidate. The Part 1C prompt can now proceed as design review only.
 
 No merge, deployment, source/test modification or new verification/build was performed in this second review. Repository changes are the review record and its standalone harness.
