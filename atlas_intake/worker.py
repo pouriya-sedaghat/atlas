@@ -237,10 +237,15 @@ class Worker:
         return budget
 
     def _transfer(self, artifact):
+        direct_poly = artifact.kind == Artifact.Kind.POLY and any(
+            region["id"] == artifact.region_id
+            and region.get("advertised_poly_url") == artifact.requested_url
+            for region in artifact.run.catalog.regions
+        )
         try:
             if artifact.kind == Artifact.Kind.PBF:
                 artifact = self._pin_pbf(artifact)
-            else:
+            elif not (direct_poly and artifact.pinned_at):
                 data = self.client.poly_pin(artifact.requested_url, artifact.sidecar_url)
                 artifact = self._save_pin(artifact, data, complete=True)
             limit = self._reserve(artifact)
@@ -270,7 +275,7 @@ class Worker:
         except StaleClaim:
             return
         except ProviderError as exc:
-            if artifact.kind == Artifact.Kind.POLY and exc.code == "validator_changed":
+            if artifact.kind == Artifact.Kind.POLY and not direct_poly and exc.code == "validator_changed":
                 exc = ProviderError(exc.code, str(exc), retryable=True)
             self.fail(artifact, exc)
             return

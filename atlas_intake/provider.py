@@ -236,6 +236,10 @@ def _catalog_rows(body):
             "updates_url": "" if updates_url in (None, "") else _url(updates_url, "updates"),
         }
 
+        advertised_poly = urls.get("poly")
+        if advertised_poly not in (None, ""):
+            regions[region_id]["advertised_poly_url"] = _url(advertised_poly, "poly")
+
     paths = set()
     for region in regions.values():
         chain = {}
@@ -409,8 +413,9 @@ class Client:
     def catalog(self):
         body, _ = self._payload(BASE_URL + INDEX_PATH, "catalog", "catalog_missing")
         regions = _catalog_rows(body)
-        fields = ("id", "name", "parent", "pbf_url", "updates_url")
-        ordered = [{key: regions[region_id][key] for key in fields} for region_id in sorted(regions)]
+        fields = ("id", "name", "parent", "pbf_url", "updates_url", "advertised_poly_url")
+        ordered = [{key: regions[region_id][key] for key in fields if key in regions[region_id]}
+                   for region_id in sorted(regions)]
         canonical = json.dumps(ordered, sort_keys=True, separators=(",", ":")).encode()
         source_digest = hashlib.sha256(canonical).hexdigest()
         overrides = self.overrides
@@ -420,6 +425,10 @@ class Client:
             except (OSError, UnicodeError, ValueError, RecursionError):
                 raise ProviderError("invalid_overrides", "The reviewed Geofabrik overrides could not be read.") from None
         applied = _apply_overrides(regions, overrides, source_digest)
+        # Validate direct-target override agreement before refresh can cache or promote any row.
+        for region in regions.values():
+            if not region.get("poly_exception"):
+                self._direct_poly(region)
         revision = source_digest
         if any(applied.values()):
             # A reviewed intent change needs a new cache and revision even if the provider feed is unchanged.
@@ -455,7 +464,26 @@ class Client:
                         del self._pages[page_url]
         return lookup.result()
 
+    @staticmethod
+    def _direct_poly(region):
+        advertised = region.get("advertised_poly_url")
+        if not advertised:
+            return None
+        poly = _url(advertised, "poly")
+        mapping = region.get("poly_mapping", {})
+        if "poly_url" in mapping and _url(mapping["poly_url"], "poly") != poly:
+            raise ProviderError(
+                "invalid_overrides", "The reviewed POLY mapping conflicts with the advertised catalog URL.",
+            )
+        sidecar = mapping.get("sidecar_url", "")
+        if sidecar:
+            sidecar = Client._poly_sidecar(poly, sidecar)
+        return poly, sidecar
+
     def discover_poly(self, region):
+        direct = self._direct_poly(region)
+        if direct is not None:
+            return direct
         mapping = region.get("poly_mapping", {})
         if mapping:
             page = _url(mapping["page_url"], "page")
