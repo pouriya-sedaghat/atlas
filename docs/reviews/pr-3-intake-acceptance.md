@@ -1,6 +1,6 @@
 # PR #3 — technical acceptance
 
-**Decision** — Accepted against the approved intake compatibility and metadata recovery contract at tested head `1d40f0479faae127eff0f3c40f129b37cc2fedd4`. Merge has not occurred and requires explicit user approval. PR #3 is retained in draft.
+**Decision** — Accepted against the approved intake compatibility and metadata recovery contract at tested head `1d40f0479faae127eff0f3c40f129b37cc2fedd4`. The subsequent [deeper review](pr-3-deep-review.md) confirmed that decision. After explicit user authorization, PR #3 was merged into main at `32f8bcd4759d6d005f28ca38fe095efa84059e56`.
 
 ## Review scope and evidence
 
@@ -32,4 +32,4 @@ The next assignment is [Part 1C design review](../briefs/phase-1c-candidate-data
 
 ## Merge state
 
-An attempted merge was rejected by automatic approval review because explicit authorization for this exact default-branch merge was not established. No merge was performed. The PR was restored to draft. Do not use an alternate route to merge without the user's approval.
+An initial merge attempt was rejected by automatic approval review because explicit authorization for this exact default-branch merge was not established. No merge occurred at that point, and the PR was restored to draft. After the deeper review, the user explicitly authorized this exact merge. The normal GitHub merge API then merged the PR with expected head `1d40f0479faae127eff0f3c40f129b37cc2fedd4`, producing `32f8bcd4759d6d005f28ca38fe095efa84059e56`. Post-merge verification found all 105 non-documentation source/test/deployment blobs identical to the tested candidate.
