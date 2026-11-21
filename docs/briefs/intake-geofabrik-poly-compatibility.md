@@ -1,6 +1,6 @@
 # Atlas intake — explicit Geofabrik POLY URLs
 
-**Status** — PR #3 proposal reviewed. Implementation of this focused follow-up is approved on the existing `fix/geofabrik-updates-url` branch. Keep [PR #3](https://github.com/pouriya-sedaghat/atlas/pull/3) in draft until its complete catalog and acquisition acceptance is reviewed. This brief supplements [the updates compatibility brief](intake-geofabrik-updates-compatibility.md).
+**Status** — Implementation reviewed at `4db5d45bdfcaa478cbb64641b8300ec6ddf9283a` in draft [PR #3](https://github.com/pouriya-sedaghat/atlas/pull/3). The POLY compatibility implementation is consistent with this contract. Full refresh promoted 554 direct mappings, and both Manual and Automatic completed all POLYs. Both runs remain incomplete because Monaco PBF metadata resolution timed out. The current assignment is the read-only [PBF metadata transport review](intake-pbf-metadata-transport-review.md). Keep PR #3 in draft. The implementation instructions below remain the record of the completed POLY work, with final acquisition acceptance still open.
 
 ## Review decision and baseline
 
