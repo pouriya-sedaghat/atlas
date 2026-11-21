@@ -1,6 +1,6 @@
 # Atlas Phase 1 — architecture and first delivery brief
 
-**Status** — Parts 1A and 1B passed designated-VM pilot acceptance and were merged through [PR #1](https://github.com/pouriya-sedaghat/atlas/pull/1) and [PR #2](https://github.com/pouriya-sedaghat/atlas/pull/2). The compatibility and recovery changes in [PR #3](https://github.com/pouriya-sedaghat/atlas/pull/3) passed [technical acceptance](../reviews/pr-3-intake-acceptance.md) and [deeper review](../reviews/pr-3-deep-review.md) at `1d40f0479faae127eff0f3c40f129b37cc2fedd4`, then merged at `32f8bcd4759d6d005f28ca38fe095efa84059e56` with explicit user authorization. Both recovered runs are acquisition-sealed, without a new geometry-verification/build claim. The current assignment is [Part 1C design review only](phase-1c-candidate-database.md). Preserve the historical Jiangsu blocker and inspect current eligible verification handoffs before proposing a build pilot.
+**Status** — Parts 1A/1B and PR #3 are accepted; PR #3 tested head `1d40f0479faae127eff0f3c40f129b37cc2fedd4` was merged at `32f8bcd4759d6d005f28ca38fe095efa84059e56` after explicit user approval. The Part 1C design review supports the [bounded fixture implementation](phase-1c-fixture-implementation.md), now approved with a mandatory lossless control-report storage checkpoint. No live batch is currently eligible. Preserve the historical Jiangsu finding and all prior outputs; Part 1C ends at an isolated READY fixture candidate, without release activation or sessions.
 
 ## Purpose and delivery order
 
