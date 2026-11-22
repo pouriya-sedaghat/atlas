@@ -79,7 +79,7 @@ services:
     healthcheck:
       test: [CMD, python, manage.py, atlas_worker_health]
       interval: 5s
-      timeout: 3s
+      timeout: 10s
       retries: 6
   verifier:
     <<: *app
