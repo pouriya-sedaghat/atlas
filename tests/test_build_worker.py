@@ -186,7 +186,10 @@ class BuildWorkerTests(TransactionTestCase):
         from atlas_build.worker import BuildWorker
         original=self.admin.metrics
         def delayed(*args):
-            value=original(*args);time.sleep(3.1);return value
+            started=time.monotonic();value=original(*args)
+            # The injected operation takes 3.1 seconds in total; real quota-
+            # bound work must not be added to the advertised latency budget.
+            time.sleep(max(0,3.1-(time.monotonic()-started)));return value
         with patch.object(self.admin,'metrics',side_effect=delayed):
             self.assertTrue(BuildWorker().tick())
         candidate=Candidate.objects.get()
