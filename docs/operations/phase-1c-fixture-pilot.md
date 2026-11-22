@@ -47,11 +47,11 @@ python3 -m atlas_build.pilot --root <private-runtime-root> \
   --pins <private-image-pins.json> --physical-device 8:0 --seconds 900
 ```
 
-The monitor reads old modes, queues, schedule windows, reservations and container identities without modifying them. It sends bounded observations only to the QA control database. A changed legacy inventory/work state fails closed. A dead monitor expires admission/growth after 12 seconds. The source includes actual cgroup and allocation observations; record sampled versus lifetime peaks separately.
+The monitor reuses five bounded read-only diagnostic processes in the existing web containers. Every sample executes the unchanged query in a new READ ONLY transaction; no older source, deployment, schedule or data is changed. Startup warms the sink and diagnostic imports before collecting fresh observations. Each diagnostic response is bounded to six seconds and 1 MiB, with the original eight-second aggregate collection budget and twelve-second attestation expiry. It reads old modes, queues, schedule windows, reservations and container identities. It sends bounded observations only to the QA control database. A changed legacy inventory/work state fails closed. A dead monitor expires admission/growth after 12 seconds. The source includes actual cgroup and allocation observations; record sampled versus lifetime peaks separately.
 
 Admission requires host available memory of at least 4 GiB and sufficient uncommitted headroom; growth stops below 2 GiB. Heap/TOAST, indexes, retained WAL, aggregate temp and database size have a 128 MiB rollback margin before their 4/2/2/1/6 GiB ceilings. Client storage is at most 1 GiB, bundle/log storage 64 MiB, and aggregate build storage 32 GiB. Cumulative WAL is measured from the pre-DDL LSN; it is not inferred from `max_wal_size`.
 
-Growth stops at 270 seconds, leaving supervision/termination margin within the five-minute fixture budget. SQL, connection and RPC operations are bounded; RPC retries are at most three. Failures do not automatically loop imports.
+Metrics calls allow five seconds each under the fixed CPU quota; three consecutive unavailable observations stop the execution. The attestation sink signals readiness within a separate ten-second startup bound before the first fresh sample. Growth stops at 270 seconds, leaving supervision/termination margin within the five-minute fixture budget. SQL, connection and RPC operations are bounded; RPC retries are at most three. Failures do not automatically loop imports.
 
 ## Normal fixture admission
 

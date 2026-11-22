@@ -180,3 +180,31 @@ class BuildWorkerTests(TransactionTestCase):
         self.assertFalse(execution.progress['last_revalidation']['eligible']);self.assertIsNotNone(candidate.revoked_at)
         self.assertEqual((candidate.ready_at,candidate.bundle,candidate.validation),before)
         self.assertFalse(worker.tick())
+
+    def test_metrics_within_five_second_operation_budget_preserve_ready_progress(self):
+        import time
+        from atlas_build.worker import BuildWorker
+        original=self.admin.metrics
+        def delayed(*args):
+            value=original(*args);time.sleep(3.1);return value
+        with patch.object(self.admin,'metrics',side_effect=delayed):
+            self.assertTrue(BuildWorker().tick())
+        candidate=Candidate.objects.get()
+        self.assertEqual(candidate.status,'READY',candidate.execution.intent.error)
+        self.assertTrue(candidate.ready_at)
+
+    def test_metrics_outage_stops_supervisor_after_three_failed_observations(self):
+        from atlas_build.worker import BuildWorker
+        from atlas_build import rpc
+        worker=BuildWorker(child_command=[sys.executable,'-c','import time;time.sleep(30)'])
+        execution=worker.claim();original=rpc.call;calls=[]
+        def unavailable(operation,*args,**kwargs):
+            if operation=='metrics':
+                calls.append(kwargs)
+                if len(calls)>1:raise rpc.ProvisionerUnavailable('Controlled metrics transport outage')
+            return original(operation,*args,**kwargs)
+        with patch('atlas_build.rpc.call',side_effect=unavailable):worker.execute(execution)
+        execution.refresh_from_db();self.assertEqual(execution.status,'failed')
+        self.assertEqual(len(calls),4)
+        self.assertEqual(BuildReservation.objects.get(execution=execution).reserved_bytes,0)
+        self.assertIsNone(execution.candidate.ready_at)

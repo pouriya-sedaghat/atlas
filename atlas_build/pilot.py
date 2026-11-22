@@ -9,6 +9,7 @@ import argparse,json,os,selectors,subprocess,time
 from datetime import datetime,timezone
 from pathlib import Path
 from .legacy import collect,command
+from .legacy_probe import LegacyProbePool
 from .monitor import guard_root,own_capacity,validate_attestation,validate_cgroup_limits
 
 PROJECT='atlas-phase1c-fixture'
@@ -42,6 +43,13 @@ def effective_cgroups(rows):
     return result
 
 
+def wait_sink_ready(selector,sink):
+    # Warm the bounded Django startup before generating an observation whose
+    # ten-second freshness budget must cover only collection and persistence.
+    if not selector.select(timeout=10) or sink.stdout.readline(32)!=b'ready\n':
+        raise ValueError('QA attestation sink did not become ready within ten seconds.')
+
+
 def main():
     if Path('/.dockerenv').exists():raise SystemExit('Run the external monitor on the authorized Atlas host.')
     parser=argparse.ArgumentParser();parser.add_argument('--root',required=True);parser.add_argument('--baseline',required=True)
@@ -54,11 +62,14 @@ def main():
     errors=(evidence/'pilot-attest.stderr').open('ab')
     sink=subprocess.Popen(['docker','exec','-i',PROJECT+'-web-1','python','manage.py','atlas_build_attest','--stream'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=errors,bufsize=0)
     selector=selectors.DefaultSelector();selector.register(sink.stdout,selectors.EVENT_READ)
-    started=time.monotonic();samples=0;last=None
+    started=time.monotonic();samples=0;last=None;probes=LegacyProbePool(evidence)
     try:
+        wait_sink_ready(selector,sink)
+        probes.warm()
+        started=time.monotonic()
         with (evidence/'pilot-monitor.jsonl').open('a') as log:
             while time.monotonic()-started<args.seconds:
-                tick=time.monotonic();observation=collect();rows=own_inventory();memory=own_capacity(rows,args.revision,pins)
+                tick=time.monotonic();observation=collect(probe=probes.observe);rows=own_inventory();memory=own_capacity(rows,args.revision,pins)
                 guard_root(root,observation['inventory'])
                 observation['quiescent']=bool(observation['quiescent'] and observation['inventory_digest']==baseline['inventory_digest'])
                 observation.update(candidate_bytes=candidate_bytes(),new_service_uncommitted=memory,
@@ -67,15 +78,16 @@ def main():
                 validate_attestation(observation)
                 log.write(json.dumps(observation,sort_keys=True)+'\n');log.flush()
                 sink.stdin.write((json.dumps(observation,separators=(',',':'))+'\n').encode());sink.stdin.flush()
-                if not selector.select(timeout=5) or sink.stdout.readline()!=b'accepted\n':raise ValueError('QA attestation sink did not acknowledge the observation.')
+                if not selector.select(timeout=5) or sink.stdout.readline(32)!=b'accepted\n':raise ValueError('QA attestation sink did not acknowledge the observation.')
                 samples+=1;last=observation
                 if not observation['quiescent']:raise ValueError('Legacy inventory/work changed or observation exceeded its bound; pilot stopped.')
                 time.sleep(max(0,2-(time.monotonic()-tick)))
     finally:
-        sink.stdin.close()
+        try:sink.stdin.close()
+        except BrokenPipeError:pass
         try:sink.wait(timeout=5)
         except subprocess.TimeoutExpired:sink.terminate();sink.wait(timeout=5)
-        selector.close();errors.close()
+        selector.close();errors.close();probes.close()
         (evidence/'pilot-monitor-summary.json').write_text(json.dumps({'samples':samples,'elapsed_seconds':time.monotonic()-started,
              'last_observation':last,'attestation_expiry_seconds':12},indent=2))
         (evidence/'pilot-cgroups-after.json').write_text(json.dumps(effective_cgroups(own_inventory()),indent=2))

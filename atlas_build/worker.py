@@ -25,6 +25,9 @@ from . import rpc
 
 LEASE=timedelta(seconds=60)
 ACTIVE=('running','prepared')
+# A five-second metrics budget tolerates quota-bound catalog/stat observations,
+# while three failures plus termination still fit the 30-second wall margin.
+METRIC_TIMEOUT=5
 
 class RevalidationUnavailable(ValidationError):
     pass
@@ -267,7 +270,7 @@ class BuildWorker:
         started=time.monotonic();observation=CgroupObservation();failure=None;metrics_failures=0;peak={}
         stderr=directory/'child.stderr'
         try:
-            initial=rpc.call('metrics',e.candidate.pk,e.pk,e.token,timeout=3,attempts=1)
+            initial=rpc.call('metrics',e.candidate.pk,e.pk,e.token,timeout=METRIC_TIMEOUT,attempts=1)
             with transaction.atomic():
                 lock_control();latest,candidate=locked_execution(e.pk)
                 if not current(latest,e.token):raise ValidationError('Initial cluster observation lost its lease.')
@@ -289,7 +292,7 @@ class BuildWorker:
                         observation.sample()
                         if observation.failure():raise ValidationError(observation.failure())
                         try:
-                            metrics=rpc.call('metrics',e.candidate.pk,e.pk,e.token,timeout=2,attempts=1);metrics_failures=0
+                            metrics=rpc.call('metrics',e.candidate.pk,e.pk,e.token,timeout=METRIC_TIMEOUT,attempts=1);metrics_failures=0
                             client=allocated_bytes([directory]);logs=stderr.stat().st_size
                             if metrics['filesystem']!=str(self.root.stat().st_dev):raise ValidationError('Candidate and build filesystem accounting differs.')
                             metrics={**metrics,'root_used':metrics['root_used']+allocated_bytes([self.root]),'client_bytes':client,'bundle_logs':logs+allocated_bytes([directory/'bundle']),

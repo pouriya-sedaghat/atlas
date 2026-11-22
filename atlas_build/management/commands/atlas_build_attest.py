@@ -11,6 +11,8 @@ class Command(BaseCommand):
     def add_arguments(self,parser):parser.add_argument('--stream',action='store_true')
     def handle(self,*args,**options):
         fixture_guard()
+        if options['stream']:
+            self.stdout.write('ready',ending='\n');self.stdout.flush()
         while True:
             raw=sys.stdin.buffer.readline(1024**2+1)
             if not raw:return

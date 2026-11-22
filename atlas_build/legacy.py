@@ -68,7 +68,7 @@ def command(args,timeout=15):
     return subprocess.check_output(args,text=True,timeout=timeout)
 
 
-def collect():
+def collect(*,probe=None):
     names=command(['docker','ps','--format','{{.Names}}']).splitlines()
     names=sorted(n for n in names if any(n.startswith(p+'-') for p in LEGACY))
     rows=json.loads(command(['docker','inspect',*names]))
@@ -80,9 +80,11 @@ def collect():
            'mounts':[{k:m[k] for k in ['Source','Destination','RW']} for m in row['Mounts']
                      if not m['Destination'].startswith('/run/secrets')]})
     def observe(scope):
-        out=command(['docker','exec',scope+'-web-1','python','manage.py','shell','-c',QUERY],timeout=20)
-        data=json.loads(next(line.removeprefix('ATLAS_EVIDENCE=') for line in out.splitlines()
-                            if line.startswith('ATLAS_EVIDENCE=')))
+        if probe is None:
+            out=command(['docker','exec',scope+'-web-1','python','manage.py','shell','-c',QUERY],timeout=20)
+            data=json.loads(next(line.removeprefix('ATLAS_EVIDENCE=') for line in out.splitlines()
+                                if line.startswith('ATLAS_EVIDENCE=')))
+        else:data=probe(scope)
         data['name']=scope
         if scope+'-verifier-1' not in names:data['verifier_cap']=0
         if any(r['health']!='healthy' for r in inventory if r['name'].startswith(scope+'-')):
