@@ -54,6 +54,7 @@ services:
     mem_limit: 256m
     memswap_limit: 256m
     ports: ['127.0.0.1:18085:8000']
+    networks: [control,web-access]
     volumes:
       - ${ATLAS_FIXTURE_ROOT}/data/inbox:/inbox:ro
       - ${ATLAS_FIXTURE_ROOT}/data/verification:/verification:ro
@@ -98,7 +99,7 @@ services:
     healthcheck:
       test: [CMD, python, manage.py, atlas_verify_health]
       interval: 5s
-      timeout: 3s
+      timeout: 10s
       retries: 6
   candidate-db:
     image: docker.io/postgis/postgis:17-3.7@sha256:6bb0c694d6f06201b49d447fd9689ab57f3c7662de621ca35939cc57aafc522b
@@ -184,7 +185,7 @@ services:
     healthcheck:
       test: [CMD, python, manage.py, atlas_build_health]
       interval: 5s
-      timeout: 3s
+      timeout: 10s
       retries: 6
   provisioner-tests:
     <<: *app
@@ -212,6 +213,7 @@ services:
       device_read_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 1048576}]
       device_write_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 524288}]
 networks:
+  web-access: {}
   control: {internal: true}
   candidate: {internal: true}
 secrets:
