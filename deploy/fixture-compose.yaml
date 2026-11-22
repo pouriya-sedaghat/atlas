@@ -1,0 +1,224 @@
+# Isolated fixture pilot only. These mounts must never name a historical root.
+name: atlas-phase1c-fixture
+x-app: &app
+  image: atlas-phase1c-fixture-intake:local
+  build: ..
+  init: true
+  restart: unless-stopped
+  environment: &environment
+    POSTGRES_DB: atlas_fixture
+    POSTGRES_HOST: db
+    POSTGRES_USER: atlas_app
+    POSTGRES_PASSWORD_FILE: /run/secrets/postgres_app_password
+    DJANGO_SECRET_KEY_FILE: /run/secrets/django_secret_key
+    ATLAS_INBOX: /inbox
+    ATLAS_VERIFICATION_ROOT: /verification
+    ATLAS_BUILD_ROOT: /build
+    ATLAS_BUILD_FIXTURE_MODE: '1'
+    ATLAS_VERIFICATION_ATTEMPT_BYTES: '16777216'
+    ATLAS_VERIFICATION_ROOT_BYTES: '67108864'
+    ATLAS_VERIFICATION_TIMEOUT: '300'
+  secrets: [postgres_app_password, django_secret_key]
+  networks: [control]
+  depends_on:
+    db: {condition: service_healthy}
+services:
+  db:
+    image: docker.io/library/postgres:17.12-bookworm@sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536
+    restart: unless-stopped
+    cpus: 0.25
+    mem_limit: 384m
+    memswap_limit: 384m
+    environment:
+      POSTGRES_DB: atlas_fixture
+      POSTGRES_USER: atlas_bootstrap
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_bootstrap_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    secrets: [postgres_app_password,postgres_bootstrap_password,postgres_provisioner_password]
+    networks: [control]
+    volumes:
+      - ${ATLAS_FIXTURE_ROOT:?set isolated fixture root}/data/postgres:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/10-atlas.sh:ro
+      - ./init-fixture-control.sh:/docker-entrypoint-initdb.d/20-fixture.sh:ro
+    blkio_config:
+      device_read_bps: [{path: '${ATLAS_PHYSICAL_DEVICE:?set physical device}', rate: 1048576}]
+      device_write_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 524288}]
+    healthcheck:
+      test: [CMD-SHELL, 'PGPASSWORD="$$(cat /run/secrets/postgres_app_password)" psql --no-psqlrc -h 127.0.0.1 -U atlas_app -d atlas_fixture -Atqc "SELECT 1"']
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  web:
+    <<: *app
+    cpus: 0.25
+    mem_limit: 256m
+    memswap_limit: 256m
+    ports: ['127.0.0.1:18085:8000']
+    volumes:
+      - ${ATLAS_FIXTURE_ROOT}/data/inbox:/inbox:ro
+      - ${ATLAS_FIXTURE_ROOT}/data/verification:/verification:ro
+      - ${ATLAS_FIXTURE_ROOT}/data/build:/build:ro
+    blkio_config:
+      device_read_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 1048576}]
+      device_write_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 524288}]
+    healthcheck:
+      test: [CMD, python, -c, 'from urllib.request import urlopen; raise SystemExit(urlopen("http://127.0.0.1:8000/health/",timeout=2).status!=200)']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  worker:
+    <<: *app
+    command: [python, manage.py, atlas_worker]
+    cpus: 0.25
+    mem_limit: 256m
+    memswap_limit: 256m
+    volumes: ['${ATLAS_FIXTURE_ROOT}/data/inbox:/inbox']
+    blkio_config:
+      device_read_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 1048576}]
+      device_write_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 524288}]
+    healthcheck:
+      test: [CMD, python, manage.py, atlas_worker_health]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+  verifier:
+    <<: *app
+    command: [python, manage.py, atlas_verify_worker]
+    user: '10002:10002'
+    group_add: ['10001']
+    cpus: 0.5
+    mem_limit: 512m
+    memswap_limit: 512m
+    volumes:
+      - ${ATLAS_FIXTURE_ROOT}/data/inbox:/inbox:ro
+      - ${ATLAS_FIXTURE_ROOT}/data/verification:/verification
+    blkio_config:
+      device_read_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 4194304}]
+      device_write_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 2097152}]
+    healthcheck:
+      test: [CMD, python, manage.py, atlas_verify_health]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+  candidate-db:
+    image: docker.io/postgis/postgis:17-3.7@sha256:6bb0c694d6f06201b49d447fd9689ab57f3c7662de621ca35939cc57aafc522b
+    restart: unless-stopped
+    cpus: 1
+    mem_limit: 1536m
+    memswap_limit: 1536m
+    environment:
+      POSTGRES_USER: atlas_candidate_admin
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/candidate_admin_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    secrets: [candidate_admin_password]
+    networks: [candidate]
+    volumes: ['${ATLAS_FIXTURE_ROOT}/data/candidate-postgres:/var/lib/postgresql/data']
+    command: [postgres, -c, shared_buffers=256MB, -c, work_mem=8MB, -c, maintenance_work_mem=128MB,
+      -c, max_connections=16, -c, max_parallel_workers_per_gather=0, -c, max_parallel_maintenance_workers=0,
+      -c, max_wal_size=1GB, -c, min_wal_size=80MB, -c, temp_file_limit=512MB,
+      -c, statement_timeout=30s, -c, lock_timeout=3s, -c, idle_in_transaction_session_timeout=30s,
+      -c, fsync=on, -c, synchronous_commit=on, -c, full_page_writes=on]
+    blkio_config:
+      device_read_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 8388608}]
+      device_write_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 4194304}]
+    healthcheck:
+      test: [CMD, pg_isready, -U, atlas_candidate_admin, -d, postgres]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+  provisioner:
+    <<: *app
+    command: [python, manage.py, atlas_build_provisioner]
+    user: '999:999'
+    cpus: 0.25
+    mem_limit: 256m
+    memswap_limit: 256m
+    environment:
+      <<: *environment
+      POSTGRES_USER: atlas_build_provisioner
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_provisioner_password
+      ATLAS_CANDIDATE_HOST: candidate-db
+      ATLAS_CANDIDATE_DATA: /candidate-data
+      ATLAS_CANDIDATE_ADMIN_PASSWORD_FILE: /run/secrets/candidate_admin_password
+      ATLAS_CANDIDATE_CREDENTIAL_KEY_FILE: /run/secrets/candidate_credential_key
+      ATLAS_PROVISIONER_SECRET_FILE: /run/secrets/provisioner_secret
+    secrets: [postgres_provisioner_password,django_secret_key,candidate_admin_password,candidate_credential_key,provisioner_secret]
+    networks: [control,candidate]
+    volumes: ['${ATLAS_FIXTURE_ROOT}/data/candidate-postgres:/candidate-data:ro']
+    depends_on:
+      db: {condition: service_healthy}
+      candidate-db: {condition: service_healthy}
+    blkio_config:
+      device_read_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 1048576}]
+      device_write_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 524288}]
+    healthcheck:
+      test: [CMD, python, -c, 'from urllib.request import urlopen; raise SystemExit(urlopen("http://127.0.0.1:8010/health/",timeout=2).status!=200)']
+      interval: 5s
+      timeout: 3s
+      retries: 6
+  builder:
+    <<: *app
+    command: [python, manage.py, atlas_build_worker]
+    user: '10003:10003'
+    group_add: ['10001']
+    cpus: 0.5
+    mem_limit: 1024m
+    memswap_limit: 1024m
+    environment:
+      <<: *environment
+      ATLAS_PROVISIONER_URL: http://provisioner:8010
+      ATLAS_PROVISIONER_SECRET_FILE: /run/secrets/provisioner_secret
+    secrets: [postgres_app_password,django_secret_key,provisioner_secret]
+    networks: [control,candidate]
+    volumes:
+      - ${ATLAS_FIXTURE_ROOT}/data/inbox:/inbox:ro
+      - ${ATLAS_FIXTURE_ROOT}/data/verification:/verification:ro
+      - ${ATLAS_FIXTURE_ROOT}/data/build:/build
+    depends_on:
+      db: {condition: service_healthy}
+      provisioner: {condition: service_healthy}
+    blkio_config:
+      device_read_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 4194304}]
+      device_write_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 2097152}]
+    healthcheck:
+      test: [CMD, python, manage.py, atlas_build_health]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+  provisioner-tests:
+    <<: *app
+    profiles: [tests]
+    group_add: ['10001']
+    command: [python, manage.py, test, --keepdb, --noinput]
+    user: '999:999'
+    cpus: 0.25
+    mem_limit: 256m
+    memswap_limit: 256m
+    environment:
+      <<: *environment
+      ATLAS_PROVISIONER_TESTS: '1'
+      ATLAS_CANDIDATE_HOST: candidate-db
+      ATLAS_CANDIDATE_DATA: /candidate-data
+      ATLAS_CANDIDATE_ADMIN_PASSWORD_FILE: /run/secrets/candidate_admin_password
+      ATLAS_CANDIDATE_CREDENTIAL_KEY_FILE: /run/secrets/candidate_credential_key
+      ATLAS_PROVISIONER_SECRET_FILE: /run/secrets/provisioner_secret
+    secrets: [postgres_app_password,django_secret_key,candidate_admin_password,candidate_credential_key,provisioner_secret]
+    networks: [control,candidate]
+    volumes:
+      - ${ATLAS_FIXTURE_ROOT}/data/candidate-postgres:/candidate-data:ro
+      - ${ATLAS_FIXTURE_ROOT}/data/build-tests:/build-tests
+    blkio_config:
+      device_read_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 1048576}]
+      device_write_bps: [{path: '${ATLAS_PHYSICAL_DEVICE}', rate: 524288}]
+networks:
+  control: {internal: true}
+  candidate: {internal: true}
+secrets:
+  postgres_app_password: {file: '${ATLAS_FIXTURE_ROOT}/secrets/postgres_app_password'}
+  postgres_bootstrap_password: {file: '${ATLAS_FIXTURE_ROOT}/secrets/postgres_bootstrap_password'}
+  postgres_provisioner_password: {file: '${ATLAS_FIXTURE_ROOT}/secrets/postgres_provisioner_password'}
+  django_secret_key: {file: '${ATLAS_FIXTURE_ROOT}/secrets/django_secret_key'}
+  candidate_admin_password: {file: '${ATLAS_FIXTURE_ROOT}/secrets/candidate_admin_password'}
+  provisioner_secret: {file: '${ATLAS_FIXTURE_ROOT}/secrets/provisioner_secret'}
+  candidate_credential_key: {file: '${ATLAS_FIXTURE_ROOT}/secrets/candidate_credential_key'}

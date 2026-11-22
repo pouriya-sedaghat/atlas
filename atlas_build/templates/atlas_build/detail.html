@@ -1,0 +1,22 @@
+{% extends "atlas_intake/base.html" %}
+{% block title %}Fixture build · Atlas{% endblock %}
+{% block main %}
+<nav class="breadcrumb"><a href="{% url 'build:index' %}">Fixture candidates</a> / {{ intent.pk }}</nav>
+<h1>Fixture build</h1><p><code>{{ intent.pk }}</code> · {{ intent.status }} · Request {{ intent.request_order }} · {{ intent.bundle_date }} ({{ intent.zone }})</p>
+{% if intent.error %}<p class="notice">{{ intent.error }}</p>{% endif %}
+<details><summary>Frozen coverage</summary><pre>{{ coverage }}</pre></details>
+{% for item in executions %}
+<section class="card"><h2>Generation {{ item.record.generation }} · {{ item.candidate.status }}</h2>
+<p>Candidate <code>{{ item.candidate.pk }}</code> · {{ item.record.status }}{% if item.candidate.revoked_at %} · Eligibility revoked {{ item.candidate.revoked_at|date:"c" }}{% endif %}</p>
+<details open><summary>Progress and resources</summary><pre>{{ item.progress }}</pre></details>
+<details><summary>Database identity</summary><pre>{{ item.identity }}</pre></details>
+<details><summary>Execution evidence</summary><pre>{{ item.report }}</pre></details>
+</section>{% endfor %}
+<section class="card"><h2>Operator actions</h2><p>Each action requires a reason. Cleanup applies only to stopped, owned, never-READY resources; publication resume preserves the frozen database and exact bundle intent.</p>
+<form method="post">{% csrf_token %}<label>Reason <input name="reason" required maxlength="2000"></label>
+<button formaction="{% url 'build:action' intent.pk 'cancel' %}">Cancel</button>
+<button formaction="{% url 'build:action' intent.pk 'retry' %}">Retry as a new generation</button>
+<button formaction="{% url 'build:action' intent.pk 'resume' %}">Resume publication</button>
+<button formaction="{% url 'build:action' intent.pk 'revalidate' %}">Revalidate READY eligibility</button>
+<button formaction="{% url 'build:action' intent.pk 'cleanup' %}">Request early cleanup</button></form></section>
+{% endblock %}
