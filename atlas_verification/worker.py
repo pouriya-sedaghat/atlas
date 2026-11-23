@@ -25,6 +25,7 @@ from .models import VerificationAttempt, VerificationExecution, VerificationHeal
 from .storage import hash_file, inventory, write_json, safe_open
 from .manifest import validate_manifest
 from .resources import CgroupObservation
+from .diagnostics import diagnostic_text
 
 
 LEASE = timedelta(seconds=30)
@@ -75,10 +76,12 @@ class VerificationWorker:
             except FileNotFoundError:
                 staged = 0
             intake += max(0,row.reserved_bytes-staged)
+        from atlas_build.capacity import outstanding_build_bytes
+        build_remaining = outstanding_build_bytes(self.root)
         cap = settings.ATLAS_VERIFICATION_ATTEMPT_BYTES
         if (
             usage + outstanding + cap > settings.ATLAS_VERIFICATION_ROOT_BYTES
-            or shutil.disk_usage(self.root).free - outstanding - intake - cap < settings.ATLAS_LIMITS["free"]
+            or shutil.disk_usage(self.root).free - outstanding - intake - build_remaining - cap < settings.ATLAS_LIMITS["free"]
         ):
             self.finish_failure(attempt,"operational_failed","Verification storage reservation is unavailable.")
             return None
@@ -98,7 +101,7 @@ class VerificationWorker:
     def finish_failure(attempt,status,message,report=None):
         now = timezone.now()
         attempt.status = status
-        attempt.error = message[:2000]
+        attempt.error = diagnostic_text(message, 2000)
         if report is not None:
             attempt.summary = report
         elif not attempt.intended:
@@ -112,7 +115,7 @@ class VerificationWorker:
             status=status,finished_at=now,report=execution_report,
         )
         audit("verification.failed","verifier",attempt.run,verification=str(attempt.pk),
-              generation=attempt.generation,status=status,error=message[:500])
+              generation=attempt.generation,status=status,error=diagnostic_text(message, 500))
 
     @transaction.atomic
     def renew(self, attempt_id,generation,progress):
@@ -414,6 +417,8 @@ class VerificationWorker:
         attempt.executions.filter(generation=attempt.generation).update(
             status=attempt.status,finished_at=attempt.finished_at,report=attempt.summary,
         )
+        from atlas_build.control import publication_receipt
+        publication_receipt(attempt)
         audit("verification.completed","verifier",attempt.run,verification=str(attempt.pk),
               manifest_sha256=attempt.manifest_sha256,build_eligible=attempt.build_eligible)
         return True

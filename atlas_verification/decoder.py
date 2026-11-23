@@ -462,6 +462,8 @@ def scan_pbf(input_path: Path, output_dir: Path, progress=lambda update: None) -
             except UnicodeDecodeError as exc:
                 raise DecoderError("invalid_text_encoding", "String table contains invalid UTF-8") from exc
             require(strings and strings[0] == "", "string_table_zero", "String table entry zero must be the empty string")
+            if any("\0" in value for value in strings):
+                result["osmium_scalar_presentation"] = True
             data_blocks += 1
             block_record = {"schema_version": 1, "block": block_number, "encoding": encoding, "raw_size": len(raw), "missing": []}
             for field in ("granularity", "date_granularity", "lat_offset", "lon_offset"):

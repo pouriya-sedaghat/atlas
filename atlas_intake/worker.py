@@ -270,6 +270,8 @@ class Worker:
             for reservation in VerificationAttempt.objects.filter(reserved_bytes__gt=0).only("reserved_bytes"):
                 verifier_remaining += reservation.reserved_bytes
         projected = outstanding + allocated(budget)
+        from atlas_build.capacity import outstanding_build_bytes
+        free -= outstanding_build_bytes(self.root)
         free -= verifier_remaining
         if usage + projected > run.limits["inbox"] or free - projected < run.limits["free"]:
             raise ProviderError("disk_pressure", "Inbox budget or filesystem free-space reserve would be exceeded.",

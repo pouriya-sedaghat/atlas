@@ -49,11 +49,16 @@ def frozen_inputs(run):
             "received_at": artifact.finished_at.isoformat() if artifact.finished_at else None,
             "http_last_modified": artifact.http_last_modified,
         })
-    return {
+    result = {
         "run_id": str(run.pk), "catalog_digest": run.catalog_id,
         "retrieval_local_date": run.local_date.isoformat(), "zone": run.zone,
         "selected_pbfs": sorted(run.selection), "regions": sorted(regions), "artifacts": artifacts,
     }
+    from atlas_build.control import fixture_binding
+    binding = fixture_binding(run.pk)
+    if binding:
+        result["fixture"] = binding
+    return result
 
 
 @transaction.atomic
@@ -133,15 +138,18 @@ def get_handoff(attempt_id, verify_outputs=True):
     if verify_outputs:
         root = Path(settings.ATLAS_VERIFICATION_ROOT)
         for output in attempt.intended.get("files", []):
-            length, digest = hash_file(root, output["path"])
+            length, digest = hash_file(root, output["path"], expected_size=output["size"])
             if length != output["size"] or digest != output["sha256"]:
                 raise ValidationError("A registered verification output is missing or has changed.")
     # Recheck after potentially long output reads, so a concurrent invalidation
     # cannot be hidden by the earlier eligibility check.
     assert_current(attempt)
-    return {
+    result = {
         "run_id": str(attempt.run_id), "verification_id": str(attempt.pk),
         "manifest_schema_version": 1, "policy_version": attempt.policy_version,
         "manifest_path": attempt.manifest_path, "manifest_sha256": attempt.manifest_sha256,
         "build_eligible": attempt.build_eligible and manifest.get("build_eligible") is True,
     }
+    if manifest.get("fixture"):
+        result["fixture"] = manifest["fixture"]
+    return result

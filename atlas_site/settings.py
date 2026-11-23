@@ -33,7 +33,7 @@ WSGI_APPLICATION = "atlas_site.wsgi.application"
 
 INSTALLED_APPS = [
     "django.contrib.auth", "django.contrib.contenttypes", "django.contrib.sessions",
-    "django.contrib.messages", "django.contrib.staticfiles", "atlas_intake", "atlas_verification",
+    "django.contrib.messages", "django.contrib.staticfiles", "atlas_intake", "atlas_verification", "atlas_build",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -104,3 +104,7 @@ if ATLAS_VERIFICATION_ATTEMPT_BYTES > 20 * GIB or ATLAS_VERIFICATION_ROOT_BYTES 
 
 if not 0 < ATLAS_VERIFICATION_TIMEOUT <= 3600:
     raise ImproperlyConfigured("Verification timeout exceeds the approved one-hour execution cap.")
+
+# Fixture admission is explicit, durable and additionally bound to the QA DB.
+ATLAS_BUILD_FIXTURE_MODE = os.environ.get("ATLAS_BUILD_FIXTURE_MODE") == "1"
+ATLAS_BUILD_ROOT = Path(os.environ.get("ATLAS_BUILD_ROOT", "/build"))

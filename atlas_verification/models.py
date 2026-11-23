@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from django.db import models
+from .fields import LosslessJSONField
 
 
 class VerificationAttempt(models.Model):
@@ -26,8 +27,8 @@ class VerificationAttempt(models.Model):
     policy_version = models.CharField(max_length=64, default="atlas-input-v1")
     generation = models.PositiveIntegerField(default=0)
     lease_until = models.DateTimeField(null=True)
-    progress = models.JSONField(default=dict)
-    summary = models.JSONField(default=dict)
+    progress = LosslessJSONField(default=dict)
+    summary = LosslessJSONField(default=dict)
     error = models.TextField(blank=True)
     reserved_bytes = models.PositiveBigIntegerField(default=0)
     successful = models.BooleanField(default=False)
@@ -51,7 +52,7 @@ class VerificationExecution(models.Model):
     started_at = models.DateTimeField()
     finished_at = models.DateTimeField(null=True)
     status = models.CharField(max_length=24, default="running")
-    report = models.JSONField(default=dict)
+    report = LosslessJSONField(default=dict)
 
     class Meta:
         constraints = [

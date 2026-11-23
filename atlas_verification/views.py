@@ -16,6 +16,7 @@ from atlas_intake.views import operator
 from . import control
 from .models import VerificationAttempt
 from .manifest import validate_manifest
+from .diagnostics import diagnostic_json
 from .storage import read_checked
 
 
@@ -97,17 +98,20 @@ def _render_attempt(request, attempt, status=200):
     for record in attempt.summary.get("regions", []):
         match = re.fullmatch(r"regions/([a-f0-9]{64})/manifest\.json", record.get("path", ""))
         regional.append({**record, "key": match[1] if match else ""})
+    executions = list(attempt.executions.order_by("-generation"))
+    for execution in executions:
+        execution.report_diagnostic = diagnostic_json(execution.report)
     return render(request, "atlas_verification/attempt.html", {
         "attempt": attempt,
         "snapshot": attempt.snapshot,
-        "progress_json": json.dumps(attempt.progress, indent=2, ensure_ascii=False),
-        "summary_json": json.dumps(attempt.summary, indent=2, ensure_ascii=False),
-        "tools_json": json.dumps(attempt.tools, indent=2, ensure_ascii=False),
+        "progress_json": diagnostic_json(attempt.progress),
+        "summary_json": diagnostic_json(attempt.summary),
+        "tools_json": diagnostic_json(attempt.tools),
         "manifest": manifest,
-        "manifest_json": json.dumps(manifest, indent=2, ensure_ascii=False) if manifest else "",
+        "manifest_json": diagnostic_json(manifest) if manifest else "",
         "manifest_error": manifest_error,
         "handoff_eligible": bool(manifest and attempt.build_eligible and manifest.get("build_eligible") is True),
-        "executions": attempt.executions.order_by("-generation"),
+        "executions": executions,
         "regional_results": regional,
     }, status=status)
 
@@ -157,5 +161,5 @@ def region_manifest(request, attempt_id, region_key):
         return JsonResponse({"errors": _errors(error)}, status=409)
     return render(request, "atlas_verification/region.html", {
         "attempt": attempt, "region": report, "manifest_sha256": entry["sha256"],
-        "report_json": json.dumps(report, indent=2, ensure_ascii=False),
+        "report_json": diagnostic_json(report),
     })

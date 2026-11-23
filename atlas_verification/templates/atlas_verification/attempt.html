@@ -17,7 +17,7 @@
 </section>
 <section class="card"><h2>Progress and outcomes</h2><pre>{{ progress_json }}</pre><h3>Completed and incomplete checks</h3><pre>{{ summary_json }}</pre>
     <details><summary>Tool versions</summary><pre>{{ tools_json }}</pre></details>
-    <h3>Execution history</h3><ul class="activity">{% for execution in executions %}<li>Generation {{ execution.generation }} · {{ execution.status }} · {{ execution.started_at|date:"Y-m-d H:i:s e" }}{% if execution.finished_at %} to {{ execution.finished_at|date:"Y-m-d H:i:s e" }}{% endif %}<details><summary>Generation report</summary><pre>{{ execution.report }}</pre></details></li>{% empty %}<li>Awaiting the verifier.</li>{% endfor %}</ul>
+    <h3>Execution history</h3><ul class="activity">{% for execution in executions %}<li>Generation {{ execution.generation }} · {{ execution.status }} · {{ execution.started_at|date:"Y-m-d H:i:s e" }}{% if execution.finished_at %} to {{ execution.finished_at|date:"Y-m-d H:i:s e" }}{% endif %}<details><summary>Generation report</summary><pre>{{ execution.report_diagnostic }}</pre></details></li>{% empty %}<li>Awaiting the verifier.</li>{% endfor %}</ul>
 </section>
 {% if regional_results %}<section class="card"><h2>Regional outcomes</h2><div class="table-scroll"><table class="files-table">
     <thead><tr><th scope="col">Region</th><th scope="col">Completed input checks</th><th scope="col">Report</th></tr></thead><tbody>

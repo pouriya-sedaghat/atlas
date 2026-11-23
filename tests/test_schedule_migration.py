@@ -1,5 +1,6 @@
 from datetime import UTC, date, datetime, time, timedelta
 from tempfile import TemporaryDirectory
+from uuid import uuid4
 
 from django.db import IntegrityError, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
@@ -20,8 +21,18 @@ class ScheduleMigrationTests(TransactionTestCase):
         return executor.loader.project_state(targets).apps
 
     def setUp(self):
+        # Exercise old intake upgrade in its own disposable schema. Rolling the
+        # shared latest database backward would cross restore-only migrations.
+        schema = "schedule_upgrade_" + uuid4().hex
+        with connection.cursor() as cursor:
+            cursor.execute(f'CREATE SCHEMA "{schema}"')
+            cursor.execute(f'SET search_path TO "{schema}"')
+        def remove_schema():
+            with connection.cursor() as cursor:
+                cursor.execute("SET search_path TO public")
+                cursor.execute(f'DROP SCHEMA "{schema}" CASCADE')
+        self.addCleanup(remove_schema)
         latest = MigrationExecutor(connection).loader.graph.leaf_nodes()
-        self.addCleanup(self.migrate, latest)
         old_apps = self.migrate(self.baseline)
         OldArtifact = old_apps.get_model("atlas_intake", "Artifact")
         OldCatalog = old_apps.get_model("atlas_intake", "CatalogRevision")

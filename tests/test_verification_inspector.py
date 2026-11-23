@@ -22,7 +22,7 @@ class OsmiumInspectorTests(TestCase):
         self.source=self.directory/"stable.pbf"
         self.source.write_bytes(b"stable spool identity")
 
-    def inspect(self, responses, expected=None):
+    def inspect(self, responses, expected=None, scalar=False):
         # Only the native process is replaced: execute.py still owns real files,
         # parses responses, compares counts, and creates retained diagnostics.
         responses=iter(responses)
@@ -37,7 +37,7 @@ class OsmiumInspectorTests(TestCase):
             stderr.write(err)
             return subprocess.CompletedProcess(command,code)
         with patch("atlas_verification.execute.subprocess.run",side_effect=invoke):
-            return osmium_check(self.source,expected or {"nodes":0,"ways":0,"relations":0},self.directory)
+            return osmium_check(self.source,expected or {"nodes":0,"ways":0,"relations":0},self.directory,**({"scalar_presentation":True} if scalar else {}))
 
     def test_known_presentation_error_reconciles_all_counts_and_retains_diagnostics(self):
         result=self.inspect([(1,b"",NO_BOUNDS),(0,b"0\n",b""),(0,b"0\n",b""),(0,b"2\n",b"")],
@@ -62,6 +62,7 @@ class OsmiumInspectorTests(TestCase):
 
     def test_general_processing_errors_cannot_select_count_adapter(self):
         for code,stdout,stderr,expected in (
+            (-11,b"",b"",{"nodes":1,"ways":0,"relations":0}),
             (1,b"",b"PBF error: malformed block\n",{"nodes":0,"ways":0,"relations":0}),
             (1,b"",b"Invalid location\n",{"nodes":0,"ways":0,"relations":0}),
             (1,b"",NO_BOUNDS+b"PBF error: malformed block\n",{"nodes":0,"ways":0,"relations":0}),
@@ -108,3 +109,20 @@ class OsmiumInspectorTests(TestCase):
         with self.assertRaises((ValueError,RuntimeError)):
             self.inspect([(0,b"{",b"")])
         self.assertEqual(len(self.invocations),1)
+
+    def test_confirmed_source_string_case_uses_three_scalar_counts_without_json(self):
+        result=self.inspect([(0,b"2\n",b""),(0,b"1\n",b""),(0,b"3\n",b"")],
+                            {"nodes":2,"ways":1,"relations":3},scalar=True)
+        self.assertEqual(result["counts"],{"nodes":2,"ways":1,"relations":3})
+        self.assertEqual(len(self.invocations),3)
+        self.assertTrue(all("--json" not in c for c in self.invocations))
+        self.assertEqual(result["adapter"],"osmium-1.18-source-string-counts-v1")
+        self.assertEqual(len(result["outputs"]),6)
+
+    def test_source_string_count_failure_and_disagreement_remain_blocking(self):
+        for responses,error in [([(0,b"1\n",b"")]*3,ValidationError),
+                                ([(-11,b"",b"")],RuntimeError)]:
+            with TemporaryDirectory() as temporary:
+                self.directory=Path(temporary)
+                with self.assertRaises(error):
+                    self.inspect(responses,{"nodes":2,"ways":0,"relations":0},scalar=True)

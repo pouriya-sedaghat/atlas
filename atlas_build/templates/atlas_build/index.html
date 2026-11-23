@@ -1,0 +1,10 @@
+{% extends "atlas_intake/base.html" %}
+{% block title %}Fixture candidates · Atlas{% endblock %}
+{% block main %}
+<nav class="breadcrumb"><a href="{% url 'atlas_intake:dashboard' %}">Retrievals</a> / <a href="{% url 'verification:index' %}">Verification</a> / Fixture candidates</nav>
+<h1>Fixture candidates</h1>
+<p class="notice">Live admission is disabled. These candidates are isolated QA fixtures. READY does not activate a release.</p>
+<ul class="activity">{% for intent in page %}<li><a href="{% url 'build:detail' intent.pk %}"><code>{{ intent.pk }}</code></a> · {{ intent.status }} · Request {{ intent.request_order }} · {{ intent.requested_at|date:"c" }}</li>{% empty %}<li>No opted-in fixture build requests.</li>{% endfor %}</ul>
+{% if page.has_previous %}<a href="?page={{ page.previous_page_number }}">Newer</a>{% endif %}
+{% if page.has_next %}<a href="?page={{ page.next_page_number }}">Older</a>{% endif %}
+{% endblock %}

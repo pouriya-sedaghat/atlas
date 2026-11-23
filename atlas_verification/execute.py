@@ -42,7 +42,12 @@ def tool_versions():
     }
 
 
-def osmium_check(source, expected, directory):
+def osmium_check(source, expected, directory, *, scalar_presentation=False):
+    if scalar_presentation:
+        # Source decoder positively identified NUL in the PBF string table.
+        # Native scalar full scans preserve count reconciliation while avoiding
+        # the pinned native JSON renderer, which can fault on these strings.
+        return osmium_no_bounds_counts(source, expected, directory, None)
     output_path = directory/"osmium.json"
     error_path = directory/"osmium.stderr"
     command = ["osmium", "fileinfo", "--input-format=pbf", "--extended", "--json", "--no-progress", str(source)]
@@ -95,7 +100,8 @@ def osmium_no_bounds_counts(source, expected, directory, json_command):
                             "stdout_path":output_path.name,"stderr_path":error_path.name})
         return raw[0]
 
-    record(json_command, 1, directory/"osmium-json.stdout", directory/"osmium-json.stderr")
+    if json_command is not None:
+        record(json_command, 1, directory/"osmium-json.stdout", directory/"osmium-json.stderr")
     counts = {}
     for kind in OSMIUM_KINDS:
         command = ["osmium", "fileinfo", "--input-format=pbf", "--extended",
@@ -114,8 +120,8 @@ def osmium_no_bounds_counts(source, expected, directory, json_command):
                 or int(value) > 2**64-1):
             raise RuntimeError("Mandatory Osmium returned an invalid bounded decimal count.")
         counts[kind] = int(value)
-    inspection = {"adapter":OSMIUM_COUNT_ADAPTER,"counts":counts,"bounds":None,
-                  "bounds_status":"absent_no_nodes","invocations":invocations,"outputs":outputs}
+    inspection = {"adapter":OSMIUM_COUNT_ADAPTER if json_command is not None else "osmium-1.18-source-string-counts-v1", "counts":counts,"bounds":None,
+                  "bounds_status":"absent_no_nodes" if json_command is not None else "not_requested_source_string_presentation","invocations":invocations,"outputs":outputs}
     if any(counts[kind] != int(expected[kind]) for kind in OSMIUM_KINDS):
         raise ValidationError("Osmium and the authoritative decoder disagree on object counts.",
                               params={"osmium":inspection})
@@ -167,6 +173,8 @@ def run(snapshot, directory, progress):
             "schema_version":1,"policy_version":POLICY_VERSION,"region_id":region,
             "input_fingerprint":None,"inputs":[],"checks":{},"outputs":[],
         })
+        if snapshot.get("fixture"):
+            report["fixture"] = snapshot["fixture"]
         report["inputs"].append(artifact)
         if artifact["exception"]:
             report["checks"][artifact["kind"]] = {"status":"excepted","exception":artifact["exception"]}
@@ -189,7 +197,8 @@ def run(snapshot, directory, progress):
                 if check["status"] in {"verified","verified_with_warnings"}:
                     progress({"phase":"osmium_reconciliation","region":region})
                     try:
-                        check["osmium"] = osmium_check(local, check["counts"], folder)
+                        check["osmium"] = osmium_check(local, check["counts"], folder,
+                            scalar_presentation=check.get("osmium_scalar_presentation", False))
                     except ValidationError as error:
                         check = {**check,"status":"input_invalid","reasons":[
                             *check.get("reasons",[]), {"code":"count_disagreement","message":str(error)}]}
@@ -255,6 +264,7 @@ def run(snapshot, directory, progress):
             counts[kind] += int(current.get(kind,0))
         nonempty = nonempty and sum(int(current.get(kind,0)) for kind in counts) > 0
     return {
+        **({"fixture":snapshot["fixture"]} if snapshot.get("fixture") else {}),
         "schema_version":1,"policy_version":POLICY_VERSION,"run_id":snapshot["run_id"],
         "catalog_digest":snapshot["catalog_digest"],"retrieval_local_date":snapshot["retrieval_local_date"],
         "zone":snapshot["zone"],"selected_pbfs":snapshot["selected_pbfs"],

@@ -43,12 +43,21 @@ def safe_open(root, relative):
         os.close(descriptor)
 
 
-def hash_file(root, relative):
+def hash_file(root, relative, *, expected_size=None):
     digest = hashlib.sha256()
     size = 0
     with safe_open(root, relative) as stream:
-        for chunk in iter(lambda: stream.read(1024**2), b""):
+        if expected_size is not None and (not isinstance(expected_size, int) or isinstance(expected_size, bool)
+                or expected_size < 0 or os.fstat(stream.fileno()).st_size != expected_size):
+            raise ValidationError("A registered verification output size has changed.")
+        while True:
+            limit = 1024**2 if expected_size is None else min(1024**2, expected_size-size+1)
+            chunk = stream.read(limit)
+            if not chunk:
+                break
             size += len(chunk)
+            if expected_size is not None and size > expected_size:
+                raise ValidationError("A registered verification output grew during hashing.")
             digest.update(chunk)
     return size, digest.hexdigest()
 

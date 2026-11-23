@@ -14,4 +14,4 @@ def health(request):
     return JsonResponse({"status": "ok"})
 
 
-urlpatterns = [path("health/", health), path("verification/", include("atlas_verification.urls")), path("", include("atlas_intake.urls"))]
+urlpatterns = [path("build/", include("atlas_build.urls")), path("health/", health), path("verification/", include("atlas_verification.urls")), path("", include("atlas_intake.urls"))]
